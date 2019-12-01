@@ -6,6 +6,7 @@
 */
 
 #include "x0_i0_position"
+#include "nwnx_util"
 
 const string ES_UTIL_DATA_OBJECT_TAG      = "ESDataObject_";
 const string ES_UTIL_EVENT_SYSTEM_LOG_TAG = "EventSystem";
@@ -17,16 +18,13 @@ object ES_Util_CreateDataObject(string sTag, int bDestroyExisting = TRUE);
 // Destroy a data object with sTag
 void ES_Util_DestroyDataObject(string sTag);
 // Get a data object with sTag
-// If it does not exist, a new one will be created
+// bCreateIfNotExists: if TRUE, create one if it does not exist.
 //
 // A data object is a waypoint that can be used to store local variables on
-object ES_Util_GetDataObject(string sTag);
+object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE);
 
 // Write an Event System message to the log
 void ES_Util_Log(string sSubSystem, string sMessage);
-
-// Get a the name of a function using sDecorator
-string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
 
 // Get a location fDistance ahead of oTarget
 location ES_Util_GetAheadLocation(object oTarget, float fDistance);
@@ -42,6 +40,20 @@ void ES_Util_RemoveAllEffectsWithTag(object oObject, string sTag);
 string ES_Util_LocationToString(location locLocation);
 // Convert a string to a location
 location ES_Util_StringToLocation(string sLocation);
+
+// Convenience wrapper for NWNX_Util_AddScript()
+string ES_Util_AddScript(string sFileName, string sInclude, string sScriptChunk);
+// Convenience wrapper for NWNX_Util_AddScript()
+string ES_Util_AddConditionalScript(string sFileName, string sInclude, string sScriptConditionalChunk);
+// Convenience wrapper for ExecuteScriptChunk()
+string ES_Util_ExecuteScriptChunk(string sInclude, string sScriptChunk, object oObject);
+
+int floor(float f);
+int ceil(float f);
+int round(float f);
+
+// Apply an effect to all players in a sphere
+void ES_Util_ApplyEffectToPlayersInSphere(object oCenter, float fRadius, effect eEffect, float fDuration = 0.0f);
 
 /**/
 
@@ -63,34 +75,21 @@ void ES_Util_DestroyDataObject(string sTag)
 
     if (GetIsObjectValid(oDataObject))
     {
+        DeleteLocalObject(GetModule(), ES_UTIL_DATA_OBJECT_TAG + sTag);
         DestroyObject(oDataObject);
     }
 }
 
-object ES_Util_GetDataObject(string sTag)
+object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE)
 {
     object oDataObject = GetLocalObject(GetModule(), ES_UTIL_DATA_OBJECT_TAG + sTag);
 
-    return GetIsObjectValid(oDataObject) ? oDataObject : ES_Util_CreateDataObject(sTag);
+    return GetIsObjectValid(oDataObject) ? oDataObject : bCreateIfNotExists ? ES_Util_CreateDataObject(sTag) : OBJECT_INVALID;
 }
 
 void ES_Util_Log(string sSubSystem, string sMessage)
 {
     WriteTimestampedLogEntry("[" + ES_UTIL_EVENT_SYSTEM_LOG_TAG + "] " + sSubSystem + ": " + sMessage);
-}
-
-string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void")
-{
-    int nDecoratorPosition = FindSubString(sScriptContents, "@" + sDecorator, 0);
-
-    if (nDecoratorPosition == -1)
-        return "";
-
-    int nFunctionTypeLength = GetStringLength(sFunctionType) + 1;
-    int nFunctionStart = FindSubString(sScriptContents, sFunctionType + " ", nDecoratorPosition);
-    int nFunctionEnd = FindSubString(sScriptContents, "(", nFunctionStart);
-
-    return GetSubString(sScriptContents, nFunctionStart + nFunctionTypeLength, nFunctionEnd - nFunctionStart - nFunctionTypeLength);
 }
 
 location ES_Util_GetAheadLocation(object oTarget, float fDistance)
@@ -183,15 +182,61 @@ location ES_Util_StringToLocation(string sLocation)
 
 
         if( GetIsObjectValid(oArea) )
-        {
             locLocation = Location(oArea, vPosition, fOrientation);
-        }
         else
-        {
             locLocation = GetStartingLocation();
-        }
     }
 
     return locLocation;
+}
+
+string ES_Util_AddScript(string sFileName, string sInclude, string sScriptChunk)
+{
+    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { " + sScriptChunk + " }";
+    return NWNX_Util_AddScript(sFileName, sScript);
+}
+
+string ES_Util_AddConditionalScript(string sFileName, string sInclude, string sScriptConditionalChunk)
+{
+    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "int StartingConditional() { return " + sScriptConditionalChunk + " }";
+    return NWNX_Util_AddScript(sFileName, sScript);
+}
+
+string ES_Util_ExecuteScriptChunk(string sInclude, string sScriptChunk, object oObject)
+{
+    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { " + sScriptChunk + " }";
+    return ExecuteScriptChunk(sScript, oObject, FALSE);
+}
+
+int floor(float f)
+{
+    return FloatToInt(f);
+}
+
+int ceil(float f)
+{
+    return FloatToInt(f + (IntToFloat(FloatToInt(f)) < f ? 1.0 : 0.0));
+}
+
+int round(float f)
+{
+    return FloatToInt(f + 0.5f);
+}
+
+void ES_Util_ApplyEffectToPlayersInSphere(object oCenter, float fRadius, effect eEffect, float fDuration = 0.0f)
+{
+    location locCenter = GetLocation(oCenter);
+
+    object oObject = GetFirstObjectInShape(SHAPE_SPHERE, fRadius, locCenter);
+
+    while (GetIsObjectValid(oObject))
+    {
+        if (GetIsPC(oObject))
+        {
+            ApplyEffectToObject(fDuration == 0.0f ? DURATION_TYPE_INSTANT : DURATION_TYPE_TEMPORARY, eEffect, oObject, fDuration);
+
+            oObject = GetNextObjectInShape(SHAPE_SPHERE, fRadius, locCenter);
+        }
+    }
 }
 
