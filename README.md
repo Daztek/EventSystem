@@ -19,6 +19,10 @@ Lastly, tried a subsystem and it's actually not to your liking? All you have to 
   - `NWNX_CORE_SHUTDOWN_SCRIPT=es_obj_e_2018`
   - `NWNX_UTIL_PRE_MODULE_START_SCRIPT_CHUNK="#include \"es_inc_core\" void main() { ES_Core_Init(); }"`
 
+## Docker Setup
+The only difference on setting up the system in Docker than in native Linux is on setting the `NWNX_UTIL_PRE_MODULE_START_SCRIPT_CHUNK` variable. It should be set up as follows:
+  - `NWNX_UTIL_PRE_MODULE_START_SCRIPT_CHUNK=#include "es_inc_core" void main() { ES_Core_Init(); }`
+
 ## How To Use
 1) Make sure you have enabled the required plugins and set the required environment variables listed above.
 2) Add the script files in the [Core](https://github.com/Daztek/EventSystem/tree/master/Core) folder to your module.
