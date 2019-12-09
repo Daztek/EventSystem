@@ -10,6 +10,9 @@
 #include "es_inc_core"
 #include "es_s_toolbox"
 #include "es_s_simdialog"
+#include "es_s_randomnpc"
+
+#include "nwnx_player"
 
 const string EXAMPLE_SYSTEM_TAG = "Example";
 
@@ -138,6 +141,21 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                         GiveXPToCreature(oPlayer, StringToInt(Get2DAString("exptable", "XP", GetHitDice(oPlayer))) - GetXP(oPlayer));
                         break;
                     case 5:
+                        NWNX_Player_SetRestAnimation(oPlayer, 32);
+                        break;
+                    case 6:
+                        NWNX_Player_SetObjectVisualTransformOverride(oPlayer, oPlayer, OBJECT_VISUAL_TRANSFORM_SCALE, 2.0f);
+                        break;
+                    case 7:
+                    {
+                        object oNPC = RandomNPC_GetCachedRandomNPC("RandomNPC", GetStartingLocation());
+
+                        DelayCommand(2.5f, PlayVoiceChat(VOICE_CHAT_HELLO, oNPC));
+                        AssignCommand(oNPC, ActionRandomWalk());
+
+                        break;
+                    }
+                    case 8:
                         SimpleDialog_EndConversation(oPlayer);
                         break;
                 }
@@ -221,6 +239,9 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                     SimpleDialog_AddOption(oConversation, "I'm thirsty! Show me your drinks?");
                     SimpleDialog_AddOption(oConversation, "Know any secrets..?");
                     SimpleDialog_AddOption(oConversation, "One level up, please!");
+                    SimpleDialog_AddOption(oConversation, "I'd like a different rest animation!");
+                    SimpleDialog_AddOption(oConversation, "I wish to be bigger!");
+                    SimpleDialog_AddOption(oConversation, "Spawn me a random NPC!");
                     SimpleDialog_AddOption(oConversation, "Oh, nothing, sorry...");
 
                 SimpleDialog_AddPage(oConversation, "Sure! What would you like?");
@@ -234,7 +255,6 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                     SimpleDialog_AddOption(oConversation, "Kill me anyway, you ...plant!");
                     SimpleDialog_AddOption(oConversation, "Err, forget I asked.");
                 /// ***
-
                 break;
             }
 

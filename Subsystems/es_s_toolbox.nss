@@ -104,6 +104,7 @@ void Toolbox_Init(string sEventHandlerScript)
 
         DestroyObject(oNormalPlaceable);
         DestroyObject(oInventoryPlaceable);
+
 }
 
 object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid)

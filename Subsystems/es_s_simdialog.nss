@@ -109,6 +109,9 @@ int SimpleDialog_GetCurrentPage(object oPlayer);
 void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConversationTag, int nStartingPage = 1, int bClearAllActions = FALSE);
 // End the player's current conversation, must be called during a SIMPLE_DIALOG_EVENT_ACTION_TAKEN event
 void SimpleDialog_EndConversation(object oPlayer);
+// Abort any conversations oObject is involved in
+// Should not be called in a conversation script
+void SimpleDialog_AbortConversation(object oObject);
 
 void SimpleDialog_SetListRange(object oPlayer, int nRange);
 int SimpleDialog_GetListRange(object oPlayer);
@@ -134,6 +137,9 @@ void SimpleDialog_Init(string sEventHandlerScript)
     ES_Util_AddScript("simdialog_at", "es_s_simdialog", "SimpleDialog_HandleActionTaken();");
     ES_Util_AddScript("simdialog_normal", "es_s_simdialog", "SimpleDialog_HandleConversationEnd(FALSE);");
     ES_Util_AddScript("simdialog_abort", "es_s_simdialog", "SimpleDialog_HandleConversationEnd(TRUE);");
+
+    if (!NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG))
+        ES_Util_Log(SIMPLE_DIALOG_SYSTEM_TAG, "* WARNING: Conversation file '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' not found, please add it to the module!");
 }
 
 int SimpleDialog_HandleStartingConditional()
@@ -351,9 +357,9 @@ void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConv
 {
     if (IsInConversation(oTarget))
     {
-        SendMessageToPC(oPlayer, "Someone else is currently interacting with '" + GetName(oTarget) + "'");
+        SendMessageToPCByStrRef(oPlayer, 6625);// Object is busy
         return;
-     }
+    }
 
     if (GetIsObjectValid(SimpleDialog_GetConversation(sConversationTag)))
     {
@@ -374,6 +380,12 @@ void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConv
 void SimpleDialog_EndConversation(object oPlayer)
 {
     SetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION, TRUE);
+}
+
+void SimpleDialog_AbortConversation(object oObject)
+{
+    if (!NWNX_Dialog_GetCurrentScriptType())
+        NWNX_Dialog_End(oObject);
 }
 
 /*

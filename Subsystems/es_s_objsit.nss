@@ -80,9 +80,9 @@ void ObjectSit_EventHandler(string sEventHandlerScript, string sEvent)
 
                 object oConversation = SimpleDialog_CreateConversation(OBJSIT_SYSTEM_TAG);
                 SimpleDialog_AddPage(oConversation, "Sitting Action Menu.", TRUE);
-                    SimpleDialog_AddOption(oConversation, "<StartAction>[Rotate clockwise]</Start>");
-                    SimpleDialog_AddOption(oConversation, "<StartAction>[Rotate counter-clockwise]</Start>");
-                    SimpleDialog_AddOption(oConversation, "<StartAction>[Do nothing]</Start>");
+                    SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Rotate clockwise]"));
+                    SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Rotate counter-clockwise]"));
+                    SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Do nothing]"));
 
                 break;
             }

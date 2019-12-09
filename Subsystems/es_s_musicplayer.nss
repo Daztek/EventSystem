@@ -14,6 +14,8 @@
 #include "es_s_toolbox"
 #include "es_s_simdialog"
 
+#include "nwnx_area"
+
 const string MUSICPLAYER_SYSTEM_TAG             = "MusicPlayer";
 const string MUSICPLAYER_WAYPOINT_TAG           = "MUSICPLAYER_SPAWN";
 
@@ -35,10 +37,7 @@ void MusicPlayer_LoadMusicTracks();
 void MusicPlayer_CreateConversation();
 void MusicPlayer_SpawnPlaceables(string sEventHandlerScript);
 
-void MusicPlayer_SetIsPlaying(object oMusicPlayer, int bPlaying);
-int MusicPlayer_GetIsPlaying(object oMusicPlayer);
 void MusicPlayer_PlaySoundAndApplySparks(object oMusicPlayer, string sSound);
-void MusicPlayer_ApplyBardSongEffect(object oMusicPlayer);
 int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF);
 void SimpleDialog_DisableMusicPlayer();
 void SimpleDialog_ApplyDisabledEffects(object oMusicPlayer);
@@ -71,17 +70,15 @@ void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
                 case 1:// Action - Play/Stop Music
                 {
                     object oArea = GetArea(oMusicPlayer);
-                    if (MusicPlayer_GetIsPlaying(oMusicPlayer))
+                    if (NWNX_Area_GetMusicIsPlaying(oArea))
                     {
                         MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_trapdisarm");
                         MusicBackgroundStop(oArea);
-                        MusicPlayer_SetIsPlaying(oMusicPlayer, FALSE);
                     }
                     else
                     {
                         MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_traparm");
                         MusicBackgroundPlay(oArea);
-                        MusicPlayer_SetIsPlaying(oMusicPlayer, TRUE);
                     }
                     break;
                 }
@@ -124,7 +121,6 @@ void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
                     MusicBackgroundChangeNight(oArea, nTrack);
                     MusicBackgroundChangeDay(oArea, nTrack);
                     MusicBackgroundPlay(oArea);
-                    MusicPlayer_SetIsPlaying(oMusicPlayer, TRUE);
 
                     SimpleDialog_SetCurrentPage(oPlayer, 1);
                     break;
@@ -168,7 +164,7 @@ void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
 
         if (nPage == 1)
         {
-            if (MusicPlayer_GetIsPlaying(oMusicPlayer))
+            if (NWNX_Area_GetMusicIsPlaying(GetArea(oMusicPlayer)))
                 SimpleDialog_SetOverrideText("The infernal gnomish contraption is playing music.\n\nCurrent track: " + sCurrentTrackName);
             else
                 SimpleDialog_SetOverrideText("The infernal gnomish contraption is silent.\n\nCurrent track: " + sCurrentTrackName);
@@ -196,7 +192,7 @@ void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
 
         if (nPage == 1 && nOption == 1)
         {
-            if (MusicPlayer_GetIsPlaying(oMusicPlayer))
+            if (NWNX_Area_GetMusicIsPlaying(GetArea(oMusicPlayer)))
                 SimpleDialog_SetOverrideText(SimpleDialog_Token_Action("[Stop music]"));
             else
                 SimpleDialog_SetOverrideText(SimpleDialog_Token_Action("[Play music]"));
@@ -353,7 +349,6 @@ void MusicPlayer_SpawnPlaceables(string sEventHandlerScript)
         NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, sEventHandlerScript, oMusicPlayer);
 
         SetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, MusicBackgroundGetDayTrack(GetArea(oMusicPlayer)));
-        MusicPlayer_SetIsPlaying(oMusicPlayer, TRUE);
 
         DestroyObject(oSpawnPoint);
 
@@ -361,31 +356,10 @@ void MusicPlayer_SpawnPlaceables(string sEventHandlerScript)
     }
 }
 
-void MusicPlayer_SetIsPlaying(object oMusicPlayer, int bPlaying)
-{
-    if (bPlaying)
-        MusicPlayer_ApplyBardSongEffect(oMusicPlayer);
-    else
-        ES_Util_RemoveAllEffectsWithTag(oMusicPlayer, MUSICPLAYER_SYSTEM_TAG);
-
-    SetLocalInt(oMusicPlayer, MUSICPLAYER_IS_PLAYING, bPlaying);
-}
-
-int MusicPlayer_GetIsPlaying(object oMusicPlayer)
-{
-    return GetLocalInt(oMusicPlayer, MUSICPLAYER_IS_PLAYING);
-}
-
 void MusicPlayer_PlaySoundAndApplySparks(object oMusicPlayer, string sSound)
 {
     PlaySound(sSound);
     ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_COM_BLOOD_SPARK_LARGE), oMusicPlayer);
-}
-
-void MusicPlayer_ApplyBardSongEffect(object oMusicPlayer)
-{
-    effect eVisual = TagEffect(ExtraordinaryEffect(EffectVisualEffect(VFX_DUR_BARD_SONG)), MUSICPLAYER_SYSTEM_TAG);
-    ApplyEffectToObject(DURATION_TYPE_PERMANENT, eVisual, oMusicPlayer);
 }
 
 int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF)
@@ -401,13 +375,14 @@ void SimpleDialog_DisableMusicPlayer()
     {
         SetLocalInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED, TRUE);
 
+        SimpleDialog_AbortConversation(oMusicPlayer);
+
         ApplyEffectToObject(DURATION_TYPE_TEMPORARY, EffectVisualEffect(VFX_DUR_GHOST_SMOKE), oMusicPlayer, MUSICPLAYER_DISABLED_DURATION);
         ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_FNF_FIREBALL), oMusicPlayer);
 
         ES_Util_ApplyEffectToPlayersInSphere(oMusicPlayer, 5.0f, EffectKnockdown(), 6.0f);
 
         MusicBackgroundStop(GetArea(oMusicPlayer));
-        MusicPlayer_SetIsPlaying(oMusicPlayer, FALSE);
 
         DelayCommand(2.5f, SimpleDialog_ApplyDisabledEffects(oMusicPlayer));
 

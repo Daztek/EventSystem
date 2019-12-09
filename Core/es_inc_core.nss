@@ -5,6 +5,8 @@
     Description:
 */
 
+//void main(){}
+
 #include "es_inc_util"
 
 #include "nwnx_events"
@@ -22,6 +24,8 @@ const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3018;
 
 /* Internal Functions */
 void ES_Core_Init();
+void ES_Core_CheckCoreHash();
+int ES_Core_GetCoreHashChanged();
 void ES_Core_InitSubsystem(string sSubsystemScript);
 void ES_Core_CreateObjectEventScripts(int nStart, int nEnd);
 string ES_Core_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
@@ -46,8 +50,7 @@ void ES_Core_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent
 int ES_Core_GetEventFlagFromEvent(string sEvent);
 // Convenience function to construct an object event
 //
-// If: nEvent = EVENT_SCRIPT_MODULE_ON_MODULE_LOAD & nEventFlag = ES_CORE_EVENT_FLAG_AFTER
-// Returns: 3002_OBJEVT_4
+// If nEvent = EVENT_SCRIPT_MODULE_ON_MODULE_LOAD & nEventFlag = ES_CORE_EVENT_FLAG_AFTER -> Returns: 3002_OBJEVT_4
 string ES_Core_GetEventName_Object(int nEvent, int nEventFlag = ES_CORE_EVENT_FLAG_DEFAULT);
 
 // Subscribe to an object event, generally called in a subsystem's init function.
@@ -81,7 +84,10 @@ void ES_Core_Init()
 
     object oModule = GetModule();
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Creating object event scripts");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Checking Core Hash");
+    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckCoreHash();", oModule);
+
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Checking object event scripts");
     string sCreateObjectEventScripts =
         "ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN); " +
         "ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT);" +
@@ -140,6 +146,27 @@ void ES_Core_Init()
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
 }
 
+void ES_Core_CheckCoreHash()
+{
+    string sCoreIncludeScript = "es_inc_core";
+    string sCoreScriptContents = NWNX_Util_GetNSSContents(sCoreIncludeScript);
+    int nOldCoreHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", sCoreIncludeScript);
+    int nNewCoreHash = NWNX_Util_Hash(sCoreScriptContents);
+
+    if (nOldCoreHash != nNewCoreHash)
+    {
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Core Hash Changed -> Old: " + IntToString(nOldCoreHash) + ", New: " + IntToString(nNewCoreHash));
+
+        SetCampaignInt(GetModuleName() + "_EventSystemCore", sCoreIncludeScript, nNewCoreHash);
+        SetLocalInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged", TRUE);
+    }
+}
+
+int ES_Core_GetCoreHashChanged()
+{
+    return GetLocalInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged");
+}
+
 void ES_Core_InitSubsystem(string sSubsystemScript)
 {
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Initializing subsystem: '" + sSubsystemScript + "'");
@@ -184,11 +211,19 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
 void ES_Core_CreateObjectEventScripts(int nStart, int nEnd)
 {
     int nEvent;
+    int bCoreHashChanged = ES_Core_GetCoreHashChanged();
+
     for (nEvent = nStart; nEvent <= nEnd; nEvent++)
     {
         string sScriptName = "es_obj_e_" + IntToString(nEvent);
-        if (!NWNX_Util_IsValidResRef(sScriptName, NWNX_UTIL_RESREF_TYPE_NCS))
+        int bObjectEventScriptExists = NWNX_Util_IsValidResRef(sScriptName, NWNX_UTIL_RESREF_TYPE_NCS);
+
+        if (bCoreHashChanged || !bObjectEventScriptExists)
+        {
+            ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > " + (!bObjectEventScriptExists ? "Creating" : "Recompiling") + " object event script: '" + sScriptName + "'");
+
             ES_Util_AddScript(sScriptName, "es_inc_core", "ES_Core_SignalEvent(" + IntToString(nEvent) + ");");
+        }
     }
 }
 
@@ -243,6 +278,7 @@ void ES_Core_CompileEventHandler(string sSubsystem, string sEventHandlerScript, 
 void ES_Core_HandleSubsystemChanges(string sSubsystem)
 {
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
+    int bCoreHashChanged = ES_Core_GetCoreHashChanged();
 
     int nOldHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", sSubsystem);
     int nNewHash = GetLocalInt(oDataObject, "Hash");
@@ -262,9 +298,9 @@ void ES_Core_HandleSubsystemChanges(string sSubsystem)
         string sSubsystemEventHandlerScript = GetLocalString(oDataObject, "EventHandlerScript");
         int bEventScriptExists = NWNX_Util_IsValidResRef(sSubsystemEventHandlerScript, NWNX_UTIL_RESREF_TYPE_NCS);
 
-        if (!bEventScriptExists || bHashChanged)
+        if (bCoreHashChanged || !bEventScriptExists || bHashChanged)
         {
-            ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > " +  (!bEventScriptExists ? "Compiling" : "Recompiling") + " event handler for subsystem: '" + sSubsystem + "'");
+            ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > " + (!bEventScriptExists ? "Compiling" : "Recompiling") + " event handler for subsystem: '" + sSubsystem + "'");
 
             ES_Core_CompileEventHandler(sSubsystem, sSubsystemEventHandlerScript, sSubsystemEventHandlerFunction);
 
