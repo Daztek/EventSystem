@@ -11,6 +11,9 @@
 const string ES_UTIL_DATA_OBJECT_TAG      = "ESDataObject_";
 const string ES_UTIL_EVENT_SYSTEM_LOG_TAG = "EventSystem";
 
+// Create a waypoint at locLocation with sTag
+object ES_Util_CreateWaypoint(location locLocation, string sTag);
+
 // Create a new data object with sTag
 //
 // A data object is a waypoint that can be used to store local variables on
@@ -52,17 +55,26 @@ int floor(float f);
 int ceil(float f);
 int round(float f);
 
-// Apply an effect to all players in a sphere
-void ES_Util_ApplyEffectToPlayersInSphere(object oCenter, float fRadius, effect eEffect, float fDuration = 0.0f);
+// Get a functionname from sScriptContents using sDecorator
+string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
+// Get a list of resrefs with ; as delimiter
+string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
+// Excute a scriptchunk and return a string result
+string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject);
 
 /**/
+
+object ES_Util_CreateWaypoint(location locLocation, string sTag)
+{
+    return CreateObject(OBJECT_TYPE_WAYPOINT, "nw_waypoint001", locLocation, FALSE, sTag);
+}
 
 object ES_Util_CreateDataObject(string sTag, int bDestroyExisting = TRUE)
 {
     if (bDestroyExisting)
         ES_Util_DestroyDataObject(ES_UTIL_DATA_OBJECT_TAG + sTag);
 
-    object oDataObject = CreateObject(OBJECT_TYPE_WAYPOINT, "nw_waypoint001", GetStartingLocation(), FALSE, ES_UTIL_DATA_OBJECT_TAG + sTag);
+    object oDataObject = ES_Util_CreateWaypoint(GetStartingLocation(), ES_UTIL_DATA_OBJECT_TAG + sTag);
 
     SetLocalObject(GetModule(), ES_UTIL_DATA_OBJECT_TAG + sTag, oDataObject);
 
@@ -138,8 +150,7 @@ string ES_Util_LocationToString(location locLocation)
            "#X#" + FloatToString(vPosition.x, 0, 2) +
            "#Y#" + FloatToString(vPosition.y, 0, 2) +
            "#Z#" + FloatToString(vPosition.z, 0, 2) +
-           "#F#" + FloatToString(fFacing, 0, 2) +
-           "#E#";
+           "#F#" + FloatToString(fFacing, 0, 2) + "#";
 }
 
 location ES_Util_StringToLocation(string sLocation)
@@ -223,20 +234,39 @@ int round(float f)
     return FloatToInt(f + 0.5f);
 }
 
-void ES_Util_ApplyEffectToPlayersInSphere(object oCenter, float fRadius, effect eEffect, float fDuration = 0.0f)
+string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void")
 {
-    location locCenter = GetLocation(oCenter);
+    int nDecoratorPosition = FindSubString(sScriptContents, "@" + sDecorator, 0);
 
-    object oObject = GetFirstObjectInShape(SHAPE_SPHERE, fRadius, locCenter);
+    if (nDecoratorPosition == -1)
+        return "";
 
-    while (GetIsObjectValid(oObject))
+    int nFunctionTypeLength = GetStringLength(sFunctionType) + 1;
+    int nFunctionStart = FindSubString(sScriptContents, sFunctionType + " ", nDecoratorPosition);
+    int nFunctionEnd = FindSubString(sScriptContents, "(", nFunctionStart);
+
+    return GetSubString(sScriptContents, nFunctionStart + nFunctionTypeLength, nFunctionEnd - nFunctionStart - nFunctionTypeLength);
+}
+
+string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE)
+{
+    string sResRefList, sResRef = NWNX_Util_GetFirstResRef(nType, sRegexFilter, bModuleResourcesOnly);
+
+    while (sResRef != "")
     {
-        if (GetIsPC(oObject))
-        {
-            ApplyEffectToObject(fDuration == 0.0f ? DURATION_TYPE_INSTANT : DURATION_TYPE_TEMPORARY, eEffect, oObject, fDuration);
-
-            oObject = GetNextObjectInShape(SHAPE_SPHERE, fRadius, locCenter);
-        }
+        sResRefList += sResRef + ";";
+        sResRef = NWNX_Util_GetNextResRef();
     }
+
+    return GetSubString(sResRefList, 0, GetStringLength(sResRefList) - 1);
+}
+
+string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject)
+{
+    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { string sReturn = " + sScriptChunk + " SetLocalString(GetModule(), \"ESCARS\", sReturn); }";
+
+    ExecuteScriptChunk(sScript, oObject, FALSE);
+
+    return GetLocalString(GetModule(), "ESCARS");
 }
 

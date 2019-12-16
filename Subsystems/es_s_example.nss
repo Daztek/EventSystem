@@ -11,6 +11,7 @@
 #include "es_s_toolbox"
 #include "es_s_simdialog"
 #include "es_s_randomnpc"
+#include "es_s_simai"
 
 #include "nwnx_player"
 
@@ -141,21 +142,9 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                         GiveXPToCreature(oPlayer, StringToInt(Get2DAString("exptable", "XP", GetHitDice(oPlayer))) - GetXP(oPlayer));
                         break;
                     case 5:
-                        NWNX_Player_SetRestAnimation(oPlayer, 32);
+                        SimpleDialog_SetCurrentPage(oPlayer, 4);
                         break;
                     case 6:
-                        NWNX_Player_SetObjectVisualTransformOverride(oPlayer, oPlayer, OBJECT_VISUAL_TRANSFORM_SCALE, 2.0f);
-                        break;
-                    case 7:
-                    {
-                        object oNPC = RandomNPC_GetCachedRandomNPC("RandomNPC", GetStartingLocation());
-
-                        DelayCommand(2.5f, PlayVoiceChat(VOICE_CHAT_HELLO, oNPC));
-                        AssignCommand(oNPC, ActionRandomWalk());
-
-                        break;
-                    }
-                    case 8:
                         SimpleDialog_EndConversation(oPlayer);
                         break;
                 }
@@ -208,6 +197,45 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                 if (nOption == 2)
                     SimpleDialog_SetCurrentPage(oPlayer, 1);
             }
+            else
+            if (nPage == 4)
+            {
+                switch (nOption)
+                {
+                    case 1:
+                    {
+                        object oNPC = RandomNPC_GetRandomPregeneratedNPC("RandomNPC", ES_Util_GetRandomLocationAroundPoint(GetStartingLocation(), 2.5f));
+
+                        string sBehavior = Random(2) ? "Wander" : "SitOnChair";
+
+                        SendMessageToPC(oPlayer, "> " + GetName(oNPC) + " -> " + sBehavior);
+
+                        SimpleAI_SetAIBehavior(oNPC, sBehavior);
+
+                        break;
+                    }
+
+                    case 2:
+                    {
+                        object oArea = GetArea(oPlayer);
+                        object oNPC = GetFirstObjectInArea(oArea);
+
+                        while (GetIsObjectValid(oNPC))
+                        {
+                            if (GetTag(oNPC) == "RandomNPC")
+                                DestroyObject(oNPC);
+
+                            oNPC = GetNextObjectInArea(oArea);
+                        }
+
+                        break;
+                    }
+
+                    case 3:
+                        SimpleDialog_SetCurrentPage(oPlayer, 1);
+                        break;
+                }
+            }
         }
     }
     else
@@ -221,7 +249,7 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
 
                 pd.nModel = 83;
                 pd.sName = "Potted Plant";
-                pd.sDescription = " ";
+                pd.sDescription = "Just a talking plant?";
                 pd.sTag = "ConvoTest";
                 pd.bPlot = TRUE;
                 pd.bUseable = TRUE;
@@ -239,9 +267,7 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                     SimpleDialog_AddOption(oConversation, "I'm thirsty! Show me your drinks?");
                     SimpleDialog_AddOption(oConversation, "Know any secrets..?");
                     SimpleDialog_AddOption(oConversation, "One level up, please!");
-                    SimpleDialog_AddOption(oConversation, "I'd like a different rest animation!");
-                    SimpleDialog_AddOption(oConversation, "I wish to be bigger!");
-                    SimpleDialog_AddOption(oConversation, "Spawn me a random NPC!");
+                    SimpleDialog_AddOption(oConversation, "Give me the Random NPC Menu.");
                     SimpleDialog_AddOption(oConversation, "Oh, nothing, sorry...");
 
                 SimpleDialog_AddPage(oConversation, "Sure! What would you like?");
@@ -254,6 +280,11 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
                 SimpleDialog_AddPage(oConversation, "I know many secrets, but if I told you I'd have to kill you.");
                     SimpleDialog_AddOption(oConversation, "Kill me anyway, you ...plant!");
                     SimpleDialog_AddOption(oConversation, "Err, forget I asked.");
+
+                 SimpleDialog_AddPage(oConversation, "What would you like to do?");
+                    SimpleDialog_AddOption(oConversation, "Spawn me a random NPC!");
+                    SimpleDialog_AddOption(oConversation, "Destroy all random NPCs!");
+                    SimpleDialog_AddOption(oConversation, "Nevermind.");
                 /// ***
                 break;
             }
@@ -265,6 +296,8 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
 
                 if (GetTag(oPlaceable) != "ConvoTest")
                     return;
+
+                NWNX_Player_SetPlaceableNameOverride(oPlayer, oPlaceable, "Cool Plant");
 
                 SimpleDialog_StartConversation(oPlayer, oPlaceable, "PottedPlantConversation");
                 break;

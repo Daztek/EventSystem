@@ -9,10 +9,9 @@
 
 #include "es_inc_util"
 
+#include "x0_i0_stringlib"
 #include "nwnx_events"
 #include "nwnx_object"
-
-#include "x0_i0_stringlib"
 
 const string ES_CORE_SYSTEM_TAG                     = "Core";
 
@@ -27,8 +26,8 @@ void ES_Core_Init();
 void ES_Core_CheckCoreHash();
 int ES_Core_GetCoreHashChanged();
 void ES_Core_InitSubsystem(string sSubsystemScript);
+void ES_Core_InitSubsystems(string sSubsystemList);
 void ES_Core_CreateObjectEventScripts(int nStart, int nEnd);
-string ES_Core_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
 string ES_Core_GetDependencies(string sScriptContents);
 void ES_Core_CompileEventHandler(string sSubsystem, string sEventHandlerScript, string sEventHandlerFunction);
 void ES_Core_HandleSubsystemChanges(string sSubsystem);
@@ -118,21 +117,10 @@ void ES_Core_Init()
             "oArea = GetNextArea(); }";
     ES_Util_ExecuteScriptChunk("es_inc_core", sSetAreaEventScripts, oModule);
 
+    string sSubsystemList = ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
+
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Subsystems");
-
-    string sSubsystemScript = NWNX_Util_GetFirstResRef(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
-    string sSubsystemList;
-
-    while (sSubsystemScript != "")
-    {
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystem(\"" + sSubsystemScript + "\");", oModule);
-
-        sSubsystemList += sSubsystemScript + ":";
-
-        sSubsystemScript = NWNX_Util_GetNextResRef();
-    }
-
-    sSubsystemList = GetSubString(sSubsystemList, 0, GetStringLength(sSubsystemList) - 1);
+    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystems(\"" + sSubsystemList + "\");", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking subsystem changes");
     ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckSubsystemChanges(\"" + sSubsystemList + "\");", oModule);
@@ -182,14 +170,14 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Hash: " + IntToString(nSubsystemHash));
     SetLocalInt(oDataObject, "Hash", nSubsystemHash);
 
-    string sSubsystemEventHandlerFunction = ES_Core_GetFunctionName(sSubsystemScriptContents, "EventSystem_EventHandler");
+    string sSubsystemEventHandlerFunction = ES_Util_GetFunctionName(sSubsystemScriptContents, "EventSystem_EventHandler");
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > EventHandler: " + (sSubsystemEventHandlerFunction == "" ? "N/A" : sSubsystemEventHandlerFunction + "()"));
     SetLocalString(oDataObject, "EventHandlerFunction", sSubsystemEventHandlerFunction);
 
     string sEventHandlerScript = "es_e_" + GetSubString(sSubsystemScript, 5, GetStringLength(sSubsystemScript) - 5);
     SetLocalString(oDataObject, "EventHandlerScript", sEventHandlerScript);
 
-    string sSubsystemInitFunction = ES_Core_GetFunctionName(sSubsystemScriptContents, "EventSystem_Init");
+    string sSubsystemInitFunction = ES_Util_GetFunctionName(sSubsystemScriptContents, "EventSystem_Init");
 
     if (sSubsystemInitFunction != "")
     {
@@ -205,6 +193,19 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
     else
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > NOTICE: '" + sSubsystemScript + "' does not have an init function set");
+    }
+}
+
+void ES_Core_InitSubsystems(string sSubsystemList)
+{
+    object oModule = GetModule();
+    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
+
+    for (nCount = 0; nCount < nNumTokens; nCount++)
+    {
+        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
+
+        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystem(\"" + sSubsystem + "\");", oModule);
     }
 }
 
@@ -225,20 +226,6 @@ void ES_Core_CreateObjectEventScripts(int nStart, int nEnd)
             ES_Util_AddScript(sScriptName, "es_inc_core", "ES_Core_SignalEvent(" + IntToString(nEvent) + ");");
         }
     }
-}
-
-string ES_Core_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void")
-{
-    int nDecoratorPosition = FindSubString(sScriptContents, "@" + sDecorator, 0);
-
-    if (nDecoratorPosition == -1)
-        return "";
-
-    int nFunctionTypeLength = GetStringLength(sFunctionType) + 1;
-    int nFunctionStart = FindSubString(sScriptContents, sFunctionType + " ", nDecoratorPosition);
-    int nFunctionEnd = FindSubString(sScriptContents, "(", nFunctionStart);
-
-    return GetSubString(sScriptContents, nFunctionStart + nFunctionTypeLength, nFunctionEnd - nFunctionStart - nFunctionTypeLength);
 }
 
 string ES_Core_GetDependencies(string sScriptContents)
@@ -315,11 +302,11 @@ void ES_Core_HandleSubsystemChanges(string sSubsystem)
 void ES_Core_CheckSubsystemChanges(string sSubsystemList)
 {
     object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ":");
+    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
 
     for (nCount = 0; nCount < nNumTokens; nCount++)
     {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ":", nCount);
+        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
 
         ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleSubsystemChanges(\"" + sSubsystem + "\");", oModule);
     }
@@ -364,11 +351,11 @@ void ES_Core_HandleDependencyChanges(string sSubsystem)
 void ES_Core_CheckDependencyChanges(string sSubsystemList)
 {
     object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ":");
+    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
 
     for (nCount = 0; nCount < nNumTokens; nCount++)
     {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ":", nCount);
+        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
 
         ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleDependencyChanges(\"" + sSubsystem + "\");", oModule);
     }

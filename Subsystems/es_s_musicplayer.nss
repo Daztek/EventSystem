@@ -380,8 +380,6 @@ void SimpleDialog_DisableMusicPlayer()
         ApplyEffectToObject(DURATION_TYPE_TEMPORARY, EffectVisualEffect(VFX_DUR_GHOST_SMOKE), oMusicPlayer, MUSICPLAYER_DISABLED_DURATION);
         ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_FNF_FIREBALL), oMusicPlayer);
 
-        ES_Util_ApplyEffectToPlayersInSphere(oMusicPlayer, 5.0f, EffectKnockdown(), 6.0f);
-
         MusicBackgroundStop(GetArea(oMusicPlayer));
 
         DelayCommand(2.5f, SimpleDialog_ApplyDisabledEffects(oMusicPlayer));
