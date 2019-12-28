@@ -22,34 +22,22 @@ const int ES_CORE_EVENT_FLAG_AFTER                  = 4;
 const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3018;
 
 /* Internal Functions */
-void ES_Core_Init();
-void ES_Core_CheckCoreHash();
 int ES_Core_GetCoreHashChanged();
-void ES_Core_InitSubsystem(string sSubsystemScript);
-void ES_Core_InitSubsystems(string sSubsystemList);
-void ES_Core_CreateObjectEventScripts(int nStart, int nEnd);
 string ES_Core_GetDependencies(string sScriptContents);
-void ES_Core_CompileEventHandler(string sSubsystem, string sEventHandlerScript, string sEventHandlerFunction);
-void ES_Core_HandleSubsystemChanges(string sSubsystem);
-void ES_Core_CheckSubsystemChanges(string sSubsystemList);
-void ES_Core_HandleDependencyChanges(string sSubsystem);
-void ES_Core_CheckDependencyChanges(string sSubsystemList);
-void ES_Core_Cleanup(string sSubsystemList);
 int ES_Core_GetEventFlags(int nEvent);
 void ES_Core_SetEventFlag(int nEvent, int nEventFlag);
-void ES_Core_SignalEvent(int nEvent, object oTarget = OBJECT_SELF);
 /* ****************** */
 
 // Set oObject's nEvent script to the EventSystem's event script
 //
 // nEvent: An EVENT_SCRIPT_* constant
-// bStoreOldEvent: If TRUE, the existing script will be stored and called after the _DEFAULT event.
+// bStoreOldEvent: If TRUE, the existing script will be stored and called before the _DEFAULT event.
 void ES_Core_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent = TRUE);
 // Get an ES_CORE_EVENT_FLAG_* from an object event
 int ES_Core_GetEventFlagFromEvent(string sEvent);
 // Convenience function to construct an object event
 //
-// If nEvent = EVENT_SCRIPT_MODULE_ON_MODULE_LOAD & nEventFlag = ES_CORE_EVENT_FLAG_AFTER -> Returns: 3002_OBJEVT_4
+// If nEvent = EVENT_SCRIPT_MODULE_ON_MODULE_LOAD and nEventFlag = ES_CORE_EVENT_FLAG_AFTER -> Returns: 3002_OBJEVT_4
 string ES_Core_GetEventName_Object(int nEvent, int nEventFlag = ES_CORE_EVENT_FLAG_DEFAULT);
 
 // Subscribe to an object event, generally called in a subsystem's init function.
@@ -59,7 +47,7 @@ string ES_Core_GetEventName_Object(int nEvent, int nEventFlag = ES_CORE_EVENT_FL
 // nEventFlags: One or more ES_CORE_EVENT_FLAG_* constants
 //              For example, to subscribe to both the _BEFORE and _AFTER event you'd do the following:
 //              ES_Core_SubscribeEvent_Object(sEventHandlerScript, nEvent, ES_CORE_EVENT_FLAG_BEFORE | ES_CORE_EVENT_FLAG_AFTER);
-// bDispatchListMode: Utility option to toggle DispatchListMode for the event
+// bDispatchListMode: Convenience option to toggle DispatchListMode for the event
 void ES_Core_SubscribeEvent_Object(string sEventHandlerScript, int nEvent, int nEventFlags = ES_CORE_EVENT_FLAG_DEFAULT, int bDispatchListMode = FALSE);
 // Convenience function to subscribe to a NWNX event
 void ES_Core_SubscribeEvent_NWNX(string sEventHandlerScript, string sNWNXEvent, int bDispatchListMode = FALSE);
@@ -177,6 +165,9 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
     string sEventHandlerScript = "es_e_" + GetSubString(sSubsystemScript, 5, GetStringLength(sSubsystemScript) - 5);
     SetLocalString(oDataObject, "EventHandlerScript", sEventHandlerScript);
 
+    int bForceRecompileFlag = ES_Util_GetScriptFlag(sSubsystemScriptContents, "EventSystem_ForceRecompile");
+    SetLocalInt(oDataObject, "ForceRecompile", bForceRecompileFlag);
+
     string sSubsystemInitFunction = ES_Util_GetFunctionName(sSubsystemScriptContents, "EventSystem_Init");
 
     if (sSubsystemInitFunction != "")
@@ -192,7 +183,7 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
     }
     else
     {
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > NOTICE: '" + sSubsystemScript + "' does not have an init function set");
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > WARNING: '" + sSubsystemScript + "' does not have an init function set");
     }
 }
 
@@ -240,7 +231,7 @@ string ES_Core_GetDependencies(string sScriptContents)
         string sDependency = GetSubString(sScriptContents, nIncludeStart + 10, nIncludeEnd - nIncludeStart - 10);
 
         if (GetStringLeft(sDependency, 5) == "es_s_")
-            sDependencies += sDependency + ":";
+            sDependencies += sDependency + ";";
 
         nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", nIncludeEnd);
     }
@@ -284,10 +275,12 @@ void ES_Core_HandleSubsystemChanges(string sSubsystem)
     {
         string sSubsystemEventHandlerScript = GetLocalString(oDataObject, "EventHandlerScript");
         int bEventScriptExists = NWNX_Util_IsValidResRef(sSubsystemEventHandlerScript, NWNX_UTIL_RESREF_TYPE_NCS);
+        int bForceRecompileFlag = GetLocalInt(oDataObject, "ForceRecompile");
 
-        if (bCoreHashChanged || !bEventScriptExists || bHashChanged)
+        if (bCoreHashChanged || !bEventScriptExists || bHashChanged || bForceRecompileFlag)
         {
-            ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > " + (!bEventScriptExists ? "Compiling" : "Recompiling") + " event handler for subsystem: '" + sSubsystem + "'");
+            ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > " + (!bEventScriptExists ? "Compiling" :
+                (bForceRecompileFlag && !bHashChanged) ? "(Forced) Recompiling" : "Recompiling") + " event handler for subsystem: '" + sSubsystem + "'");
 
             ES_Core_CompileEventHandler(sSubsystem, sSubsystemEventHandlerScript, sSubsystemEventHandlerFunction);
 
@@ -325,11 +318,11 @@ void ES_Core_HandleDependencyChanges(string sSubsystem)
 
         if (sSubsystemDependencies != "")
         {
-            int nDepCount, nNumDeps = GetNumberTokens(sSubsystemDependencies, ":");
+            int nDepCount, nNumDeps = GetNumberTokens(sSubsystemDependencies, ";");
 
             for (nDepCount = 0; nDepCount < nNumDeps; nDepCount++)
             {
-                string sDepSubsystem = GetTokenByPosition(sSubsystemDependencies, ":", nDepCount);
+                string sDepSubsystem = GetTokenByPosition(sSubsystemDependencies, ";", nDepCount);
                 object oDepDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDepSubsystem);
 
                 if (GetLocalInt(oDepDataObject, "HashChanged"))
@@ -363,11 +356,11 @@ void ES_Core_CheckDependencyChanges(string sSubsystemList)
 
 void ES_Core_Cleanup(string sSubsystemList)
 {
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ":");
+    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
 
     for (nCount = 0; nCount < nNumTokens; nCount++)
     {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ":", nCount);
+        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
 
         ES_Util_DestroyDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
     }

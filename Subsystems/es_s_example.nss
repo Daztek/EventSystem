@@ -12,16 +12,14 @@
 #include "es_s_simdialog"
 #include "es_s_randomnpc"
 #include "es_s_simai"
+#include "es_s_chatcommand"
 
 #include "nwnx_player"
+#include "nwnx_admin"
 
 const string EXAMPLE_SYSTEM_TAG = "Example";
 
 // @EventSystem_Init
-void Example_Init(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void Example_EventHandler(string sEventHandlerScript, string sEvent);
-
 void Example_Init(string sEventHandlerScript)
 {
     ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
@@ -31,8 +29,22 @@ void Example_Init(string sEventHandlerScript)
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE);
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION);
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END);
+
+    ChatCommand_Register(sEventHandlerScript, "Example_TestCommand", CHATCOMMAND_GLOBAL_PREFIX + "test", "[vfx]", "A test chat command!");
 }
 
+void Example_TestCommand(object oPlayer, string sParams, int nVolume)
+{
+    ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(StringToInt(sParams)), oPlayer);
+
+    effect eDamage = EffectDamage(Random(10) + 1, DAMAGE_TYPE_DIVINE);
+
+    ApplyEffectToObject(DURATION_TYPE_INSTANT, eDamage, oPlayer);
+
+    SetPCChatMessage("");
+}
+
+// @EventSystem_EventHandler
 void Example_EventHandler(string sEventHandlerScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_CONVERSATION_END)

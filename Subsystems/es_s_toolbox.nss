@@ -16,9 +16,6 @@ const string TOOLBOX_TEMPLATE_SMALL_ITEM_TAG            = "ToolboxSmallItem";
 const string TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG      = "ToolboxPlaceable_Normal";
 const string TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG   = "ToolboxPlaceable_Inventory";
 
-// @EventSystem_Init
-void Toolbox_Init(string sEventHandlerScript);
-
 // Creates and returns a small Item with a single itemproperty
 object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid);
 // Generates a serialized placeable template
@@ -71,6 +68,7 @@ struct Toolbox_PlaceableData
     int scriptOnTrapTriggered;
 };
 
+// @EventSystem_Init
 void Toolbox_Init(string sEventHandlerScript)
 {
     ES_Util_Log(TOOLBOX_SYSTEM_TAG, "* Generating Small Item Template");

@@ -13,14 +13,10 @@
 
 const string PERSISTENT_LOCATION_SYSTEM_TAG = "PersistentLocation";
 
-// @EventSystem_Init
-void PersistentLocation_Init(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void PersistentLocation_EventHandler(string sEventHandlerScript, string sEvent);
-
 void PersistentLocation_SaveLocation(object oPlayer);
 void PersistentLocation_LoadLocation(object oPlayer);
 
+// @EventSystem_Init
 void PersistentLocation_Init(string sEventHandlerScript)
 {
     ES_Core_SubscribeEvent_NWNX(sEventHandlerScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
@@ -29,6 +25,7 @@ void PersistentLocation_Init(string sEventHandlerScript)
     ELC_SubscribeEvent(sEventHandlerScript);
 }
 
+// @EventSystem_EventHandler
 void PersistentLocation_EventHandler(string sEventHandlerScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_CLIENT_DISCONNECT_BEFORE")

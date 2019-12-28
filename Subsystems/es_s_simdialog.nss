@@ -40,9 +40,6 @@ const string SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT        = "SDConditionalOver
 
 // ***
 
-// @EventSystem_Init
-void SimpleDialog_Init(string sEventHandlerScript);
-
 // Subscribe sEventHandlerScript to a SIMPLE_DIALOG_EVENT_*
 //
 // Event Data Tags for SIMPLE_DIALOG_EVENT_ACTION_TAKEN
@@ -131,6 +128,7 @@ string SimpleDialog_Token_Highlight(string sText);
 
 /* *** */
 
+// @EventSystem_Init
 void SimpleDialog_Init(string sEventHandlerScript)
 {
     ES_Util_AddConditionalScript("simdialog_sc", "es_s_simdialog", "SimpleDialog_HandleStartingConditional();");

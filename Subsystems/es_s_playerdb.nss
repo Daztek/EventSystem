@@ -14,17 +14,13 @@
 
 const string PLAYERDB_SYSTEM_TAG                = "PlayerDatabase";
 
-// @EventSystem_Init
-void PlayerDB_Init(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void PlayerDB_EventHandler(string sEventHandlerScript, string sEvent);
-
 void PlayerDB_ClientEnter(object oPlayer);
 void PlayerDB_ClientExit(object oPlayer);
 void PlayerDB_LoadPersistentLocation(object oPlayer);
 void PlayerDB_SaveCharacters();
 void PlayerDB_ModuleShutdown();
 
+// @EventSystem_Init
 void PlayerDB_Init(string sEventHandlerScript)
 {
     NWNX_ELC_EnableCustomELCCheck(TRUE);
@@ -37,6 +33,7 @@ void PlayerDB_Init(string sEventHandlerScript)
     ELC_SubscribeEvent(sEventHandlerScript);
 }
 
+// @EventSystem_EventHandler
 void PlayerDB_EventHandler(string sEventHandlerScript, string sEvent)
 {
     if (sEvent == WORLD_TIMER_EVENT_5_MINUTES)

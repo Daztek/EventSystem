@@ -22,16 +22,12 @@ const string WORLD_TIMER_EVENT_15_MINUTES       = "WORLD_TIMER_EVENT_15_MINUTES"
 const string WORLD_TIMER_EVENT_30_MINUTES       = "WORLD_TIMER_EVENT_30_MINUTES";
 const string WORLD_TIMER_EVENT_60_MINUTES       = "WORLD_TIMER_EVENT_60_MINUTES";
 
-// @EventSystem_Init
-void WorldTimer_Init(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void WorldTimer_EventHandler(string sEventHandlerScript, string sEvent);
-
 // Subscribe sEventHandlerScript to a WORLD_TIMER_EVENT_*
 void WorldTimer_SubscribeEvent(string sEventHandlerScript, string sWorldTimerEvent, int bDispatchListMode = FALSE);
 // Get the current heartbeat count tick
 int WorldTimer_GetHeartbeatCount();
 
+// @EventSystem_Init
 void WorldTimer_Init(string sEventHandlerScript)
 {
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SYSTEM_TAG);
@@ -39,6 +35,7 @@ void WorldTimer_Init(string sEventHandlerScript)
     ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_HEARTBEAT);
 }
 
+// @EventSystem_EventHandler
 void WorldTimer_EventHandler(string sEventHandlerScript, string sEvent)
 {
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SYSTEM_TAG);

@@ -28,11 +28,6 @@ const string MUSICPLAYER_IS_DISABLED            = "IsDisabled";
 
 const float MUSICPLAYER_DISABLED_DURATION       = 60.0f;
 
-// @EventSystem_Init
-void MusicPlayer_Init(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent);
-
 void MusicPlayer_LoadMusicTracks();
 void MusicPlayer_CreateConversation();
 void MusicPlayer_SpawnPlaceables(string sEventHandlerScript);
@@ -42,6 +37,7 @@ int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF);
 void SimpleDialog_DisableMusicPlayer();
 void SimpleDialog_ApplyDisabledEffects(object oMusicPlayer);
 
+// @EventSystem_Init
 void MusicPlayer_Init(string sEventHandlerScript)
 {
     ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
@@ -54,6 +50,7 @@ void MusicPlayer_Init(string sEventHandlerScript)
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, TRUE);
 }
 
+// @EventSystem_EventHandler
 void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)

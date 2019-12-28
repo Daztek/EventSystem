@@ -21,9 +21,6 @@ const string RANDOM_NPC_PREGENERATE_NAME        = "RandomNPCPregenerateNPC_";
 const int RANDOM_NPC_PREGENERATE_MAX            = 200;
 const int RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT = 100;
 
-// @EventSystem_Init
-void RandomNPC_Init(string sEventHandlerScript);
-
 // Create a new random NPC from scratch
 object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation);
 // Get a random pre-generated NPC
@@ -31,7 +28,7 @@ object RandomNPC_GetRandomPregeneratedNPC(string sTag, location locSpawn);
 // Get a random soundset for nGender
 int RandomNPC_GetRandomSoundset(int nGender);
 
-
+// @EventSystem_Init
 void RandomNPC_Init(string sEventHandlerScript)
 {
     string sNPC = GetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SYSTEM_TAG, RANDOM_NPC_TEMPLATE_TAG);
@@ -297,22 +294,22 @@ void RandomNPC_CacheNPCSoundsets()
 
     if (SQLite_GetTableExists(RANDOM_NPC_SYSTEM_TAG + "_" + sSoundset2DA))
     {
-        ES_Util_Log(RANDOM_NPC_SYSTEM_TAG, "  > Table for '" + sSoundset2DA + "' already exists, skipping!");
+        ES_Util_Log(RANDOM_NPC_SYSTEM_TAG, "* Table for '" + sSoundset2DA + "' already exists, skipping!");
         return;
     }
 
-    ES_Util_Log(RANDOM_NPC_SYSTEM_TAG, "  > Creating table for '" + sSoundset2DA + "'");
+    ES_Util_Log(RANDOM_NPC_SYSTEM_TAG, "* Creating table for '" + sSoundset2DA + "'");
 
     string sQuery = "CREATE TABLE IF NOT EXISTS " + RANDOM_NPC_SYSTEM_TAG + "_" + sSoundset2DA + " ( SoundsetNum INTEGER UNIQUE, Gender INTEGER NOT NULL, Type INTEGER NOT NULL );";
     NWNX_SQL_PrepareQuery(sQuery);
     NWNX_SQL_ExecutePreparedQuery();
 
-    int nIndex;
     int nNumRows = NWNX_Util_Get2DARowCount(sSoundset2DA);
 
     sQuery = "INSERT INTO " + RANDOM_NPC_SYSTEM_TAG + "_" + sSoundset2DA + " (SoundsetNum, Gender, Type) VALUES (?, ?, ?);";
     NWNX_SQL_PrepareQuery(sQuery);
 
+    int nIndex;
     for (nIndex = 0; nIndex < nNumRows; nIndex++)
     {
         int nType = StringToInt(Get2DAString(sSoundset2DA, "TYPE", nIndex));
@@ -321,7 +318,7 @@ void RandomNPC_CacheNPCSoundsets()
         {
             int nGender = StringToInt(Get2DAString(sSoundset2DA, "GENDER", nIndex));
 
-            ES_Util_Log(RANDOM_NPC_SYSTEM_TAG, "    > Inserting Soundset: Index: '" + IntToString(nIndex) +
+            ES_Util_Log(RANDOM_NPC_SYSTEM_TAG, "  > Inserting Soundset: Index: '" + IntToString(nIndex) +
                 "', Type: '" + IntToString(nType) + "', Gender: '" + IntToString(nGender) + "'");
 
             NWNX_SQL_PreparedInt(0, nIndex);

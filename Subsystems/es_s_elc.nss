@@ -12,12 +12,10 @@
 
 const string ELC_EVENT  = "ELC_EVENT";
 
-// @EventSystem_Init
-void ELC_Init(string sEventHandlerScript);
-
 // Subscribe sEventHandlerScript to the ELC event
 void ELC_SubscribeEvent(string sEventHandlerScript);
 
+// @EventSystem_Init
 void ELC_Init(string sEventHandlerScript)
 {
     ES_Util_AddScript("es_elc", "nwnx_events", "NWNX_Events_SignalEvent(\"ELC_EVENT\", OBJECT_SELF);");

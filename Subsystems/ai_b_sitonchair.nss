@@ -5,9 +5,9 @@
     Description: A SimpleAI Behavior that lets NPCs sit on a chair.
 */
 
-//void main(){}
-
 #include "es_s_simai"
+
+//void main(){}
 
 object SitOnChair_FindSeat();
 
@@ -34,9 +34,9 @@ void SitOnChair_Heartbeat()
 {
     if (SimpleAI_GetIsAreaEmpty()) return;
 
-    int nCurrentAction = GetCurrentAction();
+    int nAction = GetCurrentAction();
 
-    if (nCurrentAction == ACTION_RANDOMWALK)
+    if (nAction == ACTION_RANDOMWALK)
     {
         if (!Random(5))
         {
@@ -51,12 +51,12 @@ void SitOnChair_Heartbeat()
         }
     }
     else
-    if (nCurrentAction != ACTION_SIT && nCurrentAction != ACTION_MOVETOPOINT)
+    if (nAction != ACTION_SIT && nAction != ACTION_MOVETOPOINT)
     {
         ActionRandomWalk();
     }
     else
-    if (nCurrentAction == ACTION_SIT)
+    if (nAction == ACTION_SIT)
     {
         int nRandom = d100();
 
@@ -77,7 +77,7 @@ void SitOnChair_Conversation()
 
         int nRandom = Random(10);
 
-        if (nRandom >= 7)
+        if (nRandom >= 5)
            PlayVoiceChat(VOICE_CHAT_THREATEN);
         else
             SpeakString(Random(2) ? "Hey!?" : "What's the dealio?!");

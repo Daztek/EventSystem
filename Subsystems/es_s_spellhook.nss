@@ -13,14 +13,12 @@
 const string SPELL_HOOK_SYSTEM_TAG          = "Spellhook";
 const string SPELL_HOOK_EVENT_PREFIX        = "SPELL_";
 
-// @EventSystem_Init
-void Spellhook_Init(string sEventHandlerScript);
-
 // Subscribe sEventHandlerScript to a SPELL_* cast event
 void Spellhook_SubscribeEvent(string sEventHandlerScript, int nSpell);
 // Skip a spellhook event
 void Spellhook_SkipEvent();
 
+// @EventSystem_Init
 void Spellhook_Init(string sEventHandlerScript)
 {
     ES_Util_AddScript("es_spellhook", "es_s_spellhook", "Spellhook_SignalEvent();");

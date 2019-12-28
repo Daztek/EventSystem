@@ -14,10 +14,6 @@ const string OBJSIT_SYSTEM_TAG              = "ObjectSit";
 const string OBJSIT_SINGLE_SEAT_TAG         = "OBJSIT_SINGLE";
 
 // @EventSystem_Init
-void ObjectSit_Init(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void ObjectSit_EventHandler(string sEventHandlerScript, string sEvent);
-
 void ObjectSit_Init(string sEventHandlerScript)
 {
     ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
@@ -27,6 +23,7 @@ void ObjectSit_Init(string sEventHandlerScript)
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
 }
 
+// @EventSystem_EventHandler
 void ObjectSit_EventHandler(string sEventHandlerScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE)

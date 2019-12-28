@@ -57,9 +57,11 @@ int round(float f);
 
 // Get a functionname from sScriptContents using sDecorator
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
+// Get if sFlag is set in a script
+int ES_Util_GetScriptFlag(string sScriptContents, string sFlag);
 // Get a list of resrefs with ; as delimiter
 string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
-// Excute a scriptchunk and return a string result
+// Excute a script chunk and return a string result
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject);
 
 /**/
@@ -248,6 +250,11 @@ string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string
     return GetSubString(sScriptContents, nFunctionStart + nFunctionTypeLength, nFunctionEnd - nFunctionStart - nFunctionTypeLength);
 }
 
+int ES_Util_GetScriptFlag(string sScriptContents, string sFlag)
+{
+    return FindSubString(sScriptContents, "@" + sFlag, 0) != -1;
+}
+
 string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE)
 {
     string sResRefList, sResRef = NWNX_Util_GetFirstResRef(nType, sRegexFilter, bModuleResourcesOnly);
@@ -263,10 +270,15 @@ string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleRes
 
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject)
 {
+    object oModule = GetModule();
     string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { string sReturn = " + sScriptChunk + " SetLocalString(GetModule(), \"ESCARS\", sReturn); }";
 
     ExecuteScriptChunk(sScript, oObject, FALSE);
 
-    return GetLocalString(GetModule(), "ESCARS");
+    string sReturn = GetLocalString(oModule, "ESCARS");
+
+    DeleteLocalString(oModule, "ESCARS");
+
+    return sReturn;
 }
 

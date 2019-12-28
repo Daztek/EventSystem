@@ -15,9 +15,6 @@
 const string RANDOM_ARMOR_SYSTEM_TAG    = "RandomArmor";
 const string RANDOM_ARMOR_TEMPLATE_TAG  = "RandomArmorTemplate";
 
-// @EventSystem_Init
-void RandomArmor_Init(string sEventHandlerScript);
-
 void RandomArmor_CacheArmorParts();
 void RandomArmor_PrepareTemplateArmor();
 
@@ -26,8 +23,7 @@ int RandomArmor_GetRandomPartByType(int nArmorModelPart, int nMinPartNum = 0, fl
 
 object RandomArmor_GetClothes(object oTarget = OBJECT_INVALID);
 
-/* *** */
-
+// @EventSystem_Init
 void RandomArmor_Init(string sEventHandlerScript)
 {
     RandomArmor_CacheArmorParts();

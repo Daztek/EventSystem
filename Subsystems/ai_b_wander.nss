@@ -5,12 +5,14 @@
     Description: A SimpleAI Behavior that lets NPCs wander.
 */
 
+#include "es_s_simai"
+
+//void main(){}
+
 const string AIBEHAVIOR_WANDER_WAYPOINT_TAG     = "WP_AIB_WANDER";
 
 const string AIBEHAVIOR_WANDER_AREA_WAYPOINTS   = "AIBWanderWaypoints";
 const string AIBEHAVIOR_WANDER_NEXT_MOVE_TICK   = "AIBWanderNextMoveTick";
-
-#include "es_s_simai"
 
 object GetRandomWaypointInArea();
 
@@ -37,7 +39,7 @@ void Spawn()
 {
     SimpleAI_InitialSetup();
 
-    SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, SimpleAI_GetCurrentTick() + Random(20) + 10);
+    SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
 
     ActionForceMoveToObject(GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
     ActionRandomWalk();
@@ -52,28 +54,30 @@ void Heartbeat()
         return;
     }
 
-    int nCurrentAction = GetCurrentAction();
+    int nAction = GetCurrentAction();
+    int nTick = SimpleAI_GetTick();
 
-    if (nCurrentAction == ACTION_RANDOMWALK)
+    if (nAction == ACTION_RANDOMWALK)
     {
-        int nCurrentTick = SimpleAI_GetCurrentTick();
         int nNextMoveTick = GetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK);
 
-        if (nCurrentTick > nNextMoveTick)
+        if (nTick > nNextMoveTick)
         {
-            SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, nCurrentTick + Random(20) + 10);
+            SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
+            SimpleAI_SetTick(0);
+
             ClearAllActions();
             ActionForceMoveToObject(GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
         }
     }
     else
-    if (nCurrentAction != ACTION_MOVETOPOINT)
+    if (nAction != ACTION_MOVETOPOINT)
     {
         ClearAllActions();
         ActionRandomWalk();
     }
 
-    SimpleAI_IncrementTick();
+    SimpleAI_SetTick(++nTick);
 }
 
 // @SimAIBehavior_OnConversation

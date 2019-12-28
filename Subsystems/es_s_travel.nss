@@ -16,17 +16,15 @@ const int TRAVEL_SPEED_INCREASE_PERCENTAGE          = 75;
 const int TRAVEL_SPEED_DECREASE_PERCENTAGE          = 50;
 const float TRAVEL_IMPACT_DELAY_TIMER               = 0.5f;
 
-// @EventSystem_Init
-void InitTravelSystem(string sEventHandlerScript);
-// @EventSystem_EventHandler
-void HandleMaterialChange(string sEventHandlerScript, string sEvent);
 void ApplyTravelEffect(object oPlayer, int nVFX, int nMaterial, effect eEffect);
 
+// @EventSystem_Init
 void InitTravelSystem(string sEventHandlerScript)
 {
     ES_Core_SubscribeEvent_NWNX(sEventHandlerScript, "NWNX_ON_MATERIALCHANGE_AFTER");
 }
 
+// @EventSystem_EventHandler
 void HandleMaterialChange(string sEventHandlerScript, string sEvent)
 {
     object oPlayer = OBJECT_SELF;
