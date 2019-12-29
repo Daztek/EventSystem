@@ -15,7 +15,6 @@
 #include "es_s_chatcommand"
 
 #include "nwnx_player"
-#include "nwnx_admin"
 
 const string EXAMPLE_SYSTEM_TAG = "Example";
 
@@ -30,16 +29,37 @@ void Example_Init(string sEventHandlerScript)
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION);
     SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END);
 
-    ChatCommand_Register(sEventHandlerScript, "Example_TestCommand", CHATCOMMAND_GLOBAL_PREFIX + "test", "[vfx]", "A test chat command!");
+    int nId = ChatCommand_Register(sEventHandlerScript, "Example_TestCommand", CHATCOMMAND_GLOBAL_PREFIX + "test", "[vfx]", "A test chat command!");
+    ChatCommand_SetPermission(nId, "es_s_example", "Example_TestPermission(oPlayer)", "0", "!=");
+
+    nId = ChatCommand_Register(sEventHandlerScript, "Example_DamageCommand", CHATCOMMAND_GLOBAL_PREFIX + "dam", "[amount]", "Damage yourself for [amount]");
+    ChatCommand_SetPermission(nId, "", "!GetIsDM(oPlayer)", "", "");
+}
+
+int Example_TestPermission(object oPlayer)
+{
+    return GetHitDice(oPlayer);
 }
 
 void Example_TestCommand(object oPlayer, string sParams, int nVolume)
 {
     ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(StringToInt(sParams)), oPlayer);
 
-    effect eDamage = EffectDamage(Random(10) + 1, DAMAGE_TYPE_DIVINE);
+    SetPCChatMessage("");
+}
 
-    ApplyEffectToObject(DURATION_TYPE_INSTANT, eDamage, oPlayer);
+void Example_DamageCommand(object oPlayer, string sParams, int nVolume)
+{
+    int nDamage = StringToInt(sParams);
+
+    if (nDamage > 0)
+    {
+        ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_DIVINE_STRIKE_HOLY), oPlayer);
+
+        effect eDamage = EffectDamage(nDamage, DAMAGE_TYPE_DIVINE);
+
+        ApplyEffectToObject(DURATION_TYPE_INSTANT, eDamage, oPlayer);
+    }
 
     SetPCChatMessage("");
 }

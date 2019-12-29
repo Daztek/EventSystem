@@ -5,6 +5,10 @@
     Description: Event System Utility Include
 */
 
+//void main() {}
+
+#include "es_inc_nss"
+
 #include "x0_i0_position"
 #include "nwnx_util"
 
@@ -61,8 +65,10 @@ string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string
 int ES_Util_GetScriptFlag(string sScriptContents, string sFlag);
 // Get a list of resrefs with ; as delimiter
 string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
-// Excute a script chunk and return a string result
-string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject);
+// Execute a script chunk and return a string result
+string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
+// Execute a script chunk and return an int result
+int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
 
 /**/
 
@@ -205,19 +211,22 @@ location ES_Util_StringToLocation(string sLocation)
 
 string ES_Util_AddScript(string sFileName, string sInclude, string sScriptChunk)
 {
-    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { " + sScriptChunk + " }";
+    string sScript = nssInclude(sInclude) + nssVoidMain(sScriptChunk);
+
     return NWNX_Util_AddScript(sFileName, sScript);
 }
 
 string ES_Util_AddConditionalScript(string sFileName, string sInclude, string sScriptConditionalChunk)
 {
-    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "int StartingConditional() { return " + sScriptConditionalChunk + " }";
+    string sScript = nssInclude(sInclude) + nssStartingConditional(sScriptConditionalChunk);
+
     return NWNX_Util_AddScript(sFileName, sScript);
 }
 
 string ES_Util_ExecuteScriptChunk(string sInclude, string sScriptChunk, object oObject)
 {
-    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { " + sScriptChunk + " }";
+    string sScript = nssInclude(sInclude) + nssVoidMain(sScriptChunk);
+
     return ExecuteScriptChunk(sScript, oObject, FALSE);
 }
 
@@ -268,10 +277,11 @@ string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleRes
     return GetSubString(sResRefList, 0, GetStringLength(sResRefList) - 1);
 }
 
-string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject)
+string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
 {
     object oModule = GetModule();
-    string sScript = (sInclude != "" ? ("#" + "include \"" + sInclude + "\" \n") : "") + "void main() { string sReturn = " + sScriptChunk + " SetLocalString(GetModule(), \"ESCARS\", sReturn); }";
+    string sObjectSelf = sObjectSelfVarName != "" ? "object " + sObjectSelfVarName + " = OBJECT_SELF; " : "";
+    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + "string sReturn = " + sScriptChunk + " SetLocalString(GetModule(), \"ESCARS\", sReturn);");
 
     ExecuteScriptChunk(sScript, oObject, FALSE);
 
@@ -280,5 +290,20 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
     DeleteLocalString(oModule, "ESCARS");
 
     return sReturn;
+}
+
+int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
+{
+    object oModule = GetModule();
+    string sObjectSelf = sObjectSelfVarName != "" ? "object " + sObjectSelfVarName + " = OBJECT_SELF;" : "";
+    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + "int nReturn = " + sScriptChunk + " SetLocalInt(GetModule(), \"ESCARI\", nReturn);");
+
+    ExecuteScriptChunk(sScript, oObject, FALSE);
+
+    int nReturn = GetLocalInt(oModule, "ESCARI");
+
+    DeleteLocalInt(oModule, "ESCARI");
+
+    return nReturn;
 }
 

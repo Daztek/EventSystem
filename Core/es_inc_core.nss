@@ -105,19 +105,19 @@ void ES_Core_Init()
             "oArea = GetNextArea(); }";
     ES_Util_ExecuteScriptChunk("es_inc_core", sSetAreaEventScripts, oModule);
 
-    string sSubsystemList = ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
+    string sSubsystemList = nssEscapeDoubleQuotes(ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE));
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Subsystems");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystems(\"" + sSubsystemList + "\");", oModule);
+    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystems(" + sSubsystemList + ");", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking subsystem changes");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckSubsystemChanges(\"" + sSubsystemList + "\");", oModule);
+    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckSubsystemChanges(" + sSubsystemList + ");", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking dependency changes");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckDependencyChanges(\"" + sSubsystemList + "\");", oModule);
+    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckDependencyChanges(" + sSubsystemList + ");", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Cleaning up");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_Cleanup(\"" + sSubsystemList + "\");", oModule);
+    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_Cleanup(" + sSubsystemList + ");", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
 }
@@ -174,7 +174,7 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Executing init function: " + sSubsystemInitFunction + "()");
 
-        string sResult = ES_Util_ExecuteScriptChunk(sSubsystemScript, sSubsystemInitFunction + "(\"" + sEventHandlerScript + "\");", GetModule());
+        string sResult = ES_Util_ExecuteScriptChunk(sSubsystemScript, sSubsystemInitFunction + "(" + nssEscapeDoubleQuotes(sEventHandlerScript) + ");", GetModule());
 
         if (sResult != "")
         {
@@ -196,7 +196,7 @@ void ES_Core_InitSubsystems(string sSubsystemList)
     {
         string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
 
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystem(\"" + sSubsystem + "\");", oModule);
+        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystem(" + nssEscapeDoubleQuotes(sSubsystem) + ");", oModule);
     }
 }
 
@@ -244,7 +244,7 @@ string ES_Core_GetDependencies(string sScriptContents)
 
 void ES_Core_CompileEventHandler(string sSubsystem, string sEventHandlerScript, string sEventHandlerFunction)
 {
-    string sEventHandlerScriptChunk = sEventHandlerFunction + "(\"" + sEventHandlerScript + "\", NWNX_Events_GetCurrentEvent());";
+    string sEventHandlerScriptChunk = sEventHandlerFunction + "(" + nssEscapeDoubleQuotes(sEventHandlerScript) + ", NWNX_Events_GetCurrentEvent());";
     string sResult = ES_Util_AddScript(sEventHandlerScript, sSubsystem, sEventHandlerScriptChunk);
 
     if (sResult != "")
@@ -301,7 +301,7 @@ void ES_Core_CheckSubsystemChanges(string sSubsystemList)
     {
         string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
 
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleSubsystemChanges(\"" + sSubsystem + "\");", oModule);
+        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleSubsystemChanges(" + nssEscapeDoubleQuotes(sSubsystem) + ");", oModule);
     }
 }
 
@@ -350,7 +350,7 @@ void ES_Core_CheckDependencyChanges(string sSubsystemList)
     {
         string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
 
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleDependencyChanges(\"" + sSubsystem + "\");", oModule);
+        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleDependencyChanges(" + nssEscapeDoubleQuotes(sSubsystem) + ");", oModule);
     }
 }
 

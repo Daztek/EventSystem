@@ -135,7 +135,7 @@ void SimpleAI_CheckAIBehaviorScripts(string sAIBehaviorList)
 
         SetLocalInt(oSystemDataObject, sAIBehavior, TRUE);
 
-        ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_InitAIBehavior(\"" + sAIBehavior + "\");", oModule);
+        ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_InitAIBehavior(" + nssEscapeDoubleQuotes(sAIBehavior) + ");", oModule);
     }
 }
 
@@ -145,7 +145,7 @@ string SimpleAI_GetEventCase(int nEvent, string sFunctionName, string sEventHand
 
     if (sFunctionName != "")
     {
-        sCase += "case " + IntToString(nEvent) + ": { " + sFunctionName + "(); break; } ";
+        sCase = nssCaseStatement(IntToString(nEvent), sFunctionName + "();");
         ES_Core_SubscribeEvent_Object(sEventHandlerScript, nEvent, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
     }
 
@@ -159,18 +159,16 @@ void SimpleAI_CompileEventHandler(string sAIBehavior)
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Compiling event handler '" + sEventHandlerScript + "' for AI Behavior: " + sAIBehavior);
 
-    string sInclude = "#" + "include \"" + sAIBehavior + "\" ";
-    string sEventHandler = sInclude + "void main() { int nEvent = StringToInt(NWNX_Events_GetCurrentEvent()); switch (nEvent) { ";
-
+    string sCases;
     int nEvent;
     for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
     {
         string sFunctionName = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent));
 
-        sEventHandler += SimpleAI_GetEventCase(nEvent, sFunctionName, sEventHandlerScript);
+        sCases += SimpleAI_GetEventCase(nEvent, sFunctionName, sEventHandlerScript);
     }
 
-    sEventHandler += " } }";
+    string sEventHandler = nssInclude(sAIBehavior) + nssVoidMain("int nEvent = StringToInt(NWNX_Events_GetCurrentEvent()); switch (nEvent) { " + sCases + " } ");
 
     string sResult = NWNX_Util_AddScript(sEventHandlerScript, sEventHandler, FALSE);
 
@@ -189,7 +187,7 @@ void SimpleAI_CreateEventHandlers(string sAIBehaviorList)
     {
         string sAIBehavior = GetTokenByPosition(sAIBehaviorList, ";", nCount);
 
-        ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_CompileEventHandler(\"" + sAIBehavior + "\");", oModule);
+        ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_CompileEventHandler(" + nssEscapeDoubleQuotes(sAIBehavior) + ");", oModule);
     }
 }
 
