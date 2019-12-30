@@ -56,9 +56,13 @@ void SimpleAI_Init(string sEventHandlerScript)
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Found AI Behaviors: " + sAIBehaviorList);
 
-    ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_CheckAIBehaviorScripts(\"" + sAIBehaviorList + "\");", oModule);
-    ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_CreateEventHandlers(\"" + sAIBehaviorList + "\");", oModule);
-    ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_ExecuteInitFunctions(\"" + sAIBehaviorList + "\");", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", "SimpleAI_InitAIBehavior(sListItem);", oModule);
+
+    ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Creating Event Handlers");
+    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", "SimpleAI_CreateEventHandler(sListItem);", oModule);
+
+    ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Executing Init Functions");
+    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", "SimpleAI_ExecuteInitFunction(sListItem);", oModule);
 }
 
 void SimpleAI_GetInitFunction(object oDataObject, string sScriptContents)
@@ -101,14 +105,16 @@ void SimpleAI_InitAIBehavior(string sAIBehavior)
 {
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Initializing AI Behavior: " + sAIBehavior);
 
+    object oSystemDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG);
     object oDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
     string sScriptContents = NWNX_Util_GetNSSContents(sAIBehavior);
+
+    SetLocalInt(oSystemDataObject, sAIBehavior, TRUE);
 
     SetLocalString(oDataObject, SIMPLE_AI_EVENT_HANDLER, "ai_e_" + GetSubString(sAIBehavior, 5, GetStringLength(sAIBehavior) - 5));
 
     SimpleAI_GetInitFunction(oDataObject, sScriptContents);
 
-    SimpleAI_GetEventFunction(oDataObject, sScriptContents, "SimAIBehavior_OnBlocked", EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR);
     SimpleAI_GetEventFunction(oDataObject, sScriptContents, "SimAIBehavior_OnBlocked", EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR);
     SimpleAI_GetEventFunction(oDataObject, sScriptContents, "SimAIBehavior_OnCombatRoundEnd", EVENT_SCRIPT_CREATURE_ON_END_COMBATROUND);
     SimpleAI_GetEventFunction(oDataObject, sScriptContents, "SimAIBehavior_OnConversation", EVENT_SCRIPT_CREATURE_ON_DIALOGUE);
@@ -124,35 +130,20 @@ void SimpleAI_InitAIBehavior(string sAIBehavior)
     SimpleAI_GetEventFunction(oDataObject, sScriptContents, "SimAIBehavior_OnUserDefined", EVENT_SCRIPT_CREATURE_ON_USER_DEFINED_EVENT);
 }
 
-void SimpleAI_CheckAIBehaviorScripts(string sAIBehaviorList)
-{
-    object oSystemDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG), oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sAIBehaviorList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
-    {
-        string sAIBehavior = GetTokenByPosition(sAIBehaviorList, ";", nCount);
-
-        SetLocalInt(oSystemDataObject, sAIBehavior, TRUE);
-
-        ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_InitAIBehavior(" + nssEscapeDoubleQuotes(sAIBehavior) + ");", oModule);
-    }
-}
-
 string SimpleAI_GetEventCase(int nEvent, string sFunctionName, string sEventHandlerScript)
 {
     string sCase;
 
     if (sFunctionName != "")
     {
-        sCase = nssCaseStatement(IntToString(nEvent), sFunctionName + "();");
+        sCase += nssCaseStatement(nEvent, sFunctionName + "();");
         ES_Core_SubscribeEvent_Object(sEventHandlerScript, nEvent, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
     }
 
     return sCase;
 }
 
-void SimpleAI_CompileEventHandler(string sAIBehavior)
+void SimpleAI_CreateEventHandler(string sAIBehavior)
 {
     object oBehaviorDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
     string sEventHandlerScript = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
@@ -168,7 +159,7 @@ void SimpleAI_CompileEventHandler(string sAIBehavior)
         sCases += SimpleAI_GetEventCase(nEvent, sFunctionName, sEventHandlerScript);
     }
 
-    string sEventHandler = nssInclude(sAIBehavior) + nssVoidMain("int nEvent = StringToInt(NWNX_Events_GetCurrentEvent()); switch (nEvent) { " + sCases + " } ");
+    string sEventHandler = nssInclude(sAIBehavior) + nssVoidMain(nssInt("nEvent", "StringToInt(NWNX_Events_GetCurrentEvent())") + nssSwitch("nEvent", sCases));
 
     string sResult = NWNX_Util_AddScript(sEventHandlerScript, sEventHandler, FALSE);
 
@@ -176,40 +167,16 @@ void SimpleAI_CompileEventHandler(string sAIBehavior)
         ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "    > Failed: " + sResult);
 }
 
-void SimpleAI_CreateEventHandlers(string sAIBehaviorList)
+void SimpleAI_ExecuteInitFunction(string sAIBehavior)
 {
-    ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Creating Event Handlers");
+    object oDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
+    string sInitFunction = GetLocalString(oDataObject, SIMPLE_AI_INIT_FUNCTION);
 
-    object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sAIBehaviorList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
+    if (sInitFunction != "")
     {
-        string sAIBehavior = GetTokenByPosition(sAIBehaviorList, ";", nCount);
+        ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Executing '" + sInitFunction + "()' for: " + sAIBehavior);
 
-        ES_Util_ExecuteScriptChunk("es_s_simai", "SimpleAI_CompileEventHandler(" + nssEscapeDoubleQuotes(sAIBehavior) + ");", oModule);
-    }
-}
-
-void SimpleAI_ExecuteInitFunctions(string sAIBehaviorList)
-{
-    ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Executing Init Functions");
-
-    object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sAIBehaviorList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
-    {
-        string sAIBehavior = GetTokenByPosition(sAIBehaviorList, ";", nCount);
-        object oDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
-        string sInitFunction = GetLocalString(oDataObject, SIMPLE_AI_INIT_FUNCTION);
-
-        if (sInitFunction != "")
-        {
-            ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Executing '" + sInitFunction + "()' for: " + sAIBehavior);
-
-            ES_Util_ExecuteScriptChunk(sAIBehavior, sInitFunction + "();", oModule);
-        }
+        ES_Util_ExecuteScriptChunk(sAIBehavior, sInitFunction + "();", GetModule());
     }
 }
 

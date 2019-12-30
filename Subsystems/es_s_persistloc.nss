@@ -37,7 +37,7 @@ void PersistentLocation_EventHandler(string sEventHandlerScript, string sEvent)
 
 void PersistentLocation_SaveLocation(object oPlayer)
 {
-    if (!GetIsObjectValid(oPlayer)) return;
+    if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer)) return;
 
     string sLocation = ES_Util_LocationToString(GetLocation(oPlayer));
 

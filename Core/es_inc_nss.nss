@@ -12,7 +12,11 @@ string nssIfStatement(string sFunction, string sComparison, string sValue);
 string nssElseIfStatement(string sFunction, string sComparison, string sValue);
 string nssBrackets(string sContents);
 string nssEscapeDoubleQuotes(string sText);
-string nssCaseStatement(string sCase, string sContents, int bBreak = TRUE);
+string nssSwitch(string sVariable, string sCases);
+string nssCaseStatement(int nCase, string sContents, int bBreak = TRUE);
+string nssObject(string sVarName, string sFunction = "");
+string nssString(string sVarName, string sFunction = "");
+string nssInt(string sVarName, string sFunction = "");
 
 string nssVoidMain(string sContents)
 {
@@ -49,8 +53,33 @@ string nssEscapeDoubleQuotes(string sText)
     return "\"" + sText + "\"";
 }
 
-string nssCaseStatement(string sCase, string sContents, int bBreak = TRUE)
+string nssSwitch(string sVariable, string sCases)
 {
-    return "case " + sCase + ": { " + sContents + (bBreak ? " break;" : "") + " } ";
+    return "switch (" + sVariable + ") { " + sCases + " };";
+}
+
+string nssCaseStatement(int nCase, string sContents, int bBreak = TRUE)
+{
+    return "case " + IntToString(nCase) + ": { " + sContents + (bBreak ? " break;" : "") + " } ";
+}
+
+string nssVariable(string sType, string sVarName, string sFunction)
+{
+    return sType + " " + sVarName + (sFunction == "" ? "; " : " = " + sFunction + "; ");
+}
+
+string nssObject(string sVarName, string sFunction = "")
+{
+    return nssVariable("object", sVarName, sFunction);
+}
+
+string nssString(string sVarName, string sFunction = "")
+{
+    return nssVariable("string", sVarName, sFunction);
+}
+
+string nssInt(string sVarName, string sFunction = "")
+{
+    return nssVariable("int", sVarName, sFunction);
 }
 

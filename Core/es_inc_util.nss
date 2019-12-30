@@ -12,8 +12,10 @@
 #include "x0_i0_position"
 #include "nwnx_util"
 
-const string ES_UTIL_DATA_OBJECT_TAG      = "ESDataObject_";
-const string ES_UTIL_EVENT_SYSTEM_LOG_TAG = "EventSystem";
+const string ES_UTIL_DATA_OBJECT_TAG        = "ESDataObject_";
+const string ES_UTIL_EVENT_SYSTEM_LOG_TAG   = "EventSystem";
+
+const string ES_UTIL_DELIMITER              = ";";
 
 // Create a waypoint at locLocation with sTag
 object ES_Util_CreateWaypoint(location locLocation, string sTag);
@@ -63,12 +65,16 @@ int round(float f);
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
 // Get if sFlag is set in a script
 int ES_Util_GetScriptFlag(string sScriptContents, string sFlag);
-// Get a list of resrefs with ; as delimiter
+// Get a list of resrefs with ES_UTIL_DELIMITER as delimiter
 string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
 // Execute a script chunk and return a string result
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
 // Execute a script chunk and return an int result
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
+// Execute a script chunk for every item in sList using ES_UTIL_DELIMITER
+//
+// You can access the list item through the sListItem variable in your script chunk
+void ES_Util_ExecuteScriptChunkForListItem(string sList, string sInclude, string sScriptChunk, object oObject);
 
 /**/
 
@@ -270,17 +276,17 @@ string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleRes
 
     while (sResRef != "")
     {
-        sResRefList += sResRef + ";";
+        sResRefList += sResRef + ES_UTIL_DELIMITER;
         sResRef = NWNX_Util_GetNextResRef();
     }
 
-    return GetSubString(sResRefList, 0, GetStringLength(sResRefList) - 1);
+    return sResRefList;
 }
 
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
 {
     object oModule = GetModule();
-    string sObjectSelf = sObjectSelfVarName != "" ? "object " + sObjectSelfVarName + " = OBJECT_SELF; " : "";
+    string sObjectSelf = sObjectSelfVarName != "" ? nssObject(sObjectSelfVarName, "OBJECT_SELF") : "";
     string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + "string sReturn = " + sScriptChunk + " SetLocalString(GetModule(), \"ESCARS\", sReturn);");
 
     ExecuteScriptChunk(sScript, oObject, FALSE);
@@ -295,7 +301,7 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
 {
     object oModule = GetModule();
-    string sObjectSelf = sObjectSelfVarName != "" ? "object " + sObjectSelfVarName + " = OBJECT_SELF;" : "";
+    string sObjectSelf = sObjectSelfVarName != "" ? nssObject(sObjectSelfVarName, "OBJECT_SELF") : "";
     string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + "int nReturn = " + sScriptChunk + " SetLocalInt(GetModule(), \"ESCARI\", nReturn);");
 
     ExecuteScriptChunk(sScript, oObject, FALSE);
@@ -305,5 +311,25 @@ int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk,
     DeleteLocalInt(oModule, "ESCARI");
 
     return nReturn;
+}
+
+void ES_Util_ExecuteScriptChunkForListItem(string sList, string sInclude, string sScriptChunk, object oObject)
+{
+    int nStart = 0, nEnd = FindSubString(sList, ES_UTIL_DELIMITER, nStart);
+
+    if (nEnd == -1) return;
+
+    string sListItem = GetSubString(sList, nStart, nEnd - nStart);
+
+    while (sListItem != "")
+    {
+        string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sListItem", nssEscapeDoubleQuotes(sListItem)) + sScriptChunk);
+
+        ExecuteScriptChunk(sScript, oObject, FALSE);
+
+        nStart = nEnd + 1;
+        nEnd = FindSubString(sList, ES_UTIL_DELIMITER, nStart);
+        sListItem = GetSubString(sList, nStart, nEnd - nStart);
+    }
 }
 

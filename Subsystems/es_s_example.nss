@@ -14,8 +14,6 @@
 #include "es_s_simai"
 #include "es_s_chatcommand"
 
-#include "nwnx_player"
-
 const string EXAMPLE_SYSTEM_TAG = "Example";
 
 // @EventSystem_Init
@@ -328,8 +326,6 @@ void Example_EventHandler(string sEventHandlerScript, string sEvent)
 
                 if (GetTag(oPlaceable) != "ConvoTest")
                     return;
-
-                NWNX_Player_SetPlaceableNameOverride(oPlayer, oPlaceable, "Cool Plant");
 
                 SimpleDialog_StartConversation(oPlayer, oPlaceable, "PottedPlantConversation");
                 break;

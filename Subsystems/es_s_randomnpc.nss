@@ -118,7 +118,7 @@ object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
         NWNX_Creature_SetGender(oNPC, nd.nGender);
 
     SetPortraitResRef(oNPC, !GetGender(oNPC) ? "hu_m_99_" : "hu_f_99_");
-    //NWNX_Creature_SetSoundset(oNPC, !GetGender(oNPC) ? 152 + Random(2) : 149 + Random(3));
+
     NWNX_Creature_SetSoundset(oNPC, RandomNPC_GetRandomSoundset(GetGender(oNPC)));
 
     int nRace = GetRacialType(oNPC);

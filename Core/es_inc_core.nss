@@ -9,7 +9,6 @@
 
 #include "es_inc_util"
 
-#include "x0_i0_stringlib"
 #include "nwnx_events"
 #include "nwnx_object"
 
@@ -105,19 +104,19 @@ void ES_Core_Init()
             "oArea = GetNextArea(); }";
     ES_Util_ExecuteScriptChunk("es_inc_core", sSetAreaEventScripts, oModule);
 
-    string sSubsystemList = nssEscapeDoubleQuotes(ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE));
+    string sSubsystemList = ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Subsystems");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystems(" + sSubsystemList + ");", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_InitSubsystem(sListItem);", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking subsystem changes");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckSubsystemChanges(" + sSubsystemList + ");", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_CheckSubsystemChanges(sListItem);", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking dependency changes");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckDependencyChanges(" + sSubsystemList + ");", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_CheckDependencyChanges(sListItem);", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Cleaning up");
-    ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_Cleanup(" + sSubsystemList + ");", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_Cleanup(sListItem);", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
 }
@@ -187,19 +186,6 @@ void ES_Core_InitSubsystem(string sSubsystemScript)
     }
 }
 
-void ES_Core_InitSubsystems(string sSubsystemList)
-{
-    object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
-    {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
-
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_InitSubsystem(" + nssEscapeDoubleQuotes(sSubsystem) + ");", oModule);
-    }
-}
-
 void ES_Core_CreateObjectEventScripts(int nStart, int nEnd)
 {
     int nEvent;
@@ -231,13 +217,10 @@ string ES_Core_GetDependencies(string sScriptContents)
         string sDependency = GetSubString(sScriptContents, nIncludeStart + 10, nIncludeEnd - nIncludeStart - 10);
 
         if (GetStringLeft(sDependency, 5) == "es_s_")
-            sDependencies += sDependency + ";";
+            sDependencies += sDependency + ES_UTIL_DELIMITER;
 
         nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", nIncludeEnd);
     }
-
-    if (GetStringLength(sDependencies))
-        sDependencies = GetSubString(sDependencies, 0, GetStringLength(sDependencies) - 1);
 
     return sDependencies;
 }
@@ -253,7 +236,7 @@ void ES_Core_CompileEventHandler(string sSubsystem, string sEventHandlerScript, 
     }
 }
 
-void ES_Core_HandleSubsystemChanges(string sSubsystem)
+void ES_Core_CheckSubsystemChanges(string sSubsystem)
 {
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
     int bCoreHashChanged = ES_Core_GetCoreHashChanged();
@@ -292,20 +275,7 @@ void ES_Core_HandleSubsystemChanges(string sSubsystem)
     }
 }
 
-void ES_Core_CheckSubsystemChanges(string sSubsystemList)
-{
-    object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
-    {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
-
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleSubsystemChanges(" + nssEscapeDoubleQuotes(sSubsystem) + ");", oModule);
-    }
-}
-
-void ES_Core_HandleDependencyChanges(string sSubsystem)
+void ES_Core_CheckDependencyChanges(string sSubsystem)
 {
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
     int bHasEventHandler = GetLocalInt(oDataObject, "HasEventHandler");
@@ -318,11 +288,11 @@ void ES_Core_HandleDependencyChanges(string sSubsystem)
 
         if (sSubsystemDependencies != "")
         {
-            int nDepCount, nNumDeps = GetNumberTokens(sSubsystemDependencies, ";");
+            int nStart = 0, nEnd = FindSubString(sSubsystemDependencies, ES_UTIL_DELIMITER, nStart);
+            string sDepSubsystem = GetSubString(sSubsystemDependencies, nStart, nEnd - nStart);
 
-            for (nDepCount = 0; nDepCount < nNumDeps; nDepCount++)
+            while (sDepSubsystem != "")
             {
-                string sDepSubsystem = GetTokenByPosition(sSubsystemDependencies, ";", nDepCount);
                 object oDepDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDepSubsystem);
 
                 if (GetLocalInt(oDepDataObject, "HashChanged"))
@@ -336,34 +306,18 @@ void ES_Core_HandleDependencyChanges(string sSubsystem)
 
                     break;
                 }
+
+                nStart = nEnd + 1;
+                nEnd = FindSubString(sSubsystemDependencies, ES_UTIL_DELIMITER, nStart);
+                sDepSubsystem = GetSubString(sSubsystemDependencies, nStart, nEnd - nStart);
             }
         }
     }
 }
 
-void ES_Core_CheckDependencyChanges(string sSubsystemList)
+void ES_Core_Cleanup(string sSubsystem)
 {
-    object oModule = GetModule();
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
-    {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
-
-        ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_HandleDependencyChanges(" + nssEscapeDoubleQuotes(sSubsystem) + ");", oModule);
-    }
-}
-
-void ES_Core_Cleanup(string sSubsystemList)
-{
-    int nCount, nNumTokens = GetNumberTokens(sSubsystemList, ";");
-
-    for (nCount = 0; nCount < nNumTokens; nCount++)
-    {
-        string sSubsystem = GetTokenByPosition(sSubsystemList, ";", nCount);
-
-        ES_Util_DestroyDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
-    }
+    ES_Util_DestroyDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
 }
 
 int ES_Core_GetEventFlags(int nEvent)

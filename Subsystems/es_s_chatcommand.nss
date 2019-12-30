@@ -28,7 +28,7 @@ const string CHATCOMMAND_PERMISSION_FUNCTION    = "ChatCommandPermissionFunction
 const string CHATCOMMAND_PERMISSION_VALUE       = "ChatCommandPermissionValue_";
 const string CHATCOMMAND_PERMISSION_COMPARISON  = "ChatCommandPermissionComparison_";
 
-const string CHATCOMMAND_HELP_TEXT              = "ChatCommandHelpText_";
+const string CHATCOMMAND_HELP_TEXT              = "ChatCommandHelpText";
 
 // Register a chat command
 //
@@ -76,7 +76,7 @@ string ChatCommand_Parse(string sMessage, string sCommand)
 void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
 {
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
-    string sHelp = GetLocalString(oDataObject, CHATCOMMAND_HELP_TEXT + GetObjectUUID(oPlayer));
+    string sHelp = GetLocalString(oPlayer, CHATCOMMAND_HELP_TEXT);
 
     if (sHelp == "")
     {
@@ -112,7 +112,7 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
                 sHelp += "\n" + sCommand + (sParams != "" ? " " + sParams : "") + " - " + sDescription;
         }
 
-        SetLocalString(oDataObject, CHATCOMMAND_HELP_TEXT + GetObjectUUID(oPlayer), sHelp);
+        SetLocalString(oPlayer, CHATCOMMAND_HELP_TEXT, sHelp);
     }
 
     SendMessageToPC(oPlayer, sHelp);
@@ -176,7 +176,12 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
         }
     }
 
-    string sEventHandler = sIncludes + nssVoidMain("object oPlayer = GetPCChatSpeaker(); string sMessage = GetPCChatMessage(); int nVolume = GetPCChatVolume(); string sParams; " + sCommands);
+    string sEventHandler = sIncludes + nssVoidMain(
+                                          nssObject("oPlayer", "GetPCChatSpeaker()") +
+                                          nssString("sMessage", "GetPCChatMessage()") +
+                                          nssInt("nVolume", "GetPCChatVolume()") +
+                                          nssString("sParams") +
+                                          sCommands);
 
     string sReturn = NWNX_Util_AddScript(sEventHandlerScript, sEventHandler);
 
@@ -222,7 +227,8 @@ void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction
 
     ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > Setting chat command permission: '" + sFunction + (sComparison != "" ? " " + sComparison + " " : "") + sValue + "'");
 
-    SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
+    if (sInclude != "")
+        SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
     SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID, sFunction);
     SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID, sValue);
     SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID, sComparison);
