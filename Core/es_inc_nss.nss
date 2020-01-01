@@ -21,6 +21,7 @@ string nssInt(string sVarName, string sFunction = "", int bIncludeType = TRUE);
 string nssFloat(string sVarName, string sFunction = "", int bIncludeType = TRUE);
 string nssVector(string sVarName, string sFunction = "", int bIncludeType = TRUE);
 string nssLocation(string sVarName, string sFunction = "", int bIncludeType = TRUE);
+string nssFunction(string sFunction, string sArguments = "", int bAddSemicolon = TRUE);
 
 string nssVoidMain(string sContents)
 {
@@ -110,5 +111,10 @@ string nssVector(string sVarName, string sFunction = "", int bIncludeType = TRUE
 string nssLocation(string sVarName, string sFunction = "", int bIncludeType = TRUE)
 {
     return nssVariable(bIncludeType ? "location" : "", sVarName, sFunction);
+}
+
+string nssFunction(string sFunction, string sArguments, int bAddSemicolon = TRUE)
+{
+    return sFunction + "(" + sArguments + (bAddSemicolon ? ");" : ")") + " ";
 }
 

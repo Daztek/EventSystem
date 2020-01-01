@@ -36,7 +36,7 @@ const string CHATCOMMAND_HELP_TEXT              = "ChatCommandHelpText";
 // sFunction: The function name to execute when the player uses the chat command.
 //            The implementation must have the following signature: void <Name>(object oPlayer, string sParams, int nVolume)
 // sCommand: The command the player must type
-// sHelpParams: Optional parameter description for !help
+// sHelpParams: Optional parameter description for /help
 // sHelpDescription: A description of what the command does for /help
 //
 // Returns: the CommandId or -1 on error
@@ -61,7 +61,7 @@ void ChatCommand_Init(string sEventHandlerScript)
 void ChatCommand_EventHandler(string sEventHandlerScript, string sEvent)
 {
     if (StringToInt(sEvent) == EVENT_SCRIPT_MODULE_ON_MODULE_LOAD)
-        ES_Util_ExecuteScriptChunk("es_s_chatcommand", "ChatCommand_CreateChatEventHandler(" + nssEscapeDoubleQuotes(sEventHandlerScript) + ");", GetModule());
+        ES_Util_ExecuteScriptChunk("es_s_chatcommand", nssFunction("ChatCommand_CreateChatEventHandler", nssEscapeDoubleQuotes(sEventHandlerScript)), GetModule());
 }
 
 string ChatCommand_Parse(string sMessage, string sCommand)
@@ -130,7 +130,7 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
         return;
     }
 
-    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registered '" + IntToString(nNumCommands) + "' Chat Command" + (nNumCommands > 1 ? "s" : ""));
+    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registered '" + IntToString(nNumCommands) + "' Chat Command" + (nNumCommands > 1 ? "s" : "") + " -> Compiling Event Handler");
 
     string sIncludes, sCommands;
 
@@ -140,16 +140,15 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
         if (!nCommand)
         {
             sIncludes += nssInclude("es_s_chatcommand");
-            sCommands += nssIfStatement("(sParams = ChatCommand_Parse(sMessage, " + nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + "help") + "))", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
-                         nssBrackets("ChatCommand_ShowHelp(oPlayer, sParams, nVolume);");
+            sCommands += nssIfStatement("(sParams = " + nssFunction("ChatCommand_Parse", "sMessage, " +
+                         nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + "help"), FALSE) + ")", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
+                         nssBrackets(nssFunction("ChatCommand_ShowHelp", "oPlayer, sParams, nVolume"));
         }
         else
         {
             string sPermission, sCommandID = IntToString(nCommand);
             string sCommand = GetLocalString(oDataObject, CHATCOMMAND_COMMAND + sCommandID);
-            string sFunction = GetLocalString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID);
-
-            sFunction += "(oPlayer, sParams, nVolume);";
+            string sFunction = nssFunction(GetLocalString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID), "oPlayer, sParams, nVolume");
 
             string sInclude = GetLocalString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID);
 
@@ -171,15 +170,16 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
                 sPermission = nssIfStatement(sPermissionFunction, sPermissionComparison, sPermissionValue) + nssBrackets(sFunction);
             }
 
-            sCommands += nssElseIfStatement("(sParams = ChatCommand_Parse(sMessage, " + nssEscapeDoubleQuotes(sCommand) + "))", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
+            sCommands += nssElseIfStatement("(sParams = " + nssFunction("ChatCommand_Parse" , "sMessage, " +
+                         nssEscapeDoubleQuotes(sCommand), FALSE) + ")", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
                          nssBrackets(sPermission != "" ? sPermission : sFunction);
         }
     }
 
     string sEventHandler = sIncludes + nssVoidMain(
-                                          nssObject("oPlayer", "GetPCChatSpeaker()") +
-                                          nssString("sMessage", "GetPCChatMessage()") +
-                                          nssInt("nVolume", "GetPCChatVolume()") +
+                                          nssObject("oPlayer", nssFunction("GetPCChatSpeaker")) +
+                                          nssString("sMessage", nssFunction("GetPCChatMessage")) +
+                                          nssInt("nVolume", nssFunction("GetPCChatVolume")) +
                                           nssString("sParams") +
                                           sCommands);
 

@@ -131,10 +131,10 @@ string SimpleDialog_Token_Highlight(string sText);
 // @EventSystem_Init
 void SimpleDialog_Init(string sEventHandlerScript)
 {
-    ES_Util_AddConditionalScript("simdialog_sc", "es_s_simdialog", "SimpleDialog_HandleStartingConditional();");
-    ES_Util_AddScript("simdialog_at", "es_s_simdialog", "SimpleDialog_HandleActionTaken();");
-    ES_Util_AddScript("simdialog_normal", "es_s_simdialog", "SimpleDialog_HandleConversationEnd(FALSE);");
-    ES_Util_AddScript("simdialog_abort", "es_s_simdialog", "SimpleDialog_HandleConversationEnd(TRUE);");
+    ES_Util_AddConditionalScript("simdialog_sc", "es_s_simdialog", nssFunction("SimpleDialog_HandleStartingConditional"));
+    ES_Util_AddScript("simdialog_at", "es_s_simdialog", nssFunction("SimpleDialog_HandleActionTaken"));
+    ES_Util_AddScript("simdialog_normal", "es_s_simdialog", nssFunction("SimpleDialog_HandleConversationEnd", "FALSE"));
+    ES_Util_AddScript("simdialog_abort", "es_s_simdialog", nssFunction("SimpleDialog_HandleConversationEnd", "TRUE"));
 
     if (!NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG))
         ES_Util_Log(SIMPLE_DIALOG_SYSTEM_TAG, "* WARNING: Conversation file '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' not found, please add it to the module!");

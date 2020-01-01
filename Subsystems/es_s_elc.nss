@@ -18,12 +18,12 @@ void ELC_SubscribeEvent(string sEventHandlerScript);
 // @EventSystem_Init
 void ELC_Init(string sEventHandlerScript)
 {
-    ES_Util_AddScript("es_elc", "nwnx_events", "NWNX_Events_SignalEvent(\"ELC_EVENT\", OBJECT_SELF);");
+    ES_Util_AddScript("es_e_elc", "nwnx_events", nssFunction("NWNX_Events_SignalEvent", nssEscapeDoubleQuotes("ELC_EVENT") + ", OBJECT_SELF"));
 }
 
 void ELC_SubscribeEvent(string sEventHandlerScript)
 {
-    NWNX_ELC_SetELCScript("es_elc");
+    NWNX_ELC_SetELCScript("es_e_elc");
 
     NWNX_Events_SubscribeEvent(ELC_EVENT, sEventHandlerScript);
 }

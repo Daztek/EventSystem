@@ -56,13 +56,13 @@ void SimpleAI_Init(string sEventHandlerScript)
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Found AI Behaviors: " + sAIBehaviorList);
 
-    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", "SimpleAI_InitAIBehavior(sListItem);", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", nssFunction("SimpleAI_InitAIBehavior", "sListItem"), oModule);
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Creating Event Handlers");
-    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", "SimpleAI_CreateEventHandler(sListItem);", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", nssFunction("SimpleAI_CreateEventHandler", "sListItem"), oModule);
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Executing Init Functions");
-    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", "SimpleAI_ExecuteInitFunction(sListItem);", oModule);
+    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", nssFunction("SimpleAI_ExecuteInitFunction", "sListItem"), oModule);
 }
 
 void SimpleAI_GetInitFunction(object oDataObject, string sScriptContents)
@@ -145,7 +145,7 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
 
         if (sFunctionName != "")
         {
-            sCases += nssCaseStatement(nEvent, sFunctionName + "();");
+            sCases += nssCaseStatement(nEvent, nssFunction(sFunctionName));
             ES_Core_SubscribeEvent_Object(sEventHandlerScript, nEvent, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
         }
     }
@@ -167,7 +167,7 @@ void SimpleAI_ExecuteInitFunction(string sAIBehavior)
     {
         ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Executing '" + sInitFunction + "()' for: " + sAIBehavior);
 
-        ES_Util_ExecuteScriptChunk(sAIBehavior, sInitFunction + "();", GetModule());
+        ES_Util_ExecuteScriptChunk(sAIBehavior, nssFunction(sInitFunction), GetModule());
     }
 }
 

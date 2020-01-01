@@ -58,9 +58,10 @@ void RandomNPC_Init(string sEventHandlerScript)
             DestroyObject(oNPC);
     }
 
-    ES_Util_ExecuteScriptChunk("es_s_randomnpc", "RandomNPC_CacheNPCSoundsets();", GetModule());
+    object oModule = GetModule();
 
-    ES_Util_ExecuteScriptChunk("es_s_randomnpc", "RandomNPC_PregenerateRandomNPCs(RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT);", GetModule());
+    ES_Util_ExecuteScriptChunk("es_s_randomnpc", nssFunction("RandomNPC_CacheNPCSoundsets"), oModule);
+    ES_Util_ExecuteScriptChunk("es_s_randomnpc", nssFunction("RandomNPC_PregenerateRandomNPCs", "RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT"), oModule);
 }
 
 struct RandomNPC_NPCData

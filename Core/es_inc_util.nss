@@ -287,24 +287,26 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
 {
     object oModule = GetModule();
     string sObjectSelf = sObjectSelfVarName != "" ? nssObject(sObjectSelfVarName, "OBJECT_SELF") : "";
-    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssString("sReturn", sScriptChunk) + "SetLocalString(GetModule(), \"ESCARS\", sReturn);");
+    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssString("sReturn", sScriptChunk) +
+        nssFunction("SetLocalString", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", sReturn"));
 
-    DeleteLocalString(oModule, "ESCARS");
+    DeleteLocalString(oModule, "ES_TEMP_VAR");
     ExecuteScriptChunk(sScript, oObject, FALSE);
 
-    return GetLocalString(oModule, "ESCARS");
+    return GetLocalString(oModule, "ES_TEMP_VAR");
 }
 
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
 {
     object oModule = GetModule();
     string sObjectSelf = sObjectSelfVarName != "" ? nssObject(sObjectSelfVarName, "OBJECT_SELF") : "";
-    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssInt("nReturn", sScriptChunk) + "SetLocalInt(GetModule(), \"ESCARI\", nReturn);");
+    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssInt("nReturn", sScriptChunk) +
+        nssFunction("SetLocalInt", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", nReturn"));
 
-    DeleteLocalInt(oModule, "ESCARI");
+    DeleteLocalInt(oModule, "ES_TEMP_VAR");
     ExecuteScriptChunk(sScript, oObject, FALSE);
 
-    return GetLocalInt(oModule, "ESCARI");
+    return GetLocalInt(oModule, "ES_TEMP_VAR");
 }
 
 void ES_Util_ExecuteScriptChunkForListItem(string sList, string sInclude, string sScriptChunk, object oObject)

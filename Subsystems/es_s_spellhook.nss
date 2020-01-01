@@ -21,7 +21,7 @@ void Spellhook_SkipEvent();
 // @EventSystem_Init
 void Spellhook_Init(string sEventHandlerScript)
 {
-    ES_Util_AddScript("es_spellhook", "es_s_spellhook", "Spellhook_SignalEvent();");
+    ES_Util_AddScript("es_e_spellhook", "es_s_spellhook", nssFunction("Spellhook_SignalEvent"));
 }
 
 void Spellhook_SignalEvent()
@@ -34,7 +34,7 @@ void Spellhook_SignalEvent()
 
 void Spellhook_SubscribeEvent(string sEventHandlerScript, int nSpell)
 {
-    SetModuleOverrideSpellscript("es_spellhook");
+    SetModuleOverrideSpellscript("es_e_spellhook");
 
     SetLocalInt(ES_Util_GetDataObject(SPELL_HOOK_SYSTEM_TAG), SPELL_HOOK_EVENT_PREFIX + IntToString(nSpell), TRUE);
 
