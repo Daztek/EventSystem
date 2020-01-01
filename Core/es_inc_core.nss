@@ -70,10 +70,10 @@ void ES_Core_Init()
 
     object oModule = GetModule();
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Checking Core Hash");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hash");
     ES_Util_ExecuteScriptChunk("es_inc_core", "ES_Core_CheckCoreHash();", oModule);
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Checking object event scripts");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking object event scripts");
     string sCreateObjectEventScripts =
         "ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN); " +
         "ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT);" +
@@ -87,35 +87,45 @@ void ES_Core_Init()
     ES_Util_ExecuteScriptChunk("es_inc_core", sCreateObjectEventScripts, oModule);
 
     int nEvent;
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Hooking module event scripts");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking module event scripts");
     for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT; nEvent++)
     {
         ES_Core_SetObjectEventScript(oModule, nEvent);
     }
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Hooking area event scripts");
-    string sSetAreaEventScripts =
-        "object oArea = GetFirstArea(); " +
-        "while (GetIsObjectValid(oArea)) { " +
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking area event scripts");
+    string sSetAreaEventScripts = nssObject("oArea", "GetFirstArea()") + nssWhile("GetIsObjectValid(oArea)") +
+        nssBrackets(
             "ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_HEARTBEAT); " +
             "ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT); " +
             "ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_ENTER); " +
             "ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_EXIT); " +
-            "oArea = GetNextArea(); }";
+            nssObject("oArea", "GetNextArea()", FALSE));
     ES_Util_ExecuteScriptChunk("es_inc_core", sSetAreaEventScripts, oModule);
+
+    string sDisabledSubsystems = NWNX_Util_GetEnvironmentVariable("EVENTSYSTEM_DISABLE_SUBSYSTEMS");
+
+    if (sDisabledSubsystems != "")
+    {
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Disabled Subsystems: " + sDisabledSubsystems);
+        SetLocalString(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "DisabledSubsystems", sDisabledSubsystems);
+    }
 
     string sSubsystemList = ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Subsystems");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_InitSubsystem(sListItem);", oModule);
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing subsystems");
+    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_InitializeSubsystem(sListItem);", oModule);
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking subsystem changes");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Checking subsystem changes");
     ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_CheckSubsystemChanges(sListItem);", oModule);
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Checking dependency changes");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Checking dependency changes");
     ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_CheckDependencyChanges(sListItem);", oModule);
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " * Cleaning up");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Executing init functions");
+    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_ExecuteInitFunctions(sListItem);", oModule);
+
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Cleaning up");
     ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, "es_inc_core", "ES_Core_Cleanup(sListItem);", oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
@@ -130,7 +140,7 @@ void ES_Core_CheckCoreHash()
 
     if (nOldCoreHash != nNewCoreHash)
     {
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Core Hash Changed -> Old: " + IntToString(nOldCoreHash) + ", New: " + IntToString(nNewCoreHash));
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Core Hash Changed -> Old: " + IntToString(nOldCoreHash) + ", New: " + IntToString(nNewCoreHash));
 
         SetCampaignInt(GetModuleName() + "_EventSystemCore", sCoreIncludeScript, nNewCoreHash);
         SetLocalInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged", TRUE);
@@ -142,47 +152,111 @@ int ES_Core_GetCoreHashChanged()
     return GetLocalInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged");
 }
 
-void ES_Core_InitSubsystem(string sSubsystemScript)
+int ES_Core_GetSubsystemDisabled(string sSubsystem)
 {
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, " > Initializing subsystem: '" + sSubsystemScript + "'");
+    return FindSubString(GetLocalString(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "DisabledSubsystems"), sSubsystem) != -1;
+}
 
-    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystemScript);
-    string sSubsystemScriptContents = NWNX_Util_GetNSSContents(sSubsystemScript);
+void ES_Core_InitializeSubsystem(string sSubsystem)
+{
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Initializing subsystem: '" + sSubsystem + "'");
 
-    string sSubsystemDependencies = ES_Core_GetDependencies(sSubsystemScriptContents);
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Dependencies: " + (sSubsystemDependencies == "" ? "N/A" : sSubsystemDependencies));
-    SetLocalString(oDataObject, "Dependencies", sSubsystemDependencies);
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
+    string sSubsystemScriptContents = NWNX_Util_GetNSSContents(sSubsystem);
+
+    int bDisabledSubsystem = ES_Core_GetSubsystemDisabled(sSubsystem);
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Status: " + (bDisabledSubsystem ? "Disabled" : "Enabled"));
+    SetLocalInt(oDataObject, "DisabledSubsystem", bDisabledSubsystem);
 
     int nSubsystemHash = NWNX_Util_Hash(sSubsystemScriptContents);
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Hash: " + IntToString(nSubsystemHash));
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Hash: " + IntToString(nSubsystemHash));
     SetLocalInt(oDataObject, "Hash", nSubsystemHash);
 
-    string sSubsystemEventHandlerFunction = ES_Util_GetFunctionName(sSubsystemScriptContents, "EventSystem_EventHandler");
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > EventHandler: " + (sSubsystemEventHandlerFunction == "" ? "N/A" : sSubsystemEventHandlerFunction + "()"));
-    SetLocalString(oDataObject, "EventHandlerFunction", sSubsystemEventHandlerFunction);
-
-    string sEventHandlerScript = "es_e_" + GetSubString(sSubsystemScript, 5, GetStringLength(sSubsystemScript) - 5);
-    SetLocalString(oDataObject, "EventHandlerScript", sEventHandlerScript);
+    string sSubsystemDependencies = ES_Core_GetDependencies(sSubsystemScriptContents);
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Dependencies: " + (sSubsystemDependencies == "" ? "N/A" : sSubsystemDependencies));
+    SetLocalString(oDataObject, "Dependencies", sSubsystemDependencies);
 
     int bForceRecompileFlag = ES_Util_GetScriptFlag(sSubsystemScriptContents, "EventSystem_ForceRecompile");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Flags: " + (bForceRecompileFlag ? "ForceRecompile" : "N/A"));
     SetLocalInt(oDataObject, "ForceRecompile", bForceRecompileFlag);
 
+    string sEventHandlerScript = "es_e_" + GetSubString(sSubsystem, 5, GetStringLength(sSubsystem) - 5);
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > EventHandlerScript: " + sEventHandlerScript);
+    SetLocalString(oDataObject, "EventHandlerScript", sEventHandlerScript);
+
     string sSubsystemInitFunction = ES_Util_GetFunctionName(sSubsystemScriptContents, "EventSystem_Init");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Init Function: " + (sSubsystemInitFunction == "" ? "N/A" : sSubsystemInitFunction + "()"));
+    SetLocalString(oDataObject, "InitFunction", sSubsystemInitFunction);
+
+    string sSubsystemEventHandlerFunction = ES_Util_GetFunctionName(sSubsystemScriptContents, "EventSystem_EventHandler");
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > EventHandler Function: " + (sSubsystemEventHandlerFunction == "" ? "N/A" : sSubsystemEventHandlerFunction + "()"));
+    SetLocalString(oDataObject, "EventHandlerFunction", sSubsystemEventHandlerFunction);
+}
+
+string ES_Core_GetDisabledDependencies(string sSubsystem)
+{
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
+    string sReturn, sSubsystemDependencies = GetLocalString(oDataObject, "Dependencies");
+
+    if (sSubsystemDependencies != "")
+    {
+        int nStart = 0, nEnd = FindSubString(sSubsystemDependencies, ES_UTIL_DELIMITER, nStart);
+        string sDepSubsystem = GetSubString(sSubsystemDependencies, nStart, nEnd - nStart);
+
+        while (sDepSubsystem != "")
+        {
+            object oDepDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDepSubsystem);
+
+            if (GetLocalInt(oDepDataObject, "DisabledSubsystem"))
+            {
+                sReturn += sDepSubsystem + ";";
+            }
+
+            nStart = nEnd + 1;
+            nEnd = FindSubString(sSubsystemDependencies, ES_UTIL_DELIMITER, nStart);
+            sDepSubsystem = GetSubString(sSubsystemDependencies, nStart, nEnd - nStart);
+        }
+    }
+
+    return sReturn;
+}
+
+void ES_Core_ExecuteInitFunctions(string sSubsystem)
+{
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
+    string sSubsystemInitFunction = GetLocalString(oDataObject, "InitFunction");
 
     if (sSubsystemInitFunction != "")
     {
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Executing init function: " + sSubsystemInitFunction + "()");
-
-        string sResult = ES_Util_ExecuteScriptChunk(sSubsystemScript, sSubsystemInitFunction + "(" + nssEscapeDoubleQuotes(sEventHandlerScript) + ");", GetModule());
-
-        if (sResult != "")
+        if (GetLocalInt(oDataObject, "DisabledSubsystem"))
         {
-            ES_Util_Log(ES_CORE_SYSTEM_TAG, "     > ERROR: Init function for subsystem: '" + sSubsystemScript + "' failed with error: " + sResult);
+            ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > '" + sSubsystem + "' -> Subsystem Disabled");
+        }
+        else
+        {
+            string sDisabledDependencies = ES_Util_ExecuteScriptChunkAndReturnString("es_inc_core", "ES_Core_GetDisabledDependencies(" + nssEscapeDoubleQuotes(sSubsystem) + ")", GetModule());
+
+            if (sDisabledDependencies != "")
+            {
+                ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > '" + sSubsystem + "' -> Subsystem Disabled, required dependencies disabled: " + sDisabledDependencies);
+            }
+            else
+            {
+                ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > '" + sSubsystem + "' -> Executing " + sSubsystemInitFunction + "()");
+
+                string sEventHandlerScript = GetLocalString(oDataObject, "EventHandlerScript");
+                string sResult = ES_Util_ExecuteScriptChunk(sSubsystem, sSubsystemInitFunction + "(" + nssEscapeDoubleQuotes(sEventHandlerScript) + ");", GetModule());
+
+                if (sResult != "")
+                {
+                    ES_Util_Log(ES_CORE_SYSTEM_TAG, "     > ERROR: Init function for subsystem: '" + sSubsystem + "' failed with error: " + sResult);
+                }
+            }
         }
     }
     else
     {
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > WARNING: '" + sSubsystemScript + "' does not have an init function set");
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > WARNING: '" + sSubsystem + "' does not have an init function set");
     }
 }
 
@@ -247,7 +321,7 @@ void ES_Core_CheckSubsystemChanges(string sSubsystem)
 
     if (bHashChanged)
     {
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hash for subsystem '" + sSubsystem + "' has changed -> Old: " + IntToString(nOldHash) + ", New: " + IntToString(nNewHash));
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > Hash for subsystem '" + sSubsystem + "' has changed -> Old: " + IntToString(nOldHash) + ", New: " + IntToString(nNewHash));
         SetCampaignInt(GetModuleName() + "_EventSystemCore", sSubsystem, nNewHash);
         SetLocalInt(oDataObject, "HashChanged", bHashChanged);
     }
@@ -262,7 +336,7 @@ void ES_Core_CheckSubsystemChanges(string sSubsystem)
 
         if (bCoreHashChanged || !bEventScriptExists || bHashChanged || bForceRecompileFlag)
         {
-            ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > " + (!bEventScriptExists ? "Compiling" :
+            ES_Util_Log(ES_CORE_SYSTEM_TAG, "     > " + (!bEventScriptExists ? "Compiling" :
                 (bForceRecompileFlag && !bHashChanged) ? "(Forced) Recompiling" : "Recompiling") + " event handler for subsystem: '" + sSubsystem + "'");
 
             ES_Core_CompileEventHandler(sSubsystem, sSubsystemEventHandlerScript, sSubsystemEventHandlerFunction);

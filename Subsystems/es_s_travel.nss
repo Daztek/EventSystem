@@ -19,13 +19,13 @@ const float TRAVEL_IMPACT_DELAY_TIMER               = 0.5f;
 void ApplyTravelEffect(object oPlayer, int nVFX, int nMaterial, effect eEffect);
 
 // @EventSystem_Init
-void InitTravelSystem(string sEventHandlerScript)
+void Travel_Init(string sEventHandlerScript)
 {
     ES_Core_SubscribeEvent_NWNX(sEventHandlerScript, "NWNX_ON_MATERIALCHANGE_AFTER");
 }
 
 // @EventSystem_EventHandler
-void HandleMaterialChange(string sEventHandlerScript, string sEvent)
+void Travel_EventHandler(string sEventHandlerScript, string sEvent)
 {
     object oPlayer = OBJECT_SELF;
     int nMaterial = ES_Core_GetEventData_NWNX_Int("MATERIAL_TYPE");

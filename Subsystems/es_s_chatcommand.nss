@@ -97,7 +97,7 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
                 string sPermissionInclude = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID);
                 string sPermissionValue = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID);
                 string sPermissionComparison = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID);
-                string sPermission = sPermissionFunction + " " + sPermissionComparison + " " + sPermissionValue + ";";
+                string sPermission = sPermissionFunction + " " + sPermissionComparison + " " + sPermissionValue;
 
                 bPermission = ES_Util_ExecuteScriptChunkAndReturnInt(sPermissionInclude, sPermission, oPlayer, "oPlayer");
             }

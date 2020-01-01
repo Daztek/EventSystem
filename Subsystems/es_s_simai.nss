@@ -130,19 +130,6 @@ void SimpleAI_InitAIBehavior(string sAIBehavior)
     SimpleAI_GetEventFunction(oDataObject, sScriptContents, "SimAIBehavior_OnUserDefined", EVENT_SCRIPT_CREATURE_ON_USER_DEFINED_EVENT);
 }
 
-string SimpleAI_GetEventCase(int nEvent, string sFunctionName, string sEventHandlerScript)
-{
-    string sCase;
-
-    if (sFunctionName != "")
-    {
-        sCase += nssCaseStatement(nEvent, sFunctionName + "();");
-        ES_Core_SubscribeEvent_Object(sEventHandlerScript, nEvent, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    }
-
-    return sCase;
-}
-
 void SimpleAI_CreateEventHandler(string sAIBehavior)
 {
     object oBehaviorDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
@@ -156,7 +143,11 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
     {
         string sFunctionName = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent));
 
-        sCases += SimpleAI_GetEventCase(nEvent, sFunctionName, sEventHandlerScript);
+        if (sFunctionName != "")
+        {
+            sCases += nssCaseStatement(nEvent, sFunctionName + "();");
+            ES_Core_SubscribeEvent_Object(sEventHandlerScript, nEvent, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+        }
     }
 
     string sEventHandler = nssInclude(sAIBehavior) + nssVoidMain(nssInt("nEvent", "StringToInt(NWNX_Events_GetCurrentEvent())") + nssSwitch("nEvent", sCases));

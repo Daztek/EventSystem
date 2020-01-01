@@ -8,15 +8,19 @@
 string nssVoidMain(string sContents);
 string nssStartingConditional(string sContents);
 string nssInclude(string sIncludeFile);
-string nssIfStatement(string sFunction, string sComparison, string sValue);
-string nssElseIfStatement(string sFunction, string sComparison, string sValue);
+string nssIfStatement(string sFunction, string sComparison = "", string sValue = "");
+string nssElseIfStatement(string sFunction, string sComparison = "", string sValue = "");
+string nssWhile(string sFunction, string sComparison = "", string sValue = "");
 string nssBrackets(string sContents);
-string nssEscapeDoubleQuotes(string sText);
+string nssEscapeDoubleQuotes(string sString);
 string nssSwitch(string sVariable, string sCases);
 string nssCaseStatement(int nCase, string sContents, int bBreak = TRUE);
-string nssObject(string sVarName, string sFunction = "");
-string nssString(string sVarName, string sFunction = "");
-string nssInt(string sVarName, string sFunction = "");
+string nssObject(string sVarName, string sFunction = "", int bIncludeType = TRUE);
+string nssString(string sVarName, string sFunction = "", int bIncludeType = TRUE);
+string nssInt(string sVarName, string sFunction = "", int bIncludeType = TRUE);
+string nssFloat(string sVarName, string sFunction = "", int bIncludeType = TRUE);
+string nssVector(string sVarName, string sFunction = "", int bIncludeType = TRUE);
+string nssLocation(string sVarName, string sFunction = "", int bIncludeType = TRUE);
 
 string nssVoidMain(string sContents)
 {
@@ -43,19 +47,24 @@ string nssElseIfStatement(string sFunction, string sComparison, string sValue)
     return "else if (" + sFunction + " " + sComparison + " " + sValue + ") ";
 }
 
+string nssWhile(string sFunction, string sComparison, string sValue)
+{
+    return "while (" + sFunction + " " + sComparison + " " + sValue + ") ";
+}
+
 string nssBrackets(string sContents)
 {
     return "{ " + sContents + " } ";
 }
 
-string nssEscapeDoubleQuotes(string sText)
+string nssEscapeDoubleQuotes(string sString)
 {
-    return "\"" + sText + "\"";
+    return "\"" + sString + "\"";
 }
 
 string nssSwitch(string sVariable, string sCases)
 {
-    return "switch (" + sVariable + ") { " + sCases + " };";
+    return "switch (" + sVariable + ") { " + sCases + " }";
 }
 
 string nssCaseStatement(int nCase, string sContents, int bBreak = TRUE)
@@ -63,23 +72,43 @@ string nssCaseStatement(int nCase, string sContents, int bBreak = TRUE)
     return "case " + IntToString(nCase) + ": { " + sContents + (bBreak ? " break;" : "") + " } ";
 }
 
+string nssSemicolon(string sString)
+{
+    return GetStringRight(sString, 1) == ";" ? sString + " " : sString + "; ";
+}
+
 string nssVariable(string sType, string sVarName, string sFunction)
 {
-    return sType + " " + sVarName + (sFunction == "" ? "; " : " = " + sFunction + "; ");
+    return sType + " " + sVarName + (sFunction == "" ? "; " : " = " + nssSemicolon(sFunction));
 }
 
-string nssObject(string sVarName, string sFunction = "")
+string nssObject(string sVarName, string sFunction = "", int bIncludeType = TRUE)
 {
-    return nssVariable("object", sVarName, sFunction);
+    return nssVariable(bIncludeType ? "object" : "", sVarName, sFunction);
 }
 
-string nssString(string sVarName, string sFunction = "")
+string nssString(string sVarName, string sFunction = "", int bIncludeType = TRUE)
 {
-    return nssVariable("string", sVarName, sFunction);
+    return nssVariable(bIncludeType ? "string" : "", sVarName, sFunction);
 }
 
-string nssInt(string sVarName, string sFunction = "")
+string nssInt(string sVarName, string sFunction = "", int bIncludeType = TRUE)
 {
-    return nssVariable("int", sVarName, sFunction);
+    return nssVariable(bIncludeType ? "int" : "", sVarName, sFunction);
+}
+
+string nssFloat(string sVarName, string sFunction = "", int bIncludeType = TRUE)
+{
+    return nssVariable(bIncludeType ? "float" : "", sVarName, sFunction);
+}
+
+string nssVector(string sVarName, string sFunction = "", int bIncludeType = TRUE)
+{
+    return nssVariable(bIncludeType ? "vector" : "", sVarName, sFunction);
+}
+
+string nssLocation(string sVarName, string sFunction = "", int bIncludeType = TRUE)
+{
+    return nssVariable(bIncludeType ? "location" : "", sVarName, sFunction);
 }
 

@@ -69,7 +69,7 @@ void Emote_HandleEmoteChatCommand(object oPlayer, string sEmote, int nVolume)
         Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE1, 3600.0f);
     else
     if (sEmote == "cast2")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE1, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE2, 3600.0f);
     else
     if (sEmote == "deadback")
         Emote_DoEmote(oPlayer, ANIMATION_LOOPING_DEAD_BACK, 3600.0f);
