@@ -76,11 +76,11 @@ string ChatCommand_Parse(string sMessage, string sCommand)
 void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
 {
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
-    string sHelp = GetLocalString(oPlayer, CHATCOMMAND_HELP_TEXT);
+    string sHelp = ES_Util_GetString(oPlayer, CHATCOMMAND_HELP_TEXT);
 
     if (sHelp == "")
     {
-        int nNumCommands = GetLocalInt(oDataObject, CHATCOMMAND_NUM_COMMANDS);
+        int nNumCommands = ES_Util_GetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS);
 
         sHelp = "Available Chat Commands:\n";
 
@@ -90,13 +90,13 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
             int bPermission;
             string sCommandID = IntToString(nCommand);
 
-            string sPermissionFunction = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID);
+            string sPermissionFunction = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID);
 
             if (sPermissionFunction != "")
             {
-                string sPermissionInclude = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID);
-                string sPermissionValue = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID);
-                string sPermissionComparison = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID);
+                string sPermissionInclude = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID);
+                string sPermissionValue = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID);
+                string sPermissionComparison = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID);
                 string sPermission = sPermissionFunction + " " + sPermissionComparison + " " + sPermissionValue;
 
                 bPermission = ES_Util_ExecuteScriptChunkAndReturnInt(sPermissionInclude, sPermission, oPlayer, "oPlayer");
@@ -104,15 +104,15 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
             else
                 bPermission = TRUE;
 
-            string sCommand = GetLocalString(oDataObject, CHATCOMMAND_COMMAND + sCommandID);
-            string sParams = GetLocalString(oDataObject, CHATCOMMAND_PARAMS + sCommandID);
-            string sDescription = GetLocalString(oDataObject, CHATCOMMAND_DESCRIPTION + sCommandID);
+            string sCommand = ES_Util_GetString(oDataObject, CHATCOMMAND_COMMAND + sCommandID);
+            string sParams = ES_Util_GetString(oDataObject, CHATCOMMAND_PARAMS + sCommandID);
+            string sDescription = ES_Util_GetString(oDataObject, CHATCOMMAND_DESCRIPTION + sCommandID);
 
             if (bPermission)
                 sHelp += "\n" + sCommand + (sParams != "" ? " " + sParams : "") + " - " + sDescription;
         }
 
-        SetLocalString(oPlayer, CHATCOMMAND_HELP_TEXT, sHelp);
+        ES_Util_SetString(oPlayer, CHATCOMMAND_HELP_TEXT, sHelp);
     }
 
     SendMessageToPC(oPlayer, sHelp);
@@ -122,7 +122,7 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
 void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
 {
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
-    int nNumCommands = GetLocalInt(oDataObject, CHATCOMMAND_NUM_COMMANDS);
+    int nNumCommands = ES_Util_GetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS);
 
     if (!nNumCommands)
     {
@@ -130,7 +130,7 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
         return;
     }
 
-    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registered '" + IntToString(nNumCommands) + "' Chat Command" + (nNumCommands > 1 ? "s" : "") + " -> Compiling Event Handler");
+    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registered '" + IntToString(nNumCommands) + "' Chat Command" + (nNumCommands > 1 ? "s" : ""));
 
     string sIncludes, sCommands;
 
@@ -147,25 +147,25 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
         else
         {
             string sPermission, sCommandID = IntToString(nCommand);
-            string sCommand = GetLocalString(oDataObject, CHATCOMMAND_COMMAND + sCommandID);
-            string sFunction = nssFunction(GetLocalString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID), "oPlayer, sParams, nVolume");
+            string sCommand = ES_Util_GetString(oDataObject, CHATCOMMAND_COMMAND + sCommandID);
+            string sFunction = nssFunction(ES_Util_GetString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID), "oPlayer, sParams, nVolume");
 
-            string sInclude = GetLocalString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID);
+            string sInclude = ES_Util_GetString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID);
 
             if (FindSubString(sIncludes, sInclude) == -1)
                 sIncludes += nssInclude(sInclude);
 
-            string sPermissionFunction = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID);
+            string sPermissionFunction = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID);
 
             if (sPermissionFunction != "")
             {
-                string sPermissionInclude = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID);
+                string sPermissionInclude = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID);
 
                 if (sPermissionInclude != "" && FindSubString(sIncludes, sPermissionInclude) == -1)
                     sIncludes += nssInclude(sPermissionInclude);
 
-                string sPermissionValue = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID);
-                string sPermissionComparison = GetLocalString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID);
+                string sPermissionValue = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID);
+                string sPermissionComparison = ES_Util_GetString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID);
 
                 sPermission = nssIfStatement(sPermissionFunction, sPermissionComparison, sPermissionValue) + nssBrackets(sFunction);
             }
@@ -186,7 +186,7 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
     string sReturn = NWNX_Util_AddScript(sEventHandlerScript, sEventHandler);
 
     if (sReturn != "")
-        ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > FAILED: " + sReturn);
+        ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > ERROR: Failed to compile Event Handler with error: " + sReturn);
     else
         ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT);
 }
@@ -197,7 +197,7 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
         return -1;
 
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
-    int nCommandID = GetLocalInt(oDataObject, CHATCOMMAND_NUM_COMMANDS) + 1;
+    int nCommandID = ES_Util_GetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS) + 1;
     string sCommandID = IntToString(nCommandID);
 
     sSubsystemScript = "es_s_" + GetSubString(sSubsystemScript, 5, GetStringLength(sSubsystemScript) - 5);
@@ -206,14 +206,14 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
 
     ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registering chat command " + sCommandID + ": '" + sCommand + "' for subsystem '" + sSubsystemScript + "' with function: " + sFunction + "()");
 
-    SetLocalInt(oDataObject, CHATCOMMAND_NUM_COMMANDS, nCommandID);
+    ES_Util_SetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS, nCommandID);
 
-    SetLocalString(oDataObject, CHATCOMMAND_COMMAND + sCommandID, sCommand);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_COMMAND + sCommandID, sCommand);
     if (sHelpParams != "")
-        SetLocalString(oDataObject, CHATCOMMAND_PARAMS + sCommandID, sHelpParams);
-    SetLocalString(oDataObject, CHATCOMMAND_DESCRIPTION + sCommandID, sHelpDescription);
-    SetLocalString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID, sSubsystemScript);
-    SetLocalString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID, sFunction);
+        ES_Util_SetString(oDataObject, CHATCOMMAND_PARAMS + sCommandID, sHelpParams);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_DESCRIPTION + sCommandID, sHelpDescription);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID, sSubsystemScript);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID, sFunction);
 
     return nCommandID;
 }
@@ -228,9 +228,9 @@ void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction
     ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > Setting chat command permission: '" + sFunction + (sComparison != "" ? " " + sComparison + " " : "") + sValue + "'");
 
     if (sInclude != "")
-        SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
-    SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID, sFunction);
-    SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID, sValue);
-    SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID, sComparison);
+        ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID, sFunction);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID, sValue);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID, sComparison);
 }
 

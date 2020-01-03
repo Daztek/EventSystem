@@ -73,7 +73,7 @@ void SimpleAI_GetInitFunction(object oDataObject, string sScriptContents)
     {
         ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Found init function '" + sFunctionName + "'");
 
-        SetLocalString(oDataObject, SIMPLE_AI_INIT_FUNCTION, sFunctionName);
+        ES_Util_SetString(oDataObject, SIMPLE_AI_INIT_FUNCTION, sFunctionName);
     }
 }
 
@@ -90,14 +90,14 @@ void SimpleAI_GetEventFunction(object oBehaviorDataObject, string sScriptContent
             sFunctionName += "(); ";
         }
 
-        SetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent), sFunctionName + "SimpleAI_CleanUpOnDeath");
+        ES_Util_SetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent), sFunctionName + "SimpleAI_CleanUpOnDeath");
     }
     else
     if (GetStringLength(sFunctionName))
     {
         ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Found event function '" + sFunctionName + "' for event: " + IntToString(nEvent));
 
-        SetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent), sFunctionName);
+        ES_Util_SetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent), sFunctionName);
     }
 }
 
@@ -109,9 +109,9 @@ void SimpleAI_InitAIBehavior(string sAIBehavior)
     object oDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
     string sScriptContents = NWNX_Util_GetNSSContents(sAIBehavior);
 
-    SetLocalInt(oSystemDataObject, sAIBehavior, TRUE);
+    ES_Util_SetInt(oSystemDataObject, sAIBehavior, TRUE);
 
-    SetLocalString(oDataObject, SIMPLE_AI_EVENT_HANDLER, "ai_e_" + GetSubString(sAIBehavior, 5, GetStringLength(sAIBehavior) - 5));
+    ES_Util_SetString(oDataObject, SIMPLE_AI_EVENT_HANDLER, "ai_e_" + GetSubString(sAIBehavior, 5, GetStringLength(sAIBehavior) - 5));
 
     SimpleAI_GetInitFunction(oDataObject, sScriptContents);
 
@@ -133,7 +133,7 @@ void SimpleAI_InitAIBehavior(string sAIBehavior)
 void SimpleAI_CreateEventHandler(string sAIBehavior)
 {
     object oBehaviorDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
-    string sEventHandlerScript = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
+    string sEventHandlerScript = ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "  > Compiling event handler '" + sEventHandlerScript + "' for AI Behavior: " + sAIBehavior);
 
@@ -141,7 +141,7 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
     int nEvent;
     for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
     {
-        string sFunctionName = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent));
+        string sFunctionName = ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent));
 
         if (sFunctionName != "")
         {
@@ -161,7 +161,7 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
 void SimpleAI_ExecuteInitFunction(string sAIBehavior)
 {
     object oDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sAIBehavior);
-    string sInitFunction = GetLocalString(oDataObject, SIMPLE_AI_INIT_FUNCTION);
+    string sInitFunction = ES_Util_GetString(oDataObject, SIMPLE_AI_INIT_FUNCTION);
 
     if (sInitFunction != "")
     {
@@ -178,17 +178,17 @@ string SimpleAI_GetBehaviorScriptName(string sBehavior)
 
 void SimpleAI_CleanUpOnDeath()
 {
-    string sBehavior = GetLocalString(OBJECT_SELF, SIMPLE_AI_NPC_BEHAVIOR_TAG);
+    string sBehavior = ES_Util_GetString(OBJECT_SELF, SIMPLE_AI_NPC_BEHAVIOR_TAG);
 
     if (sBehavior != "")
     {
         object oBehaviorDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sBehavior);
-        string sEventHandlerScript = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
+        string sEventHandlerScript = ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
 
         int nEvent;
         for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
         {
-            if (GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
+            if (ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
                 NWNX_Events_RemoveObjectFromDispatchList(ES_Core_GetEventName_Object(nEvent), sEventHandlerScript, OBJECT_SELF);
             }
@@ -204,17 +204,17 @@ void SimpleAI_SetAIBehavior(object oCreature, string sBehavior)
     object oSystemDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG);
     string sBehaviorScriptName = SimpleAI_GetBehaviorScriptName(GetStringLowerCase(sBehavior));
 
-    if (GetLocalInt(oSystemDataObject, sBehaviorScriptName))
+    if (ES_Util_GetInt(oSystemDataObject, sBehaviorScriptName))
     {
         object oBehaviorDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sBehaviorScriptName);
-        string sEventHandlerScript = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
+        string sEventHandlerScript = ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
 
-        SetLocalString(oCreature, SIMPLE_AI_NPC_BEHAVIOR_TAG, sBehaviorScriptName);
+        ES_Util_SetString(oCreature, SIMPLE_AI_NPC_BEHAVIOR_TAG, sBehaviorScriptName);
 
         int nEvent;
         for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
         {
-            if (GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
+            if (ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
                 ES_Core_SetObjectEventScript(oCreature, nEvent, FALSE);
                 NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(nEvent), sEventHandlerScript, oCreature);
@@ -239,14 +239,14 @@ void SimpleAI_UnsetAIBehavior(object oCreature)
     if (sBehavior != "")
     {
         object oBehaviorDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG + sBehavior);
-        string sEventHandlerScript = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
+        string sEventHandlerScript = ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_HANDLER);
 
-        DeleteLocalString(oCreature, SIMPLE_AI_NPC_BEHAVIOR_TAG);
+        ES_Util_DeleteString(oCreature, SIMPLE_AI_NPC_BEHAVIOR_TAG);
 
         int nEvent;
         for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
         {
-            if (GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
+            if (ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
                 SetEventScript(oCreature, nEvent, "");
                 NWNX_Events_RemoveObjectFromDispatchList(ES_Core_GetEventName_Object(nEvent), sEventHandlerScript, oCreature);
@@ -268,7 +268,7 @@ void SimpleAI_SwitchAIBehavior(object oCreature, string sNewBehavior)
 
 string SimpleAI_GetAIBehavior(object oCreature = OBJECT_SELF)
 {
-    return GetLocalString(oCreature, SIMPLE_AI_NPC_BEHAVIOR_TAG);
+    return ES_Util_GetString(oCreature, SIMPLE_AI_NPC_BEHAVIOR_TAG);
 }
 
 int SimpleAI_GetIsAreaEmpty()
@@ -278,12 +278,12 @@ int SimpleAI_GetIsAreaEmpty()
 
 int SimpleAI_GetTick()
 {
-    return GetLocalInt(OBJECT_SELF, "SimpleAITick");
+    return ES_Util_GetInt(OBJECT_SELF, "SimpleAITick");
 }
 
 void SimpleAI_SetTick(int nTick)
 {
-    SetLocalInt(OBJECT_SELF, "SimpleAITick", nTick);
+    ES_Util_SetInt(OBJECT_SELF, "SimpleAITick", nTick);
 }
 
 void SimpleAI_InitialSetup(int bEquipClothes = TRUE, int bCutsceneGhost = TRUE)

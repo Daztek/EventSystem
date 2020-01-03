@@ -39,9 +39,7 @@ void PersistentLocation_SaveLocation(object oPlayer)
 {
     if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer)) return;
 
-    string sLocation = ES_Util_LocationToString(GetLocation(oPlayer));
-
-    NWNX_Object_SetPersistentString(oPlayer, PERSISTENT_LOCATION_SYSTEM_TAG, sLocation);
+    ES_Util_SetLocation(oPlayer, PERSISTENT_LOCATION_SYSTEM_TAG, GetLocation(oPlayer), TRUE);
 }
 
 void PersistentLocation_LoadLocation(object oPlayer)
@@ -51,17 +49,14 @@ void PersistentLocation_LoadLocation(object oPlayer)
         string sUUID = GetObjectUUID(oPlayer);
         object oDataObject = ES_Util_GetDataObject(PERSISTENT_LOCATION_SYSTEM_TAG);
 
-        if (!GetLocalInt(oDataObject, sUUID))
+        if (!ES_Util_GetInt(oDataObject, sUUID))
         {
-            location locLocation = ES_Util_StringToLocation(NWNX_Object_GetPersistentString(oPlayer, PERSISTENT_LOCATION_SYSTEM_TAG));
+            location locLocation = ES_Util_GetLocation(oPlayer, PERSISTENT_LOCATION_SYSTEM_TAG);
             object oWaypoint = ES_Util_CreateWaypoint(locLocation, PERSISTENT_LOCATION_SYSTEM_TAG + sUUID);
 
-            if (GetIsObjectValid(GetArea(oWaypoint)))
-            {
-                NWNX_Player_SetPersistentLocation(GetPCPublicCDKey(oPlayer), NWNX_Player_GetBicFileName(oPlayer), oWaypoint);
-            }
+            NWNX_Player_SetPersistentLocation(GetPCPublicCDKey(oPlayer), NWNX_Player_GetBicFileName(oPlayer), oWaypoint);
 
-            SetLocalInt(oDataObject, sUUID, TRUE);
+            ES_Util_SetInt(oDataObject, sUUID, TRUE);
         }
 
         NWNX_ELC_SkipValidationFailure();

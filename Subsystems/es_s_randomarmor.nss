@@ -89,7 +89,7 @@ void RandomArmor_PrepareTemplateArmor()
 
     string sItem = NWNX_Object_Serialize(oItem);
 
-    SetLocalString(ES_Util_GetDataObject(RANDOM_ARMOR_SYSTEM_TAG), RANDOM_ARMOR_TEMPLATE_TAG, sItem);
+    ES_Util_SetString(ES_Util_GetDataObject(RANDOM_ARMOR_SYSTEM_TAG), RANDOM_ARMOR_TEMPLATE_TAG, sItem);
 
     DestroyObject(oItem);
 }
@@ -147,7 +147,7 @@ int RandomArmor_GetRandomPartByType(int nArmorModelPart, int nMinPartNum = 0, fl
 
 object RandomArmor_GetClothes(object oTarget = OBJECT_INVALID)
 {
-    object oItem = NWNX_Object_Deserialize(GetLocalString(ES_Util_GetDataObject(RANDOM_ARMOR_SYSTEM_TAG), RANDOM_ARMOR_TEMPLATE_TAG));
+    object oItem = NWNX_Object_Deserialize(ES_Util_GetString(ES_Util_GetDataObject(RANDOM_ARMOR_SYSTEM_TAG), RANDOM_ARMOR_TEMPLATE_TAG));
 
     float fMinPartAC = 0.0f;
     float fMaxPartAC = 0.08f;

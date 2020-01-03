@@ -36,21 +36,21 @@ void PersistentHitPoints_SaveHitPoints(object oPlayer)
 {
     if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer)) return;
 
-    NWNX_Object_SetPersistentInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_Dead", GetIsDead(oPlayer));
-    NWNX_Object_SetPersistentInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_HP", GetCurrentHitPoints(oPlayer));
+    ES_Util_SetInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_Dead", GetIsDead(oPlayer), TRUE);
+    ES_Util_SetInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_HP", GetCurrentHitPoints(oPlayer), TRUE);
 }
 
 void PersistentHitPoints_RestoreHitPoints(object oPlayer)
 {
     if (GetIsDM(oPlayer)) return;
 
-    int bDead = NWNX_Object_GetPersistentInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_Dead");
+    int bDead = ES_Util_GetInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_Dead");
 
     if (bDead)
         ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectDeath(), oPlayer);
     else
     {
-        int nHitPoints = NWNX_Object_GetPersistentInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_HP");
+        int nHitPoints = ES_Util_GetInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_HP");
 
         if (nHitPoints > 0 && !(nHitPoints >= GetMaxHitPoints(oPlayer)))
            NWNX_Object_SetCurrentHitPoints(oPlayer, nHitPoints);

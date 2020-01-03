@@ -79,10 +79,10 @@ void Toolbox_Init(string sEventHandlerScript)
         SetDescription(oSmallItem, "Item Template, Small");
 
         string sSmallItem = NWNX_Object_Serialize(oSmallItem);
-        SetLocalString(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, sSmallItem);
+        ES_Util_SetString(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, sSmallItem);
 
         object oTemplateSmallItem = NWNX_Object_Deserialize(sSmallItem);
-        SetLocalObject(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, oTemplateSmallItem);
+        ES_Util_SetObject(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, oTemplateSmallItem);
 
         DestroyObject(oSmallItem);
 
@@ -92,22 +92,21 @@ void Toolbox_Init(string sEventHandlerScript)
         SetName(oNormalPlaceable, "Placeable Template, Normal");
         NWNX_Object_SetPlaceableIsStatic(oNormalPlaceable, FALSE);
         string sNormalPlaceable = NWNX_Object_Serialize(oNormalPlaceable);
-        SetLocalString(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG, sNormalPlaceable);
+        ES_Util_SetString(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG, sNormalPlaceable);
 
         object oInventoryPlaceable = CreateObject(OBJECT_TYPE_PLACEABLE, "x1_hen_inv", GetStartingLocation(), FALSE, TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG);
         SetName(oInventoryPlaceable, "Placeable Template, Inventory");
         SetEventScript(oInventoryPlaceable, EVENT_SCRIPT_PLACEABLE_ON_CLOSED, "");
         string sInventoryPlaceable = NWNX_Object_Serialize(oInventoryPlaceable);
-        SetLocalString(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG, sInventoryPlaceable);
+        ES_Util_SetString(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG, sInventoryPlaceable);
 
         DestroyObject(oNormalPlaceable);
         DestroyObject(oInventoryPlaceable);
-
 }
 
 object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid)
 {
-    object oTemplateItem = GetLocalObject(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG);
+    object oTemplateItem = ES_Util_GetObject(ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG);
     object oSmallItem = CopyItemAndModify(oTemplateItem, ITEM_APPR_TYPE_SIMPLE_MODEL, 0, sid.nIcon, TRUE);
 
     SetName(oSmallItem, sid.sName);
@@ -128,7 +127,7 @@ object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid)
 
 string Toolbox_GeneratePlaceable(struct Toolbox_PlaceableData pd)
 {
-    object oPlaceable = NWNX_Object_Deserialize(GetLocalString(
+    object oPlaceable = NWNX_Object_Deserialize(ES_Util_GetString(
         ES_Util_GetDataObject(TOOLBOX_SYSTEM_TAG), pd.bHasInventory ? TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG : TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG));
 
     NWNX_Object_SetAppearance(oPlaceable, pd.nModel);

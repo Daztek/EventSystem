@@ -116,7 +116,7 @@ void PlayerDB_LoadPersistentLocation(object oPlayer)
         {
             object oDataObject = ES_Util_GetDataObject(PLAYERDB_SYSTEM_TAG + "_PersistentLocations");
 
-            if (!GetLocalInt(oDataObject, sPlayerHash))
+            if (!ES_Util_GetInt(oDataObject, sPlayerHash))
             {
                 location locLocation = ES_Redis_GetLocation(sPlayerHash, "Location");
 
@@ -127,7 +127,7 @@ void PlayerDB_LoadPersistentLocation(object oPlayer)
                     NWNX_Player_SetPersistentLocation(GetPCPublicCDKey(oPlayer), NWNX_Player_GetBicFileName(oPlayer), oWaypoint);
                 }
 
-                SetLocalInt(oDataObject, sPlayerHash, TRUE);
+                ES_Util_SetInt(oDataObject, sPlayerHash, TRUE);
             }
         }
 

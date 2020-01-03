@@ -25,10 +25,10 @@ void Init()
     while (GetIsObjectValid(oWaypoint))
     {
         object oArea = GetArea(oWaypoint);
-        int nWaypoints = GetLocalInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS) + 1;
+        int nWaypoints = ES_Util_GetInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS) + 1;
 
-        SetLocalInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS, nWaypoints);
-        SetLocalObject(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS + IntToString(nWaypoints), oWaypoint);
+        ES_Util_SetInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS, nWaypoints);
+        ES_Util_SetObject(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS + IntToString(nWaypoints), oWaypoint);
 
         oWaypoint = GetObjectByTag(AIBEHAVIOR_WANDER_WAYPOINT_TAG, ++nNth);
     }
@@ -39,7 +39,7 @@ void Spawn()
 {
     SimpleAI_InitialSetup();
 
-    SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
+    ES_Util_SetInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
 
     ActionForceMoveToObject(GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
     ActionRandomWalk();
@@ -59,11 +59,11 @@ void Heartbeat()
 
     if (nAction == ACTION_RANDOMWALK)
     {
-        int nNextMoveTick = GetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK);
+        int nNextMoveTick = ES_Util_GetInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK);
 
         if (nTick > nNextMoveTick)
         {
-            SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
+            ES_Util_SetInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
             SimpleAI_SetTick(0);
 
             ClearAllActions();
@@ -89,8 +89,8 @@ void Conversation()
 object GetRandomWaypointInArea()
 {
     object oArea = GetArea(OBJECT_SELF);
-    int nNumWaypoints = GetLocalInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS);
-    object oWaypoint = GetLocalObject(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS + IntToString(Random(nNumWaypoints) + 1));
+    int nNumWaypoints = ES_Util_GetInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS);
+    object oWaypoint = ES_Util_GetObject(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS + IntToString(Random(nNumWaypoints) + 1));
 
     return GetIsObjectValid(oWaypoint) ? oWaypoint : OBJECT_SELF;
 }

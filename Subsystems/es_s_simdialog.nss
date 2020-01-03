@@ -158,25 +158,25 @@ int SimpleDialog_HandleStartingConditional()
 
             if (sText != "")
             {
-                int bConditionalEnabled = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_PAGE_CONDITIONAL + IntToString(nPage));
+                int bConditionalEnabled = ES_Util_GetInt(oConversation, SIMPLE_DIALOG_CV_PAGE_CONDITIONAL + IntToString(nPage));
 
                 if (bConditionalEnabled)
                 {
-                    DeleteLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
+                    ES_Util_DeleteString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
                     NWNX_Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
                     NWNX_Events_PushEventData("PLAYER", ObjectToString(oPlayer));
                     NWNX_Events_PushEventData("PAGE", IntToString(nPage));
                     NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, oSelf);
 
-                    string sOverrideText = GetLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
+                    string sOverrideText = ES_Util_GetString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
                     sText = sOverrideText == "" ? sText : sOverrideText;
                 }
 
                 NWNX_Dialog_SetCurrentNodeText(sText);
 
-                bReturn = !GetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
+                bReturn = !ES_Util_GetInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
             }
         }
         else
@@ -187,12 +187,12 @@ int SimpleDialog_HandleStartingConditional()
 
             if (sText != "")
             {
-                int bConditionalEnabled = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + IntToString(nOption));
+                int bConditionalEnabled = ES_Util_GetInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + IntToString(nOption));
 
                 if (bConditionalEnabled)
                 {
-                    DeleteLocalInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
-                    DeleteLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
+                    ES_Util_DeleteInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
+                    ES_Util_DeleteString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
                     NWNX_Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
                     NWNX_Events_PushEventData("PLAYER", ObjectToString(oPlayer));
@@ -200,14 +200,14 @@ int SimpleDialog_HandleStartingConditional()
                     NWNX_Events_PushEventData("OPTION", IntToString(nOption));
                     NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oSelf);
 
-                    string sOverrideText = GetLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
+                    string sOverrideText = ES_Util_GetString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
                     sText = sOverrideText == "" ? sText : sOverrideText;
                 }
 
                 NWNX_Dialog_SetCurrentNodeText(sText);
 
-                bReturn = !bConditionalEnabled ? TRUE : GetLocalInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
+                bReturn = !bConditionalEnabled ? TRUE : ES_Util_GetInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
             }
         }
     }
@@ -241,13 +241,13 @@ void SimpleDialog_HandleConversationEnd(int bAborted)
     NWNX_Events_PushEventData("ABORTED", IntToString(bAborted));
     NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONVERSATION_END, oSelf);
 
-    DeleteLocalInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
-    DeleteLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
+    ES_Util_DeleteInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
+    ES_Util_DeleteString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
-    DeleteLocalInt(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_PAGE);
-    DeleteLocalInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
-    DeleteLocalInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE);
-    DeleteLocalString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION);
+    ES_Util_DeleteInt(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_PAGE);
+    ES_Util_DeleteInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
+    ES_Util_DeleteInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE);
+    ES_Util_DeleteString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION);
 }
 
 void SimpleDialog_SubscribeEvent(string sEventHandlerScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE)
@@ -263,12 +263,12 @@ void SimpleDialog_SubscribeEvent(string sEventHandlerScript, string sSimpleDialo
 */
 void SimpleDialog_SetResult(int bResult)
 {
-    SetLocalInt(OBJECT_SELF, SIMPLE_DIALOG_CONDITIONAL_RESULT, bResult);
+    ES_Util_SetInt(OBJECT_SELF, SIMPLE_DIALOG_CONDITIONAL_RESULT, bResult);
 }
 
 void SimpleDialog_SetOverrideText(string sText)
 {
-    SetLocalString(OBJECT_SELF, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT, sText);
+    ES_Util_SetString(OBJECT_SELF, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT, sText);
 }
 
 /*
@@ -291,41 +291,41 @@ void SimpleDialog_DestroyConversation(string sConversationTag)
 
 int SimpleDialog_AddPage(object oConversation, string sText, int bEnableConditionalEvent = FALSE)
 {
-    int nPage = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_PAGE_INDEX) + 1;
+    int nPage = ES_Util_GetInt(oConversation, SIMPLE_DIALOG_CV_PAGE_INDEX) + 1;
 
-    SetLocalInt(oConversation, SIMPLE_DIALOG_CV_PAGE_INDEX, nPage);
-    SetLocalString(oConversation, SIMPLE_DIALOG_CV_PAGE + IntToString(nPage), sText);
+    ES_Util_SetInt(oConversation, SIMPLE_DIALOG_CV_PAGE_INDEX, nPage);
+    ES_Util_SetString(oConversation, SIMPLE_DIALOG_CV_PAGE + IntToString(nPage), sText);
 
-    DeleteLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_INDEX);
+    ES_Util_DeleteInt(oConversation, SIMPLE_DIALOG_CV_OPTION_INDEX);
 
     if (bEnableConditionalEvent)
-        SetLocalInt(oConversation, SIMPLE_DIALOG_CV_PAGE_CONDITIONAL + IntToString(nPage), TRUE);
+        ES_Util_SetInt(oConversation, SIMPLE_DIALOG_CV_PAGE_CONDITIONAL + IntToString(nPage), TRUE);
 
     return nPage;
 }
 
 string SimpleDialog_GetPageText(object oConversation, int nPage)
 {
-    return GetLocalString(oConversation, SIMPLE_DIALOG_CV_PAGE + IntToString(nPage));
+    return ES_Util_GetString(oConversation, SIMPLE_DIALOG_CV_PAGE + IntToString(nPage));
 }
 
 int SimpleDialog_AddOption(object oConversation, string sText, int bEnableConditionalEvent = FALSE)
 {
-    int nPage = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_PAGE_INDEX);
-    int nOption = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_INDEX) + 1;
+    int nPage = ES_Util_GetInt(oConversation, SIMPLE_DIALOG_CV_PAGE_INDEX);
+    int nOption = ES_Util_GetInt(oConversation, SIMPLE_DIALOG_CV_OPTION_INDEX) + 1;
 
-    SetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_INDEX, nOption);
-    SetLocalString(oConversation, SIMPLE_DIALOG_CV_OPTION + IntToString(nPage) + "_" + IntToString(nOption), sText);
+    ES_Util_SetInt(oConversation, SIMPLE_DIALOG_CV_OPTION_INDEX, nOption);
+    ES_Util_SetString(oConversation, SIMPLE_DIALOG_CV_OPTION + IntToString(nPage) + "_" + IntToString(nOption), sText);
 
     if (bEnableConditionalEvent)
-        SetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + IntToString(nOption), TRUE);
+        ES_Util_SetInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + IntToString(nOption), TRUE);
 
     return nOption;
 }
 
 string SimpleDialog_GetOptionText(object oConversation, int nPage, int nOption)
 {
-    return GetLocalString(oConversation, SIMPLE_DIALOG_CV_OPTION + IntToString(nPage) + "_" + IntToString(nOption));
+    return ES_Util_GetString(oConversation, SIMPLE_DIALOG_CV_OPTION + IntToString(nPage) + "_" + IntToString(nOption));
 }
 
 /*
@@ -333,22 +333,22 @@ string SimpleDialog_GetOptionText(object oConversation, int nPage, int nOption)
 */
 void SimpleDialog_SetCurrentConversation(object oPlayer, string sConversationTag)
 {
-    SetLocalString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION, sConversationTag);
+    ES_Util_SetString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION, sConversationTag);
 }
 
 string SimpleDialog_GetCurrentConversation(object oPlayer)
 {
-    return GetLocalString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION);
+    return ES_Util_GetString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION);
 }
 
 void SimpleDialog_SetCurrentPage(object oPlayer, int nPage)
 {
-    SetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_PAGE, nPage);
+    ES_Util_SetInt(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_PAGE, nPage);
 }
 
 int SimpleDialog_GetCurrentPage(object oPlayer)
 {
-    return GetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_PAGE);
+    return ES_Util_GetInt(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_PAGE);
 }
 
 void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConversationTag, int nStartingPage = 1, int bClearAllActions = FALSE)
@@ -364,9 +364,9 @@ void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConv
         SimpleDialog_SetCurrentConversation(oPlayer, sConversationTag);
         SimpleDialog_SetCurrentPage(oPlayer, nStartingPage);
 
-        DeleteLocalInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
-        DeleteLocalInt(oTarget, SIMPLE_DIALOG_CONDITIONAL_RESULT);
-        DeleteLocalString(oTarget, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
+        ES_Util_DeleteInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
+        ES_Util_DeleteInt(oTarget, SIMPLE_DIALOG_CONDITIONAL_RESULT);
+        ES_Util_DeleteString(oTarget, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
         if (bClearAllActions)
             AssignCommand(oPlayer, ClearAllActions(TRUE));
@@ -377,7 +377,7 @@ void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConv
 
 void SimpleDialog_EndConversation(object oPlayer)
 {
-    SetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION, TRUE);
+    ES_Util_SetInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION, TRUE);
 }
 
 void SimpleDialog_AbortConversation(object oObject)
@@ -391,12 +391,12 @@ void SimpleDialog_AbortConversation(object oObject)
 */
 void SimpleDialog_SetListRange(object oPlayer, int nRange)
 {
-    SetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE, nRange * SIMPLE_DIALOG_LIST_RANGE_SIZE);
+    ES_Util_SetInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE, nRange * SIMPLE_DIALOG_LIST_RANGE_SIZE);
 }
 
 int SimpleDialog_GetListRange(object oPlayer)
 {
-    return GetLocalInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE);
+    return ES_Util_GetInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE);
 }
 
 int SimpleDialog_GetNextListRange(object oPlayer)
