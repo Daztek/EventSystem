@@ -67,10 +67,10 @@ void ES_Core_Init()
 {
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Core System");
 
-    object oModule = GetModule();
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
 
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hash");
-    ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreHash"), oModule);
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hashes");
+    ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreHashes"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Object Event Scripts");
     string sCreateObjectEventScripts =
@@ -104,44 +104,53 @@ void ES_Core_Init()
 
     string sDisabledSubsystems = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_SUBSYSTEMS");
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Disabled Subsystems: " + (sDisabledSubsystems == "" ? "N/A" : sDisabledSubsystems));
-    ES_Util_SetString(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "DisabledSubsystems", sDisabledSubsystems);
+    ES_Util_SetString(oDataObject, "DisabledSubsystems", sDisabledSubsystems);
 
-    string sSubsystemList = ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
+    string sSubsystemArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Subsystems");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_InitializeSubsystem", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_InitializeSubsystem", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Checking for Subsystem Changes");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckSubsystemChanges", "sListItem"), oModule);
+    ES_Util_Log(ES_CORE_SYSTEM_TAG, "   * Core Hash Changed: " + (ES_Core_GetCoreHashChanged() ? "True" : "False"));
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckSubsystemChanges", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Checking for Dependency Changes");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckDependencyChanges", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckDependencyChanges", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Checking Subsystem Status");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckSubsystemStatus", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckSubsystemStatus", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Executing Init Functions");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_ExecuteInitFunctions", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_ExecuteInitFunctions", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Cleanup");
-    ES_Util_ExecuteScriptChunkForListItem(sSubsystemList, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_Cleanup", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_Cleanup", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
 }
 
-void ES_Core_CheckCoreHash()
+void ES_Core_CheckCoreIncludeHash(string sInclude)
 {
-    string sCoreScriptContents = NWNX_Util_GetNSSContents(ES_CORE_SCRIPT_NAME);
-    int nOldCoreHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", ES_CORE_SCRIPT_NAME);
-    int nNewCoreHash = NWNX_Util_Hash(sCoreScriptContents);
+    string sIncludeScriptContents = NWNX_Util_GetNSSContents(sInclude);
+    int nOldHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", sInclude);
+    int nNewHash = NWNX_Util_Hash(sIncludeScriptContents);
 
-    if (nOldCoreHash != nNewCoreHash)
+    if (nOldHash != nNewHash)
     {
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Core Hash Changed -> Old: " + IntToString(nOldCoreHash) + ", New: " + IntToString(nNewCoreHash));
-
-        SetCampaignInt(GetModuleName() + "_EventSystemCore", ES_CORE_SCRIPT_NAME, nNewCoreHash);
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Hash for '" + sInclude + "' Changed -> Old: " + IntToString(nOldHash) + ", New: " + IntToString(nNewHash));
+        SetCampaignInt(GetModuleName() + "_EventSystemCore", sInclude, nNewHash);
         ES_Util_SetInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged", TRUE);
     }
+}
+
+void ES_Core_CheckCoreHashes()
+{
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
+    string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.+", FALSE);
+
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreIncludeHash", "sArrayElement"), oModule);
+    ES_Util_StringArray_Clear(oDataObject, sIncludeArray);
 }
 
 int ES_Core_GetCoreHashChanged()
@@ -171,7 +180,6 @@ void ES_Core_InitializeSubsystem(string sSubsystem)
 
     string sSubsystemDependencies = ES_Core_GetDependencies(sSubsystem, sSubsystemScriptContents);
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Dependencies: " + (sSubsystemDependencies == "" ? "N/A" : sSubsystemDependencies));
-    ES_Util_SetString(oDataObject, "Dependencies", sSubsystemDependencies);
 
     int bForceRecompileFlag = ES_Util_GetScriptFlag(sSubsystemScriptContents, "EventSystem_ForceRecompile");
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Flags: " + (bForceRecompileFlag ? "ForceRecompile" : "N/A"));
@@ -208,18 +216,10 @@ void ES_Core_CreateObjectEventScripts(int nStart, int nEnd)
     }
 }
 
-void ES_Core_AddDependent(string sSubsystem, string sDependent)
-{
-    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
-    string sDependents = ES_Util_GetString(oDataObject, "Dependents");
-
-    if (FindSubString(sDependents, sDependent) == -1)
-        ES_Util_SetString(oDataObject, "Dependents", sDependents + sDependent + ES_UTIL_DELIMITER);
-}
-
 string ES_Core_GetDependencies(string sSubsystem, string sScriptContents)
 {
     string sDependencies;
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
     int nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", 0), nIncludeEnd;
 
     while (nIncludeStart != -1)
@@ -230,9 +230,10 @@ string ES_Core_GetDependencies(string sSubsystem, string sScriptContents)
 
         if (GetStringLeft(sDependency, 5) == "es_s_")
         {
-            ES_Core_AddDependent(sDependency, sSubsystem);
+            ES_Util_StringArray_Insert(oDataObject, "Dependencies", sDependency);
+            ES_Util_StringArray_Insert(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDependency), "Dependents", sSubsystem);
 
-            sDependencies += sDependency + ES_UTIL_DELIMITER;
+            sDependencies += sDependency + " ";
         }
 
         nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", nIncludeEnd);
@@ -256,7 +257,6 @@ void ES_Core_CheckSubsystemChanges(string sSubsystem)
 {
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
     int bCoreHashChanged = ES_Core_GetCoreHashChanged();
-
     int nOldHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", sSubsystem);
     int nNewHash = ES_Util_GetInt(oDataObject, "Hash");
     int bHashChanged = nOldHash != nNewHash;
@@ -279,7 +279,7 @@ void ES_Core_CheckSubsystemChanges(string sSubsystem)
         if (bCoreHashChanged || !bEventScriptExists || bHashChanged || bForceRecompileFlag)
         {
             ES_Util_Log(ES_CORE_SYSTEM_TAG, "     > " + (!bEventScriptExists ? "Compiling" :
-                (bForceRecompileFlag && !bHashChanged) ? "(Forced) Recompiling" : "Recompiling") + " Event Handler for Subsystem: " + sSubsystem);
+                (bForceRecompileFlag && !bHashChanged && !bCoreHashChanged) ? "(Forced) Recompiling" : "Recompiling") + " Event Handler for Subsystem: " + sSubsystem);
 
             ES_Core_CompileEventHandler(sSubsystem, sSubsystemEventHandlerScript, sSubsystemEventHandlerFunction);
 
@@ -300,18 +300,16 @@ void ES_Core_CheckDependencyChanges(string sSubsystem)
 
     if (bHasEventHandler && !bDidNotExist && !bHasBeenCompiled)
     {
-        string sSubsystemDependencies = ES_Util_GetString(oDataObject, "Dependencies");
+        int nNumSubsystemDependencies = ES_Util_StringArray_Size(oDataObject, "Dependencies"), nDependencyIndex;
 
-        if (sSubsystemDependencies != "")
+        if (nNumSubsystemDependencies)
         {
-            string sIdentifier = GetRandomUUID();
-            string sDepSubsystem = ES_Util_GetFirstListItem(sSubsystemDependencies, sIdentifier);
-
-            while (sDepSubsystem != "")
+            for (nDependencyIndex = 0; nDependencyIndex < nNumSubsystemDependencies; nDependencyIndex++)
             {
-                object oDepDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDepSubsystem);
+                string sDependencySubsystem = ES_Util_StringArray_At(oDataObject, "Dependencies", nDependencyIndex);
+                object oDependencyDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDependencySubsystem);
 
-                if (ES_Util_GetInt(oDepDataObject, "HashChanged"))
+                if (ES_Util_GetInt(oDependencyDataObject, "HashChanged"))
                 {
                     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Dependencies for Subsystem '" + sSubsystem + "' have changed, recompiling Event Handler");
 
@@ -322,8 +320,6 @@ void ES_Core_CheckDependencyChanges(string sSubsystem)
 
                     break;
                 }
-
-                sDepSubsystem = ES_Util_GetNextListItem(sSubsystemDependencies, sIdentifier);
             }
         }
     }
@@ -333,28 +329,27 @@ void ES_Core_CheckSubsystemStatus(string sSubsystem)
 {
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sSubsystem);
     int nSubsystemDisabled = ES_Util_GetInt(oDataObject, "DisabledSubsystem");
-    string sIdentifier = GetRandomUUID();
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  * Checking Subsystem: " + sSubsystem + "");
 
     if (!nSubsystemDisabled)
     {// Check if any of our dependencies are disabled
-        string sSubsystemDependencies = ES_Util_GetString(oDataObject, "Dependencies"), sDisabledDependencies;
+        int nNumSubsystemDependencies = ES_Util_StringArray_Size(oDataObject, "Dependencies");
 
-        if (sSubsystemDependencies != "")
+        if (nNumSubsystemDependencies)
         {
-            string sDependencySubsystem = ES_Util_GetFirstListItem(sSubsystemDependencies, sIdentifier);
+            int nDependencyIndex;
+            string sDisabledDependencies;
 
-            while (sDependencySubsystem != "")
+            for (nDependencyIndex = 0; nDependencyIndex < nNumSubsystemDependencies; nDependencyIndex++)
             {
+                string sDependencySubsystem = ES_Util_StringArray_At(oDataObject, "Dependencies", nDependencyIndex);
                 object oDependencyDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDependencySubsystem);
 
                 if (ES_Util_GetInt(oDependencyDataObject, "DisabledSubsystem"))
                 {
                     sDisabledDependencies += sDependencySubsystem + ";";
                 }
-
-                sDependencySubsystem = ES_Util_GetNextListItem(sSubsystemDependencies, sIdentifier);
             }
 
             if (sDisabledDependencies != "")
@@ -368,23 +363,23 @@ void ES_Core_CheckSubsystemStatus(string sSubsystem)
 
     if (nSubsystemDisabled)
     {// Disable our dependents
-        string sSubsystemDependents = ES_Util_GetString(oDataObject, "Dependents"), sDisabledDependents;
+        int nNumSubsystemDependents = ES_Util_StringArray_Size(oDataObject, "Dependents");
 
-        if (sSubsystemDependents != "")
+        if (nNumSubsystemDependents)
         {
-            string sDependentSubsystem = ES_Util_GetFirstListItem(sSubsystemDependents, sIdentifier);
+            int nDependentIndex;
+            string sDisabledDependents;
 
-            while (sDependentSubsystem != "")
+            for (nDependentIndex = 0; nDependentIndex < nNumSubsystemDependents; nDependentIndex++)
             {
+                string sDependentSubsystem = ES_Util_StringArray_At(oDataObject, "Dependents", nDependentIndex);
                 object oDependentDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG + "_" + sDependentSubsystem);
 
                 if (!ES_Util_GetInt(oDependentDataObject, "DisabledSubsystem"))
                 {
                     ES_Util_SetInt(oDependentDataObject, "DisabledSubsystem", TRUE);
-                    sDisabledDependents += sDependentSubsystem + ";";
+                    sDisabledDependents += sDependentSubsystem + " ";
                 }
-
-                sDependentSubsystem = ES_Util_GetNextListItem(sSubsystemDependents, sIdentifier);
             }
 
             if (sDisabledDependents != "")

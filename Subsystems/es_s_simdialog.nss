@@ -37,7 +37,6 @@ const string SIMPLE_DIALOG_CV_OPTION_CONDITIONAL            = "SDConversationOpt
 
 const string SIMPLE_DIALOG_CONDITIONAL_RESULT               = "SDConditionalResult";
 const string SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT        = "SDConditionalOverrideText";
-
 // ***
 
 // Subscribe sEventHandlerScript to a SIMPLE_DIALOG_EVENT_*
@@ -258,9 +257,7 @@ void SimpleDialog_SubscribeEvent(string sEventHandlerScript, string sSimpleDialo
         NWNX_Events_ToggleDispatchListMode(sSimpleDialogEvent, sEventHandlerScript, bDispatchListMode);
 }
 
-/*
-    Conditional Event Related Functions
-*/
+/* Conditional Event Related Functions */
 void SimpleDialog_SetResult(int bResult)
 {
     ES_Util_SetInt(OBJECT_SELF, SIMPLE_DIALOG_CONDITIONAL_RESULT, bResult);
@@ -271,9 +268,7 @@ void SimpleDialog_SetOverrideText(string sText)
     ES_Util_SetString(OBJECT_SELF, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT, sText);
 }
 
-/*
-    Conversation Related Functions
-*/
+/* Conversation Related Functions */
 object SimpleDialog_CreateConversation(string sConversationTag)
 {
     return ES_Util_CreateDataObject(SIMPLE_DIALOG_SYSTEM_TAG + "_cv_" + sConversationTag);
@@ -328,9 +323,7 @@ string SimpleDialog_GetOptionText(object oConversation, int nPage, int nOption)
     return ES_Util_GetString(oConversation, SIMPLE_DIALOG_CV_OPTION + IntToString(nPage) + "_" + IntToString(nOption));
 }
 
-/*
-    Player Related Functions
-*/
+/* Player Related Functions */
 void SimpleDialog_SetCurrentConversation(object oPlayer, string sConversationTag)
 {
     ES_Util_SetString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION, sConversationTag);
@@ -386,9 +379,7 @@ void SimpleDialog_AbortConversation(object oObject)
         NWNX_Dialog_End(oObject);
 }
 
-/*
-    List Related Functions
-*/
+/* List Related Functions */
 void SimpleDialog_SetListRange(object oPlayer, int nRange)
 {
     ES_Util_SetInt(oPlayer, SIMPLE_DIALOG_PLR_LIST_RANGE, nRange * SIMPLE_DIALOG_LIST_RANGE_SIZE);
@@ -429,9 +420,7 @@ int SimpleDialog_GetListSelection(object oPlayer, int nOption)
     return SimpleDialog_GetListRange(oPlayer) + nOption;
 }
 
-/*
-    Token Related Functions
-*/
+/* Token Related Functions */
 string SimpleDialog_Token_Action(string sText)
 {
     return "<StartAction>" + sText + "</Start>";

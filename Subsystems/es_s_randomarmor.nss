@@ -33,11 +33,12 @@ void RandomArmor_Init(string sEventHandlerScript)
 
 void RandomArmor_CacheArmorParts()
 {
-    string sParts2DAList = ES_Util_GetResRefList(2017/* 2DA */, "parts_.+", FALSE);
+    object oDataObject = ES_Util_GetDataObject(RANDOM_ARMOR_SYSTEM_TAG);
+    string sParts2DAArray = ES_Util_GetResRefArray(oDataObject, 2017/* 2DA */, "parts_.+", FALSE);
 
     ES_Util_Log(RANDOM_ARMOR_SYSTEM_TAG, "* Caching armor parts in database");
-    ES_Util_ExecuteScriptChunkForListItem(sParts2DAList, "es_s_randomarmor", nssFunction("RandomArmor_InsertArmorParts2DA", "sListItem"), GetModule());
-    ES_Util_Log(RANDOM_ARMOR_SYSTEM_TAG, "* Done!");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sParts2DAArray, "es_s_randomarmor", nssFunction("RandomArmor_InsertArmorParts2DA", "sArrayElement"), GetModule());
+    ES_Util_StringArray_Clear(oDataObject, sParts2DAArray);
 }
 
 void RandomArmor_InsertArmorParts2DA(string sParts2DA)

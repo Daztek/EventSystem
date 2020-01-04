@@ -12,8 +12,6 @@
 #include "nwnx_object"
 #include "nwnx_util"
 
-const string ES_UTIL_DELIMITER              = ";";
-
 // Create a waypoint at locLocation with sTag
 object ES_Util_CreateWaypoint(location locLocation, string sTag);
 
@@ -62,20 +60,16 @@ int round(float f);
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
 // Get if sFlag is set in a script
 int ES_Util_GetScriptFlag(string sScriptContents, string sFlag);
-// Get a list of resrefs with ES_UTIL_DELIMITER as delimiter
-string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
-// Get the first list item of sList or "" on error
-string ES_Util_GetFirstListItem(string sList, string sIdentifier);
-// Get the next list item of sList or "" on error
-string ES_Util_GetNextListItem(string sList, string sIdentifier);
+// Create an array of resrefs on oArrayObject
+// Returns: The array name
+string ES_Util_GetResRefArray(object oArrayObject, int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
 // Execute a script chunk and return a string result
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
 // Execute a script chunk and return an int result
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
-// Execute a script chunk for every item in sList using ES_UTIL_DELIMITER
-//
-// You can access the list item through the sListItem variable in your script chunk
-void ES_Util_ExecuteScriptChunkForListItem(string sList, string sInclude, string sScriptChunk, object oObject);
+// Execute a script chunk for every element in sArrayName
+// You can access the array element through the sArrayElement variable in your script chunk
+void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject);
 
 // Delete oObject's POS float variable sVarName
 void ES_Util_DeleteFloat(object oObject, string sVarName);
@@ -116,7 +110,16 @@ string ES_Util_GetString(object oObject, string sVarName);
 // Set oObject's POS string variable sVarName to sValue
 void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPersist = FALSE);
 
-
+// Insert a string to sArrayName
+void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue);
+// Get the size of sArrayName
+int ES_Util_StringArray_Size(object oObject, string sArrayName);
+// Get the string at nIndex of sArrayName
+string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex);
+// Delete sArrayName
+void ES_Util_StringArray_Clear(object oObject, string sArrayName);
+// Returns TRUE if sValue exists in sArrayName
+int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue);
 
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
 {
@@ -310,60 +313,19 @@ int ES_Util_GetScriptFlag(string sScriptContents, string sFlag)
     return FindSubString(sScriptContents, "@" + sFlag, 0) != -1;
 }
 
-string ES_Util_GetResRefList(int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE)
+string ES_Util_GetResRefArray(object oArrayObject, int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE)
 {
-    string sResRefList, sResRef = NWNX_Util_GetFirstResRef(nType, sRegexFilter, bModuleResourcesOnly);
+    string sArrayName = "RRA_" + GetRandomUUID();
+    string sResRef = NWNX_Util_GetFirstResRef(nType, sRegexFilter, bModuleResourcesOnly);
 
     while (sResRef != "")
     {
-        sResRefList += sResRef + ES_UTIL_DELIMITER;
+        ES_Util_StringArray_Insert(oArrayObject, sArrayName, sResRef);
+
         sResRef = NWNX_Util_GetNextResRef();
     }
 
-    return sResRefList;
-}
-
-string ES_Util_GetFirstListItem(string sList, string sIdentifier)
-{
-    if (sList == "")
-        return "";
-
-    object oModule = GetModule();
-    int nEnd = FindSubString(sList, ES_UTIL_DELIMITER, 0);
-    string sListItem;
-
-    ES_Util_DeleteInt(oModule, "ES_TEMP_LIST_START_" + sIdentifier);
-
-    if (nEnd != -1)
-    {
-        sListItem = GetSubString(sList, 0, nEnd);
-        ES_Util_SetInt(oModule, "ES_TEMP_LIST_START_" + sIdentifier, nEnd + 1);
-    }
-
-    return sListItem;
-}
-
-string ES_Util_GetNextListItem(string sList, string sIdentifier)
-{
-    if (sList == "")
-        return "";
-
-    object oModule = GetModule();
-    int nStart = ES_Util_GetInt(oModule, "ES_TEMP_LIST_START_" + sIdentifier);
-    int nEnd = FindSubString(sList, ES_UTIL_DELIMITER, nStart);
-    string sListItem;
-
-    if (nEnd != -1)
-    {
-        sListItem = GetSubString(sList, nStart, nEnd - nStart);
-        ES_Util_SetInt(oModule, "ES_TEMP_LIST_START_" + sIdentifier, nEnd + 1);
-    }
-    else
-    {
-        ES_Util_DeleteInt(oModule, "ES_TEMP_LIST_START_" + sIdentifier);
-    }
-
-    return sListItem;
+    return sArrayName;
 }
 
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
@@ -392,20 +354,21 @@ int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk,
     return ES_Util_GetInt(oModule, "ES_TEMP_VAR");
 }
 
-void ES_Util_ExecuteScriptChunkForListItem(string sList, string sInclude, string sScriptChunk, object oObject)
+void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject)
 {
-    if (sList == "") return;
+    int nArraySize = ES_Util_StringArray_Size(oArrayObject, sArrayName);
 
-    string sIdentifier = GetRandomUUID();
-    string sListItem = ES_Util_GetFirstListItem(sList, sIdentifier);
-
-    while (sListItem != "")
+    if(nArraySize)
     {
-        string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sListItem", nssEscapeDoubleQuotes(sListItem)) + sScriptChunk);
+        int nIndex;
 
-        ExecuteScriptChunk(sScript, oObject, FALSE);
+        for (nIndex = 0; nIndex < nArraySize; nIndex++)
+        {
+            string sArrayElement = ES_Util_StringArray_At(oArrayObject, sArrayName, nIndex);
+            string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sArrayElement", nssEscapeDoubleQuotes(sArrayElement)) + sScriptChunk);
 
-        sListItem = ES_Util_GetNextListItem(sList, sIdentifier);
+            ExecuteScriptChunk(sScript, oObject, FALSE);
+        }
     }
 }
 
@@ -482,5 +445,53 @@ string ES_Util_GetString(object oObject, string sVarName)
 void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPersist = FALSE)
 {
     NWNX_Object_SetString(oObject, "ES!STR!" + sVarName, sValue, bPersist);
+}
+
+void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue)
+{
+    int nIndex = ES_Util_GetInt(oObject, "SA!NUM!" + sArrayName);
+    ES_Util_SetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), sValue);
+    ES_Util_SetInt(oObject, "SA!NUM!" + sArrayName, ++nIndex);
+}
+
+int ES_Util_StringArray_Size(object oObject, string sArrayName)
+{
+    return ES_Util_GetInt(oObject, "SA!NUM!" + sArrayName);
+}
+
+string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex)
+{
+    return ES_Util_GetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+}
+
+void ES_Util_StringArray_Clear(object oObject, string sArrayName)
+{
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
+
+    for (nIndex = 0; nIndex < nSize; nIndex++)
+        ES_Util_DeleteString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+
+    ES_Util_DeleteInt(oObject, "SA!NUM!" + sArrayName);
+}
+
+int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue)
+{
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex, bReturn = FALSE;
+
+    if (nSize)
+    {
+        for (nIndex = 0; nIndex < nSize; nIndex++)
+        {
+            string sElement = ES_Util_StringArray_At(oObject, sArrayName, nIndex);
+
+            if (sElement == sValue)
+            {
+                bReturn = TRUE;
+                break;
+            }
+        }
+    }
+
+    return bReturn;
 }
 

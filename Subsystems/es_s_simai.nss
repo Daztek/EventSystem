@@ -52,17 +52,17 @@ void SimpleAI_InitialSetup(int bEquipClothes = TRUE, int bCutsceneGhost = TRUE);
 void SimpleAI_Init(string sEventHandlerScript)
 {
     object oSystemDataObject = ES_Util_GetDataObject(SIMPLE_AI_SYSTEM_TAG), oModule = GetModule();
-    string sAIBehaviorList = ES_Util_GetResRefList(NWNX_UTIL_RESREF_TYPE_NSS, "ai_b_.+", FALSE);
+    string sAIBehaviorArray = ES_Util_GetResRefArray(oSystemDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "ai_b_.+", FALSE);
 
-    ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Found AI Behaviors: " + sAIBehaviorList);
-
-    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", nssFunction("SimpleAI_InitAIBehavior", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oSystemDataObject, sAIBehaviorArray, "es_s_simai", nssFunction("SimpleAI_InitAIBehavior", "sArrayElement"), oModule);
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Creating Event Handlers");
-    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", nssFunction("SimpleAI_CreateEventHandler", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oSystemDataObject, sAIBehaviorArray, "es_s_simai", nssFunction("SimpleAI_CreateEventHandler", "sArrayElement"), oModule);
 
     ES_Util_Log(SIMPLE_AI_SYSTEM_TAG, "* Executing Init Functions");
-    ES_Util_ExecuteScriptChunkForListItem(sAIBehaviorList, "es_s_simai", nssFunction("SimpleAI_ExecuteInitFunction", "sListItem"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oSystemDataObject, sAIBehaviorArray, "es_s_simai", nssFunction("SimpleAI_ExecuteInitFunction", "sArrayElement"), oModule);
+
+    ES_Util_StringArray_Clear(oSystemDataObject, sAIBehaviorArray);
 }
 
 void SimpleAI_GetInitFunction(object oDataObject, string sScriptContents)
