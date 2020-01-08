@@ -21,6 +21,7 @@ const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3018;
 
 /* Internal Functions */
 int ES_Core_GetCoreHashChanged();
+int ES_Core_GetFunctionHashChanged(string sFunction);
 string ES_Core_GetDependencies(string sSubsystem, string sScriptContents);
 int ES_Core_GetEventFlags(int nEvent);
 void ES_Core_SetEventFlag(int nEvent, int nEventFlag);
@@ -50,7 +51,7 @@ void ES_Core_SubscribeEvent_Object(string sEventHandlerScript, int nEvent, int n
 // Convenience function to subscribe to a NWNX event
 void ES_Core_SubscribeEvent_NWNX(string sEventHandlerScript, string sNWNXEvent, int bDispatchListMode = FALSE);
 
-// NWNX_Events_GetEventData() string data wrapper (Not really needed)
+// NWNX_Events_GetEventData() string data wrapper
 string ES_Core_GetEventData_NWNX_String(string sTag);
 // NWNX_Events_GetEventData() int data wrapper
 int ES_Core_GetEventData_NWNX_Int(string sTag);
@@ -68,11 +69,20 @@ void ES_Core_Init()
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Core System");
 
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
+    string sResult;
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hashes");
     ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreHashes"), oModule);
 
+    if (NWNX_Util_GetEnvironmentVariable("ES_CHECK_NWNX_HASH") != "")
+    {
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking NWNX Hashes");
+        ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckNWNXHashes"), oModule);
+    }
+
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Object Event Scripts");
+    if (ES_Core_GetFunctionHashChanged("ES_Core_SignalEvent"))
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Recompiling Object Event Scripts");
     string sCreateObjectEventScripts =
         nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN") +
         nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT") +
@@ -83,14 +93,17 @@ void ES_Core_Init()
         nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_DOOR_ON_OPEN, EVENT_SCRIPT_DOOR_ON_FAIL_TO_OPEN") +
         nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_ENCOUNTER_ON_OBJECT_ENTER, EVENT_SCRIPT_ENCOUNTER_ON_USER_DEFINED_EVENT") +
         nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_STORE_ON_OPEN, EVENT_SCRIPT_STORE_ON_CLOSE");
-    ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sCreateObjectEventScripts, oModule);
+    sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sCreateObjectEventScripts, oModule);
+    if (sResult != "")
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Fail: " + sResult);
 
-    int nEvent;
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking Module Event Scripts");
-    for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT; nEvent++)
-    {
-        ES_Core_SetObjectEventScript(oModule, nEvent);
-    }
+    string sSetModuleEventScripts = nssInt("nEvent") + nssObject("oModule", nssFunction("GetModule")) +
+        "for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT; nEvent++)" +
+        nssBrackets(nssFunction("ES_Core_SetObjectEventScript", "oModule, nEvent"));
+    sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetModuleEventScripts, oModule);
+    if (sResult != "")
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Fail: " + sResult);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking Area Event Scripts");
     string sSetAreaEventScripts = nssObject("oArea", nssFunction("GetFirstArea")) + nssWhile(nssFunction("GetIsObjectValid", "oArea", FALSE)) +
@@ -100,7 +113,9 @@ void ES_Core_Init()
             nssFunction("ES_Core_SetObjectEventScript", "oArea, EVENT_SCRIPT_AREA_ON_ENTER") +
             nssFunction("ES_Core_SetObjectEventScript", "oArea, EVENT_SCRIPT_AREA_ON_EXIT") +
             nssObject("oArea", nssFunction("GetNextArea"), FALSE));
-    ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetAreaEventScripts, oModule);
+    sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetAreaEventScripts, oModule);
+    if (sResult != "")
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Fail: " + sResult);
 
     string sDisabledSubsystems = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_SUBSYSTEMS");
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Disabled Subsystems: " + (sDisabledSubsystems == "" ? "N/A" : sDisabledSubsystems));
@@ -130,7 +145,27 @@ void ES_Core_Init()
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
 }
 
-void ES_Core_CheckCoreIncludeHash(string sInclude)
+void ES_Core_CheckFunctionHash(string sScriptContents, string sFunction)
+{
+    string sFunctionContents = ES_Util_GetFunctionImplementation(sScriptContents, sFunction);
+
+    if (sFunctionContents == "")
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "      > ERROR: Implementation for Function '" + sFunction + "' could not be found");
+    else
+    {
+        int nOldHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", "FunctionHash_" + sFunction);
+        int nNewHash = NWNX_Util_Hash(sFunctionContents);
+
+        if (nOldHash != nNewHash)
+        {
+            ES_Util_Log(ES_CORE_SYSTEM_TAG, "      > Hash for Function '" + sFunction + "' Changed -> Old: " + IntToString(nOldHash) + ", New: " + IntToString(nNewHash));
+            SetCampaignInt(GetModuleName() + "_EventSystemCore", "FunctionHash_" + sFunction, nNewHash);
+            ES_Util_SetInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "FunctionHashChanged_" + sFunction, TRUE);
+        }
+    }
+}
+
+void ES_Core_CheckIncludeHash(string sInclude)
 {
     string sIncludeScriptContents = NWNX_Util_GetNSSContents(sInclude);
     int nOldHash = GetCampaignInt(GetModuleName() + "_EventSystemCore", sInclude);
@@ -142,6 +177,11 @@ void ES_Core_CheckCoreIncludeHash(string sInclude)
         SetCampaignInt(GetModuleName() + "_EventSystemCore", sInclude, nNewHash);
         ES_Util_SetInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged", TRUE);
     }
+
+    if (sInclude == ES_CORE_SCRIPT_NAME)
+    {
+        ES_Core_CheckFunctionHash(sIncludeScriptContents, "ES_Core_SignalEvent");
+    }
 }
 
 void ES_Core_CheckCoreHashes()
@@ -149,13 +189,30 @@ void ES_Core_CheckCoreHashes()
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
     string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.+", FALSE);
 
-    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreIncludeHash", "sArrayElement"), oModule);
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
+    ES_Util_StringArray_Clear(oDataObject, sIncludeArray);
+}
+
+void ES_Core_CheckNWNXHashes()
+{
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
+    string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "nwnx_.+", FALSE);
+
+    // Manually insert nwnx.nss
+    ES_Util_StringArray_Insert(oDataObject, sIncludeArray, "nwnx");
+
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
     ES_Util_StringArray_Clear(oDataObject, sIncludeArray);
 }
 
 int ES_Core_GetCoreHashChanged()
 {
     return ES_Util_GetInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "CoreHashChanged");
+}
+
+int ES_Core_GetFunctionHashChanged(string sFunction)
+{
+    return ES_Util_GetInt(ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), "FunctionHashChanged_" + sFunction);
 }
 
 int ES_Core_GetSubsystemDisabled(string sSubsystem)
@@ -171,7 +228,6 @@ void ES_Core_InitializeSubsystem(string sSubsystem)
     string sSubsystemScriptContents = NWNX_Util_GetNSSContents(sSubsystem);
 
     int bDisabledSubsystem = ES_Core_GetSubsystemDisabled(sSubsystem);
-    ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Status: " + (bDisabledSubsystem ? "Disabled" : "Enabled"));
     ES_Util_SetInt(oDataObject, "DisabledSubsystem", bDisabledSubsystem);
 
     int nSubsystemHash = NWNX_Util_Hash(sSubsystemScriptContents);
@@ -200,17 +256,15 @@ void ES_Core_InitializeSubsystem(string sSubsystem)
 void ES_Core_CreateObjectEventScripts(int nStart, int nEnd)
 {
     int nEvent;
-    int bCoreHashChanged = ES_Core_GetCoreHashChanged();
+    int bFunctionHashChanged = ES_Core_GetFunctionHashChanged("ES_Core_SignalEvent");
 
     for (nEvent = nStart; nEvent <= nEnd; nEvent++)
     {
         string sScriptName = "es_obj_e_" + IntToString(nEvent);
         int bObjectEventScriptExists = NWNX_Util_IsValidResRef(sScriptName, NWNX_UTIL_RESREF_TYPE_NCS);
 
-        if (bCoreHashChanged || !bObjectEventScriptExists)
+        if (bFunctionHashChanged || !bObjectEventScriptExists)
         {
-            ES_Util_Log(ES_CORE_SYSTEM_TAG, "   > " + (!bObjectEventScriptExists ? "Creating" : "Recompiling") + " Object Event Script: " + sScriptName);
-
             ES_Util_AddScript(sScriptName, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_SignalEvent", IntToString(nEvent)));
         }
     }
@@ -348,7 +402,7 @@ void ES_Core_CheckSubsystemStatus(string sSubsystem)
 
                 if (ES_Util_GetInt(oDependencyDataObject, "DisabledSubsystem"))
                 {
-                    sDisabledDependencies += sDependencySubsystem + ";";
+                    sDisabledDependencies += sDependencySubsystem + " ";
                 }
             }
 
@@ -433,6 +487,7 @@ void ES_Core_SetEventFlag(int nEvent, int nEventFlag)
                    ES_Core_GetEventFlags(nEvent) | nEventFlag);
 }
 
+// @EventSystem_Function_Start ES_Core_SignalEvent
 void ES_Core_SignalEvent(int nEvent, object oTarget = OBJECT_SELF)
 {
     int nEventFlags = ES_Core_GetEventFlags(nEvent);
@@ -441,10 +496,9 @@ void ES_Core_SignalEvent(int nEvent, object oTarget = OBJECT_SELF)
     if (nEventFlags & ES_CORE_EVENT_FLAG_BEFORE)
         NWNX_Events_SignalEvent(sEvent + IntToString(ES_CORE_EVENT_FLAG_BEFORE), oTarget);
 
-    // *** Run any old stored event scripts
+    // Run any old stored event scripts
     string sScript = ES_Util_GetString(oTarget, "ES_Core_OldEventScript_" + IntToString(nEvent));
     if (sScript != "") ExecuteScript(sScript, oTarget);
-    // ***
 
     if (nEventFlags & ES_CORE_EVENT_FLAG_DEFAULT)
         NWNX_Events_SignalEvent(sEvent + IntToString(ES_CORE_EVENT_FLAG_DEFAULT), oTarget);
@@ -452,6 +506,7 @@ void ES_Core_SignalEvent(int nEvent, object oTarget = OBJECT_SELF)
     if (nEventFlags & ES_CORE_EVENT_FLAG_AFTER)
         NWNX_Events_SignalEvent(sEvent + IntToString(ES_CORE_EVENT_FLAG_AFTER), oTarget);
 }
+// @EventSystem_Function_End ES_Core_SignalEvent
 
 /* *** */
 

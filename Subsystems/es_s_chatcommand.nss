@@ -204,13 +204,12 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
 
     sCommand = GetStringLowerCase(sCommand);
 
-    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registering chat command " + sCommandID + ": '" + sCommand + "' for subsystem '" + sSubsystemScript + "' with function: " + sFunction + "()");
+    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registering Chat Command: " + sCommandID + " -> '" + sCommand + "' for Subsystem '" + sSubsystemScript + "' with Function: " + sFunction + "()");
 
     ES_Util_SetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS, nCommandID);
 
     ES_Util_SetString(oDataObject, CHATCOMMAND_COMMAND + sCommandID, sCommand);
-    if (sHelpParams != "")
-        ES_Util_SetString(oDataObject, CHATCOMMAND_PARAMS + sCommandID, sHelpParams);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_PARAMS + sCommandID, sHelpParams);
     ES_Util_SetString(oDataObject, CHATCOMMAND_DESCRIPTION + sCommandID, sHelpDescription);
     ES_Util_SetString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID, sSubsystemScript);
     ES_Util_SetString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID, sFunction);
@@ -225,10 +224,9 @@ void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
     string sCommandID = IntToString(nCommandID);
 
-    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > Setting chat command permission: '" + sFunction + (sComparison != "" ? " " + sComparison + " " : "") + sValue + "'");
+    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > Setting Permission for CommandID: " + sCommandID + " -> '" + sFunction + (sComparison != "" ? " " + sComparison + " " : "") + sValue + "'");
 
-    if (sInclude != "")
-        ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
     ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID, sFunction);
     ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID, sValue);
     ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID, sComparison);

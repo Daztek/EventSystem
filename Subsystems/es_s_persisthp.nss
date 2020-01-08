@@ -51,8 +51,9 @@ void PersistentHitPoints_RestoreHitPoints(object oPlayer)
     else
     {
         int nHitPoints = ES_Util_GetInt(oPlayer, PERSISTENT_HITPOINTS_SYSTEM_TAG + "_HP");
+        int nMaxHitPoints = GetMaxHitPoints(oPlayer);
 
-        if (nHitPoints > 0 && !(nHitPoints >= GetMaxHitPoints(oPlayer)))
+        if (nHitPoints > 0 && nHitPoints < nMaxHitPoints)
            NWNX_Object_SetCurrentHitPoints(oPlayer, nHitPoints);
     }
 }

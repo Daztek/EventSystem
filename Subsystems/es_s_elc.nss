@@ -18,7 +18,7 @@ void ELC_SubscribeEvent(string sEventHandlerScript);
 // @EventSystem_Init
 void ELC_Init(string sEventHandlerScript)
 {
-    ES_Util_AddScript("es_e_elc", "nwnx_events", nssFunction("NWNX_Events_SignalEvent", nssEscapeDoubleQuotes("ELC_EVENT") + ", OBJECT_SELF"));
+    ES_Util_AddScript(sEventHandlerScript, "nwnx_events", nssFunction("NWNX_Events_SignalEvent", nssEscapeDoubleQuotes(ELC_EVENT) + ", OBJECT_SELF"));
 }
 
 void ELC_SubscribeEvent(string sEventHandlerScript)

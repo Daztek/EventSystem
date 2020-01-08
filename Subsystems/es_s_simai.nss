@@ -150,7 +150,7 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
         }
     }
 
-    string sEventHandler = nssInclude(sAIBehavior) + nssVoidMain(nssInt("nEvent", "StringToInt(NWNX_Events_GetCurrentEvent())") + nssSwitch("nEvent", sCases));
+    string sEventHandler = nssInclude(sAIBehavior) + nssVoidMain(nssInt("nEvent", nssFunction("StringToInt", nssFunction("NWNX_Events_GetCurrentEvent", "", FALSE))) + nssSwitch("nEvent", sCases));
 
     string sResult = NWNX_Util_AddScript(sEventHandlerScript, sEventHandler, FALSE);
 

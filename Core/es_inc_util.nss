@@ -58,6 +58,18 @@ int round(float f);
 
 // Get a functionname from sScriptContents using sDecorator
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
+// Get the implementation of sFunctionName from sScriptContents
+//
+// The function must be prepared in the following way
+// Example:
+//          // @EventSystem_Function_Start TestFunction
+//          void TestFunction(string sTestString)
+//          {
+//              // Code
+//          }
+//          // @EventSystem_Function_End TestFunction
+string ES_Util_GetFunctionImplementation(string sScriptContents, string sFunctionName);
+
 // Get if sFlag is set in a script
 int ES_Util_GetScriptFlag(string sScriptContents, string sFlag);
 // Create an array of resrefs on oArrayObject
@@ -112,6 +124,8 @@ void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPers
 
 // Insert a string to sArrayName
 void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue);
+// Set nIndex of sArrayName to sValue
+void ES_Util_StringArray_Set(object oObject, string sArrayName, int nIndex, string sValue);
 // Get the size of sArrayName
 int ES_Util_StringArray_Size(object oObject, string sArrayName);
 // Get the string at nIndex of sArrayName
@@ -308,6 +322,19 @@ string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string
     return GetSubString(sScriptContents, nFunctionStart + nFunctionTypeLength, nFunctionEnd - nFunctionStart - nFunctionTypeLength);
 }
 
+string ES_Util_GetFunctionImplementation(string sScriptContents, string sFunctionName)
+{
+    int nImplementationStart = FindSubString(sScriptContents, "@EventSystem_Function_Start " + sFunctionName, 0);
+    int nImplementationEnd = FindSubString(sScriptContents, "@EventSystem_Function_End " + sFunctionName, nImplementationStart);
+
+    if (nImplementationStart == -1 || nImplementationEnd == -1)
+        return "";
+
+    int nImplementationStartLength = GetStringLength("@EventSystem_Function_Start " + sFunctionName);
+
+    return GetSubString(sScriptContents, nImplementationStart + nImplementationStartLength, nImplementationEnd - nImplementationStart - nImplementationStartLength - 3);
+}
+
 int ES_Util_GetScriptFlag(string sScriptContents, string sFlag)
 {
     return FindSubString(sScriptContents, "@" + sFlag, 0) != -1;
@@ -338,6 +365,11 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
     ES_Util_DeleteString(oModule, "ES_TEMP_VAR");
     ExecuteScriptChunk(sScript, oObject, FALSE);
 
+    string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
+
+    if (sResult != "")
+        ES_Util_Log("ERROR", "ExecuteScriptChunkAndReturnString() failed with error: " + sResult);
+
     return ES_Util_GetString(oModule, "ES_TEMP_VAR");
 }
 
@@ -349,7 +381,10 @@ int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk,
         nssFunction("ES_Util_SetInt", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", nReturn"));
 
     ES_Util_DeleteInt(oModule, "ES_TEMP_VAR");
-    ExecuteScriptChunk(sScript, oObject, FALSE);
+    string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
+
+    if (sResult != "")
+        ES_Util_Log("ERROR", "ExecuteScriptChunkAndReturnInt() failed with error: " + sResult);
 
     return ES_Util_GetInt(oModule, "ES_TEMP_VAR");
 }
@@ -367,7 +402,10 @@ void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArr
             string sArrayElement = ES_Util_StringArray_At(oArrayObject, sArrayName, nIndex);
             string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sArrayElement", nssEscapeDoubleQuotes(sArrayElement)) + sScriptChunk);
 
-            ExecuteScriptChunk(sScript, oObject, FALSE);
+            string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
+
+            if (sResult != "")
+                ES_Util_Log("ERROR", "ExecuteScriptChunkForArrayElements() failed on element '" + sArrayElement + "' with error: " + sResult);
         }
     }
 }
@@ -449,9 +487,17 @@ void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPers
 
 void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue)
 {
-    int nIndex = ES_Util_GetInt(oObject, "SA!NUM!" + sArrayName);
-    ES_Util_SetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), sValue);
-    ES_Util_SetInt(oObject, "SA!NUM!" + sArrayName, ++nIndex);
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName);
+    ES_Util_SetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize), sValue);
+    ES_Util_SetInt(oObject, "SA!NUM!" + sArrayName, ++nSize);
+}
+
+void ES_Util_StringArray_Set(object oObject, string sArrayName, int nIndex, string sValue)
+{
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName);
+
+    if (nIndex < nSize)
+        ES_Util_SetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), sValue);
 }
 
 int ES_Util_StringArray_Size(object oObject, string sArrayName)
@@ -476,7 +522,7 @@ void ES_Util_StringArray_Clear(object oObject, string sArrayName)
 
 int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue)
 {
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex, bReturn = FALSE;
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
 
     if (nSize)
     {
@@ -486,12 +532,11 @@ int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValu
 
             if (sElement == sValue)
             {
-                bReturn = TRUE;
-                break;
+                return TRUE;
             }
         }
     }
 
-    return bReturn;
+    return FALSE;
 }
 

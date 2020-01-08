@@ -75,7 +75,7 @@ string nssCaseStatement(int nCase, string sContents, int bBreak = TRUE)
 
 string nssSemicolon(string sString)
 {
-    return GetStringRight(sString, 1) == ";" ? sString + " " : sString + "; ";
+    return (GetStringRight(sString, 1) == ";" || GetStringRight(sString, 2) == "; ") ? sString + " " : sString + "; ";
 }
 
 string nssVariable(string sType, string sVarName, string sFunction)
