@@ -16,14 +16,14 @@ void PersistentHitPoints_SaveHitPoints(object oPlayer);
 void PersistentHitPoints_RestoreHitPoints(object oPlayer);
 
 // @EventSystem_Init
-void PersistentHitPoints_Init(string sEventHandlerScript)
+void PersistentHitPoints_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sEventHandlerScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
+    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
 }
 
 // @EventSystem_EventHandler
-void PersistentHitPoints_EventHandler(string sEventHandlerScript, string sEvent)
+void PersistentHitPoints_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_CLIENT_DISCONNECT_BEFORE")
         PersistentHitPoints_SaveHitPoints(OBJECT_SELF);

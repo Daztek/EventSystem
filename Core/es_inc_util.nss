@@ -60,14 +60,14 @@ int round(float f);
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
 // Get the implementation of sFunctionName from sScriptContents
 //
-// The function must be prepared in the following way
-// Example:
-//          // @EventSystem_Function_Start TestFunction
-//          void TestFunction(string sTestString)
-//          {
-//              // Code
-//          }
-//          // @EventSystem_Function_End TestFunction
+// The function must be prepared in the following way:
+//
+// // @EventSystem_Function_Start TestFunction
+// void TestFunction(string sTestString)
+// {
+//     // Code
+// }
+// // @EventSystem_Function_End TestFunction
 string ES_Util_GetFunctionImplementation(string sScriptContents, string sFunctionName);
 
 // Get if sFlag is set in a script
@@ -85,6 +85,8 @@ void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArr
 
 // Delete oObject's POS float variable sVarName
 void ES_Util_DeleteFloat(object oObject, string sVarName);
+// Delete any of oObject's POS float variables that match sRegex
+void ES_Util_DeleteFloatRegex(object oObject, string sRegex);
 // Get oObject's POS float variable sVarName
 // * Return value on error: 0.0f
 float ES_Util_GetFloat(object oObject, string sVarName);
@@ -93,6 +95,8 @@ void ES_Util_SetFloat(object oObject, string sVarName, float fValue, int bPersis
 
 // Delete oObject's POS integer variable sVarName
 void ES_Util_DeleteInt(object oObject, string sVarName);
+// Delete any of oObject's POS int variables that match sRegex
+void ES_Util_DeleteIntRegex(object oObject, string sRegex);
 // Get oObject's POS integer variable sVarName
 // * Return value on error: 0
 int ES_Util_GetInt(object oObject, string sVarName);
@@ -101,6 +105,8 @@ void ES_Util_SetInt(object oObject, string sVarName, int nValue, int bPersist = 
 
 // Delete oObject's POS location variable sVarName
 void ES_Util_DeleteLocation(object oObject, string sVarName);
+// Delete any of oObject's POS location variables that match sRegex
+void ES_Util_DeleteLocationRegex(object oObject, string sRegex);
 // Get oObject's POS location variable sVarname
 location ES_Util_GetLocation(object oObject, string sVarName);
 // Set oObject's POS location variable sVarname to locValue
@@ -108,6 +114,8 @@ void ES_Util_SetLocation(object oObject, string sVarName, location locValue, int
 
 // Delete oObject's POS object variable sVarName
 void ES_Util_DeleteObject(object oObject, string sVarName);
+// Delete any of oObject's POS object variables that match sRegex
+void ES_Util_DeleteObjectRegex(object oObject, string sRegex);
 // Get oObject's POS object variable sVarName
 // * Return value on error: OBJECT_INVALID
 object ES_Util_GetObject(object oObject, string sVarName);
@@ -116,11 +124,16 @@ void ES_Util_SetObject(object oObject, string sVarName, object oValue);
 
 // Delete oObject's POS string variable sVarName
 void ES_Util_DeleteString(object oObject, string sVarName);
+// Delete any of oObject's POS string variables that match sRegex
+void ES_Util_DeleteStringRegex(object oObject, string sRegex);
 // Get oObject's POS string variable sVarName
 // * Return value on error: ""
 string ES_Util_GetString(object oObject, string sVarName);
 // Set oObject's POS string variable sVarName to sValue
 void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPersist = FALSE);
+
+// Delete any POS variables from oObject that match sRegex
+void ES_Util_DeleteVarRegex(object oObject, string sRegex);
 
 // Insert a string to sArrayName
 void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue);
@@ -415,6 +428,11 @@ void ES_Util_DeleteFloat(object oObject, string sVarName)
     NWNX_Object_DeleteFloat(oObject, "ES!FLT!" + sVarName);
 }
 
+void ES_Util_DeleteFloatRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!FLT!)" + sRegex);
+}
+
 float ES_Util_GetFloat(object oObject, string sVarName)
 {
     return NWNX_Object_GetFloat(oObject, "ES!FLT!" + sVarName);
@@ -428,6 +446,11 @@ void ES_Util_SetFloat(object oObject, string sVarName, float fValue, int bPersis
 void ES_Util_DeleteInt(object oObject, string sVarName)
 {
     NWNX_Object_DeleteInt(oObject, "ES!INT!" + sVarName);
+}
+
+void ES_Util_DeleteIntRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!INT!)" + sRegex);
 }
 
 int ES_Util_GetInt(object oObject, string sVarName)
@@ -445,6 +468,11 @@ void ES_Util_DeleteLocation(object oObject, string sVarName)
     NWNX_Object_DeleteString(oObject, "ES!LOC!" + sVarName);
 }
 
+void ES_Util_DeleteLocationRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!LOC!)" + sRegex);
+}
+
 location ES_Util_GetLocation(object oObject, string sVarName)
 {
     return ES_Util_StringToLocation(NWNX_Object_GetString(oObject, "ES!LOC!" + sVarName));
@@ -458,6 +486,11 @@ void ES_Util_SetLocation(object oObject, string sVarName, location locValue, int
 void ES_Util_DeleteObject(object oObject, string sVarName)
 {
     NWNX_Object_DeleteString(oObject, "ES!OBJ!" + sVarName);
+}
+
+void ES_Util_DeleteObjectRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!OBJ!)" + sRegex);
 }
 
 object ES_Util_GetObject(object oObject, string sVarName)
@@ -475,6 +508,11 @@ void ES_Util_DeleteString(object oObject, string sVarName)
     NWNX_Object_DeleteString(oObject, "ES!STR!" + sVarName);
 }
 
+void ES_Util_DeleteStringRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!STR!)" + sRegex);
+}
+
 string ES_Util_GetString(object oObject, string sVarName)
 {
     return NWNX_Object_GetString(oObject, "ES!STR!" + sVarName);
@@ -483,6 +521,11 @@ string ES_Util_GetString(object oObject, string sVarName)
 void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPersist = FALSE)
 {
     NWNX_Object_SetString(oObject, "ES!STR!" + sVarName, sValue, bPersist);
+}
+
+void ES_Util_DeleteVarRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!)((?:FLT!)|(?:INT!)|(?:LOC!)|(?:OBJ!)|(?:STR!))" + sRegex);
 }
 
 void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue)
@@ -512,12 +555,7 @@ string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex)
 
 void ES_Util_StringArray_Clear(object oObject, string sArrayName)
 {
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
-
-    for (nIndex = 0; nIndex < nSize; nIndex++)
-        ES_Util_DeleteString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
-
-    ES_Util_DeleteInt(oObject, "SA!NUM!" + sArrayName);
+    ES_Util_DeleteVarRegex(oObject, "(?:SA!)((?:ELEMENT!)|(?:NUM!))(?:" + sArrayName + ")!?\d*");
 }
 
 int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue)

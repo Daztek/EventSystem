@@ -23,20 +23,20 @@ const string WORLD_TIMER_EVENT_30_MINUTES       = "WORLD_TIMER_EVENT_30_MINUTES"
 const string WORLD_TIMER_EVENT_60_MINUTES       = "WORLD_TIMER_EVENT_60_MINUTES";
 
 // Subscribe sEventHandlerScript to a WORLD_TIMER_EVENT_*
-void WorldTimer_SubscribeEvent(string sEventHandlerScript, string sWorldTimerEvent, int bDispatchListMode = FALSE);
+void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bDispatchListMode = FALSE);
 // Get the current heartbeat count tick
 int WorldTimer_GetHeartbeatCount();
 
 // @EventSystem_Init
-void WorldTimer_Init(string sEventHandlerScript)
+void WorldTimer_Init(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SYSTEM_TAG);
     ES_Util_SetInt(oDataObject, "WORLD_TIMER_MINUTES_PER_HOUR", NWNX_Util_GetMinutesPerHour());
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_HEARTBEAT);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_HEARTBEAT);
 }
 
 // @EventSystem_EventHandler
-void WorldTimer_EventHandler(string sEventHandlerScript, string sEvent)
+void WorldTimer_EventHandler(string sSubsystemScript, string sEvent)
 {
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SYSTEM_TAG);
     int nModuleMinutesPerHour = ES_Util_GetInt(oDataObject, "WORLD_TIMER_MINUTES_PER_HOUR");
@@ -83,14 +83,14 @@ void WorldTimer_EventHandler(string sEventHandlerScript, string sEvent)
     ES_Util_SetInt(oDataObject, "WORLD_TIMER_HEARTBEAT_COUNT", ++nHeartbeatCount);
 }
 
-void WorldTimer_SubscribeEvent(string sEventHandlerScript, string sWorldTimerEvent, int bDispatchListMode = FALSE)
+void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bDispatchListMode = FALSE)
 {
     ES_Util_SetInt(ES_Util_GetDataObject(WORLD_TIMER_SYSTEM_TAG), sWorldTimerEvent, TRUE);
 
-    NWNX_Events_SubscribeEvent(sWorldTimerEvent, sEventHandlerScript);
+    NWNX_Events_SubscribeEvent(sWorldTimerEvent, sSubsystemScript);
 
     if (bDispatchListMode)
-        NWNX_Events_ToggleDispatchListMode(sWorldTimerEvent, sEventHandlerScript, bDispatchListMode);
+        NWNX_Events_ToggleDispatchListMode(sWorldTimerEvent, sSubsystemScript, bDispatchListMode);
 }
 
 int WorldTimer_GetHeartbeatCount()

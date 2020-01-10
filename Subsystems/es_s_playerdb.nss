@@ -21,20 +21,20 @@ void PlayerDB_SaveCharacters();
 void PlayerDB_ModuleShutdown();
 
 // @EventSystem_Init
-void PlayerDB_Init(string sEventHandlerScript)
+void PlayerDB_Init(string sSubsystemScript)
 {
     NWNX_ELC_EnableCustomELCCheck(TRUE);
 
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER, ES_CORE_EVENT_FLAG_BEFORE);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT, ES_CORE_EVENT_FLAG_AFTER);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN, ES_CORE_EVENT_FLAG_AFTER);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER, ES_CORE_EVENT_FLAG_BEFORE);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT, ES_CORE_EVENT_FLAG_AFTER);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN, ES_CORE_EVENT_FLAG_AFTER);
 
-    WorldTimer_SubscribeEvent(sEventHandlerScript, WORLD_TIMER_EVENT_5_MINUTES);
-    ELC_SubscribeEvent(sEventHandlerScript);
+    WorldTimer_SubscribeEvent(sSubsystemScript, WORLD_TIMER_EVENT_5_MINUTES);
+    ELC_SubscribeEvent(sSubsystemScript);
 }
 
 // @EventSystem_EventHandler
-void PlayerDB_EventHandler(string sEventHandlerScript, string sEvent)
+void PlayerDB_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == WORLD_TIMER_EVENT_5_MINUTES)
     {

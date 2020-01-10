@@ -15,7 +15,7 @@
 const string RANDOM_ARMOR_SYSTEM_TAG    = "RandomArmor";
 const string RANDOM_ARMOR_TEMPLATE_TAG  = "RandomArmorTemplate";
 
-void RandomArmor_CacheArmorParts();
+void RandomArmor_CacheArmorParts(string sSubsystemScript);
 void RandomArmor_PrepareTemplateArmor();
 
 string RandomArmor_GetTableFromArmorModelType(int nArmorModelPart);
@@ -24,20 +24,20 @@ int RandomArmor_GetRandomPartByType(int nArmorModelPart, int nMinPartNum = 0, fl
 object RandomArmor_GetClothes(object oTarget = OBJECT_INVALID);
 
 // @EventSystem_Init
-void RandomArmor_Init(string sEventHandlerScript)
+void RandomArmor_Init(string sSubsystemScript)
 {
-    RandomArmor_CacheArmorParts();
+    RandomArmor_CacheArmorParts( sSubsystemScript);
 
     RandomArmor_PrepareTemplateArmor();
 }
 
-void RandomArmor_CacheArmorParts()
+void RandomArmor_CacheArmorParts(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(RANDOM_ARMOR_SYSTEM_TAG);
     string sParts2DAArray = ES_Util_GetResRefArray(oDataObject, 2017/* 2DA */, "parts_.+", FALSE);
 
     ES_Util_Log(RANDOM_ARMOR_SYSTEM_TAG, "* Caching armor parts in database");
-    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sParts2DAArray, "es_s_randomarmor", nssFunction("RandomArmor_InsertArmorParts2DA", "sArrayElement"), GetModule());
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sParts2DAArray, sSubsystemScript, nssFunction("RandomArmor_InsertArmorParts2DA", "sArrayElement"), GetModule());
     ES_Util_StringArray_Clear(oDataObject, sParts2DAArray);
 }
 

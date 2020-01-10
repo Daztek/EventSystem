@@ -69,7 +69,7 @@ struct Toolbox_PlaceableData
 };
 
 // @EventSystem_Init
-void Toolbox_Init(string sEventHandlerScript)
+void Toolbox_Init(string sSubsystemScript)
 {
     ES_Util_Log(TOOLBOX_SYSTEM_TAG, "* Generating Small Item Template");
 

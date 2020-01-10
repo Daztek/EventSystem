@@ -55,7 +55,7 @@ const string SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT        = "SDConditionalOver
 // - CONVERSATION_TAG -> string
 // - PLAYER           -> object
 // - ABORTED          -> int
-void SimpleDialog_SubscribeEvent(string sEventHandlerScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE);
+void SimpleDialog_SubscribeEvent(string sSubsystemScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE);
 
 // Sets the result of a conditional check in a SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION event
 void SimpleDialog_SetResult(int bResult);
@@ -128,12 +128,12 @@ string SimpleDialog_Token_Highlight(string sText);
 /* *** */
 
 // @EventSystem_Init
-void SimpleDialog_Init(string sEventHandlerScript)
+void SimpleDialog_Init(string sSubsystemScript)
 {
-    ES_Util_AddConditionalScript("simdialog_sc", "es_s_simdialog", nssFunction("SimpleDialog_HandleStartingConditional"));
-    ES_Util_AddScript("simdialog_at", "es_s_simdialog", nssFunction("SimpleDialog_HandleActionTaken"));
-    ES_Util_AddScript("simdialog_normal", "es_s_simdialog", nssFunction("SimpleDialog_HandleConversationEnd", "FALSE"));
-    ES_Util_AddScript("simdialog_abort", "es_s_simdialog", nssFunction("SimpleDialog_HandleConversationEnd", "TRUE"));
+    ES_Util_AddConditionalScript("simdialog_sc", sSubsystemScript, nssFunction("SimpleDialog_HandleStartingConditional"));
+    ES_Util_AddScript("simdialog_at", sSubsystemScript, nssFunction("SimpleDialog_HandleActionTaken"));
+    ES_Util_AddScript("simdialog_normal", sSubsystemScript, nssFunction("SimpleDialog_HandleConversationEnd", "FALSE"));
+    ES_Util_AddScript("simdialog_abort", sSubsystemScript, nssFunction("SimpleDialog_HandleConversationEnd", "TRUE"));
 
     if (!NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG))
         ES_Util_Log(SIMPLE_DIALOG_SYSTEM_TAG, "* WARNING: Conversation file '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' not found, please add it to the module!");
@@ -249,12 +249,12 @@ void SimpleDialog_HandleConversationEnd(int bAborted)
     ES_Util_DeleteString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION);
 }
 
-void SimpleDialog_SubscribeEvent(string sEventHandlerScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE)
+void SimpleDialog_SubscribeEvent(string sSubsystemScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE)
 {
-    NWNX_Events_SubscribeEvent(sSimpleDialogEvent, sEventHandlerScript);
+    NWNX_Events_SubscribeEvent(sSimpleDialogEvent, sSubsystemScript);
 
     if (bDispatchListMode)
-        NWNX_Events_ToggleDispatchListMode(sSimpleDialogEvent, sEventHandlerScript, bDispatchListMode);
+        NWNX_Events_ToggleDispatchListMode(sSimpleDialogEvent, sSubsystemScript, bDispatchListMode);
 }
 
 /* Conditional Event Related Functions */

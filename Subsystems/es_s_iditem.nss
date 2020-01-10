@@ -13,13 +13,13 @@
 const int IDITEM_IDENTIFY_SKILL = SKILL_SPELLCRAFT;
 
 // @EventSystem_Init
-void IdentifyItem_Init(string sEventHandlerScript)
+void IdentifyItem_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sEventHandlerScript, "NWNX_ON_ITEM_USE_LORE_BEFORE");
+    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_ITEM_USE_LORE_BEFORE");
 }
 
 // @EventSystem_EventHandler
-void IdentifyItem_EventHandler(string sEventHandlerScript, string sEvent)
+void IdentifyItem_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_ITEM_USE_LORE_BEFORE")
     {

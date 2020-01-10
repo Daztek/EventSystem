@@ -17,20 +17,20 @@
 const string EXAMPLE_SYSTEM_TAG = "Example";
 
 // @EventSystem_Init
-void Example_Init(string sEventHandlerScript)
+void Example_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_PLACEABLE_ON_USED);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED);
 
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN);
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE);
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION);
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END);
 
-    int nId = ChatCommand_Register(sEventHandlerScript, "Example_TestCommand", CHATCOMMAND_GLOBAL_PREFIX + "test", "[vfx]", "A test chat command!");
-    ChatCommand_SetPermission(nId, "es_s_example", "Example_TestPermission(oPlayer)", "0", "!=");
+    int nId = ChatCommand_Register(sSubsystemScript, "Example_TestCommand", CHATCOMMAND_GLOBAL_PREFIX + "test", "[vfx]", "A test chat command!");
+    ChatCommand_SetPermission(nId, sSubsystemScript, "Example_TestPermission(oPlayer)", "0", "!=");
 
-    nId = ChatCommand_Register(sEventHandlerScript, "Example_DamageCommand", CHATCOMMAND_GLOBAL_PREFIX + "dam", "[amount]", "Damage yourself for [amount]");
+    nId = ChatCommand_Register(sSubsystemScript, "Example_DamageCommand", CHATCOMMAND_GLOBAL_PREFIX + "dam", "[amount]", "Damage yourself for [amount]");
     ChatCommand_SetPermission(nId, "", "!GetIsDM(oPlayer)", "", "");
 }
 
@@ -63,7 +63,7 @@ void Example_DamageCommand(object oPlayer, string sParams, int nVolume)
 }
 
 // @EventSystem_EventHandler
-void Example_EventHandler(string sEventHandlerScript, string sEvent)
+void Example_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_CONVERSATION_END)
     {

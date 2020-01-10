@@ -29,7 +29,7 @@ object RandomNPC_GetRandomPregeneratedNPC(string sTag, location locSpawn);
 int RandomNPC_GetRandomSoundset(int nGender);
 
 // @EventSystem_Init
-void RandomNPC_Init(string sEventHandlerScript)
+void RandomNPC_Init(string sSubsystemScript)
 {
     string sNPC = GetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SYSTEM_TAG, RANDOM_NPC_TEMPLATE_TAG);
     if (sNPC == "")
@@ -60,8 +60,8 @@ void RandomNPC_Init(string sEventHandlerScript)
 
     object oModule = GetModule();
 
-    ES_Util_ExecuteScriptChunk("es_s_randomnpc", nssFunction("RandomNPC_CacheNPCSoundsets"), oModule);
-    ES_Util_ExecuteScriptChunk("es_s_randomnpc", nssFunction("RandomNPC_PregenerateRandomNPCs", "RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT"), oModule);
+    ES_Util_ExecuteScriptChunk(sSubsystemScript, nssFunction("RandomNPC_CacheNPCSoundsets"), oModule);
+    ES_Util_ExecuteScriptChunk(sSubsystemScript, nssFunction("RandomNPC_PregenerateRandomNPCs", "RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT"), oModule);
 }
 
 struct RandomNPC_NPCData

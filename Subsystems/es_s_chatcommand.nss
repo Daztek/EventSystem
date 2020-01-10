@@ -52,16 +52,16 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
 void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction, string sValue, string sComparison = "==");
 
 // @EventSystem_Init
-void ChatCommand_Init(string sEventHandlerScript)
+void ChatCommand_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
 }
 
 // @EventSystem_EventHandler
-void ChatCommand_EventHandler(string sEventHandlerScript, string sEvent)
+void ChatCommand_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (StringToInt(sEvent) == EVENT_SCRIPT_MODULE_ON_MODULE_LOAD)
-        ES_Util_ExecuteScriptChunk("es_s_chatcommand", nssFunction("ChatCommand_CreateChatEventHandler", nssEscapeDoubleQuotes(sEventHandlerScript)), GetModule());
+        ES_Util_ExecuteScriptChunk(sSubsystemScript, nssFunction("ChatCommand_CreateChatEventHandler", nssEscapeDoubleQuotes(sSubsystemScript)), GetModule());
 }
 
 string ChatCommand_Parse(string sMessage, string sCommand)
@@ -119,7 +119,7 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
     SetPCChatMessage("");
 }
 
-void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
+void ChatCommand_CreateChatEventHandler(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
     int nNumCommands = ES_Util_GetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS);
@@ -139,7 +139,7 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
     {
         if (!nCommand)
         {
-            sIncludes += nssInclude("es_s_chatcommand");
+            sIncludes += nssInclude(sSubsystemScript);
             sCommands += nssIfStatement("(sParams = " + nssFunction("ChatCommand_Parse", "sMessage, " +
                          nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + "help"), FALSE) + ")", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
                          nssBrackets(nssFunction("ChatCommand_ShowHelp", "oPlayer, sParams, nVolume"));
@@ -183,12 +183,12 @@ void ChatCommand_CreateChatEventHandler(string sEventHandlerScript)
                                           nssString("sParams") +
                                           sCommands);
 
-    string sReturn = NWNX_Util_AddScript(sEventHandlerScript, sEventHandler);
+    string sReturn = NWNX_Util_AddScript(sSubsystemScript, sEventHandler);
 
     if (sReturn != "")
         ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > ERROR: Failed to compile Event Handler with error: " + sReturn);
     else
-        ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT);
+        ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT);
 }
 
 int ChatCommand_Register(string sSubsystemScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription)

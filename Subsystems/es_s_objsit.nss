@@ -14,17 +14,17 @@ const string OBJSIT_SYSTEM_TAG              = "ObjectSit";
 const string OBJSIT_SINGLE_SEAT_TAG         = "OBJSIT_SINGLE";
 
 // @EventSystem_Init
-void ObjectSit_Init(string sEventHandlerScript)
+void ObjectSit_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
 
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
 }
 
 // @EventSystem_EventHandler
-void ObjectSit_EventHandler(string sEventHandlerScript, string sEvent)
+void ObjectSit_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE)
     {
@@ -68,9 +68,9 @@ void ObjectSit_EventHandler(string sEventHandlerScript, string sEvent)
                 {
                     ES_Core_SetObjectEventScript(oSittingObject, EVENT_SCRIPT_PLACEABLE_ON_USED, FALSE);
 
-                    NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED), sEventHandlerScript, oSittingObject);
-                    NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sEventHandlerScript, oSittingObject);
-                    NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sEventHandlerScript, oSittingObject);
+                    NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED), sSubsystemScript, oSittingObject);
+                    NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oSittingObject);
+                    NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oSittingObject);
                 }
 
                 ES_Util_Log(OBJSIT_SYSTEM_TAG, "* Found '" + IntToString(--nNth) + "' Sitting Objects");

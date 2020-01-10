@@ -17,16 +17,16 @@ void PersistentLocation_SaveLocation(object oPlayer);
 void PersistentLocation_LoadLocation(object oPlayer);
 
 // @EventSystem_Init
-void PersistentLocation_Init(string sEventHandlerScript)
+void PersistentLocation_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sEventHandlerScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
+    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
 
     NWNX_ELC_EnableCustomELCCheck(TRUE);
-    ELC_SubscribeEvent(sEventHandlerScript);
+    ELC_SubscribeEvent(sSubsystemScript);
 }
 
 // @EventSystem_EventHandler
-void PersistentLocation_EventHandler(string sEventHandlerScript, string sEvent)
+void PersistentLocation_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_CLIENT_DISCONNECT_BEFORE")
         PersistentLocation_SaveLocation(OBJECT_SELF);

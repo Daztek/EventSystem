@@ -10,9 +10,9 @@
 #include "es_s_chatcommand"
 
 // @EventSystem_Init
-void Emote_Init(string sEventHandlerScript)
+void Emote_Init(string sSubsystemScript)
 {
-    ChatCommand_Register(sEventHandlerScript, "Emote_HandleEmoteChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + "emote", "[emote]", "Perform an emote!");
+    ChatCommand_Register(sSubsystemScript, "Emote_HandleEmoteChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + "emote", "[emote]", "Perform an emote!");
 }
 
 void Emote_DoEmote(object oPlayer, int nEmote, float fDuration = 0.0f)

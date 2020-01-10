@@ -30,7 +30,7 @@ const float MUSICPLAYER_DISABLED_DURATION       = 60.0f;
 
 void MusicPlayer_LoadMusicTracks();
 void MusicPlayer_CreateConversation();
-void MusicPlayer_SpawnPlaceables(string sEventHandlerScript);
+void MusicPlayer_SpawnPlaceables(string sSubsystemScript);
 
 void MusicPlayer_PlaySoundAndApplySparks(object oMusicPlayer, string sSound);
 int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF);
@@ -38,20 +38,20 @@ void SimpleDialog_DisableMusicPlayer();
 void SimpleDialog_ApplyDisabledEffects(object oMusicPlayer);
 
 // @EventSystem_Init
-void MusicPlayer_Init(string sEventHandlerScript)
+void MusicPlayer_Init(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    ES_Core_SubscribeEvent_Object(sEventHandlerScript, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
 
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
-    SimpleDialog_SubscribeEvent(sEventHandlerScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, TRUE);
 }
 
 // @EventSystem_EventHandler
-void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
+void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
@@ -251,7 +251,7 @@ void MusicPlayer_EventHandler(string sEventHandlerScript, string sEvent)
             {
                 MusicPlayer_LoadMusicTracks();
                 MusicPlayer_CreateConversation();
-                MusicPlayer_SpawnPlaceables(sEventHandlerScript);
+                MusicPlayer_SpawnPlaceables(sSubsystemScript);
                 break;
             }
 
@@ -312,7 +312,7 @@ void MusicPlayer_CreateConversation()
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Leave]"));
 }
 
-void MusicPlayer_SpawnPlaceables(string sEventHandlerScript)
+void MusicPlayer_SpawnPlaceables(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(MUSICPLAYER_SYSTEM_TAG);
 
@@ -338,12 +338,12 @@ void MusicPlayer_SpawnPlaceables(string sEventHandlerScript)
     {
         object oMusicPlayer = Toolbox_CreatePlaceable(sPlaceableData, GetLocation(oSpawnPoint));
 
-        NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED), sEventHandlerScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED), sEventHandlerScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT), sEventHandlerScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sEventHandlerScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sEventHandlerScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, sEventHandlerScript, oMusicPlayer);
+        NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED), sSubsystemScript, oMusicPlayer);
+        NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED), sSubsystemScript, oMusicPlayer);
+        NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT), sSubsystemScript, oMusicPlayer);
+        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oMusicPlayer);
+        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oMusicPlayer);
+        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, sSubsystemScript, oMusicPlayer);
 
         ES_Util_SetInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, MusicBackgroundGetDayTrack(GetArea(oMusicPlayer)));
 
