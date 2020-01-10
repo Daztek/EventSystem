@@ -71,13 +71,13 @@ void ES_Core_Init()
     object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
     string sResult;
 
-    if (NWNX_Util_GetEnvironmentVariable("ES_CHECK_CORE_HASH") != "")
+    if (!ES_Util_GetEnvVarAsBool("ES_SKIP_CORE_HASH_CHECK"))
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hashes");
         ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreHashes"), oModule);
     }
 
-    if (NWNX_Util_GetEnvironmentVariable("ES_CHECK_NWNX_HASH") != "")
+    if (!ES_Util_GetEnvVarAsBool("ES_SKIP_NWNX_HASH_CHECK"))
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking NWNX Hashes");
         ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckNWNXHashes"), oModule);

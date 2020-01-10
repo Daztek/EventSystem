@@ -30,6 +30,9 @@ object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE);
 // Write an Event System message to the log
 void ES_Util_Log(string sSubSystem, string sMessage);
 
+// Returns TRUE/FALSE for sEnvironmentVariable
+int ES_Util_GetEnvVarAsBool(string sEnvironmentVariable);
+
 // Get a location fDistance ahead of oTarget
 location ES_Util_GetAheadLocation(object oTarget, float fDistance);
 // Get a location fDistance behind oTarget
@@ -186,6 +189,16 @@ object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE)
 void ES_Util_Log(string sSubSystem, string sMessage)
 {
     WriteTimestampedLogEntry("[EventSystem] " + sSubSystem + ": " + sMessage);
+}
+
+int ES_Util_GetEnvVarAsBool(string sEnvironmentVariable)
+{
+    string sResult = GetStringLowerCase(NWNX_Util_GetEnvironmentVariable(sEnvironmentVariable));
+
+    if (sResult == "")
+        return FALSE;
+
+    return FindSubString("t;true;y;yes;1", sResult) != -1;
 }
 
 location ES_Util_GetAheadLocation(object oTarget, float fDistance)
