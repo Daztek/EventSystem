@@ -76,12 +76,16 @@ void ES_Core_Init()
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hashes");
         ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreHashes"), oModule);
     }
+    else
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Skipping Core Hash Check");
 
     if (!ES_Util_GetEnvVarAsBool("ES_SKIP_NWNX_HASH_CHECK"))
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking NWNX Hashes");
         ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckNWNXHashes"), oModule);
     }
+    else
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Skipping NWNX Hash Check");
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Object Event Scripts");
     if (ES_Core_GetFunctionHashChanged("ES_Core_SignalEvent"))
@@ -98,7 +102,7 @@ void ES_Core_Init()
         nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_STORE_ON_OPEN, EVENT_SCRIPT_STORE_ON_CLOSE");
     sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sCreateObjectEventScripts, oModule);
     if (sResult != "")
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Fail: " + sResult);
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > ERROR: " + sResult);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking Module Event Scripts");
     string sSetModuleEventScripts = nssInt("nEvent") + nssObject("oModule", nssFunction("GetModule")) +
@@ -106,7 +110,7 @@ void ES_Core_Init()
         nssBrackets(nssFunction("ES_Core_SetObjectEventScript", "oModule, nEvent"));
     sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetModuleEventScripts, oModule);
     if (sResult != "")
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Fail: " + sResult);
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > ERROR: " + sResult);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking Area Event Scripts");
     string sSetAreaEventScripts = nssObject("oArea", nssFunction("GetFirstArea")) + nssWhile(nssFunction("GetIsObjectValid", "oArea", FALSE)) +
@@ -118,7 +122,7 @@ void ES_Core_Init()
             nssObject("oArea", nssFunction("GetNextArea"), FALSE));
     sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetAreaEventScripts, oModule);
     if (sResult != "")
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Fail: " + sResult);
+        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > ERROR: " + sResult);
 
     string sDisabledSubsystems = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_SUBSYSTEMS");
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Disabled Subsystems: " + (sDisabledSubsystems == "" ? "N/A" : sDisabledSubsystems));

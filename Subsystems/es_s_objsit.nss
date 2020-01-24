@@ -63,12 +63,13 @@ void ObjectSit_EventHandler(string sSubsystemScript, string sEvent)
             {
                 int nNth = 0;
                 object oSittingObject;
+                string sPlaceableOnUsedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
 
                 while ((oSittingObject = GetObjectByTag(OBJSIT_SINGLE_SEAT_TAG, nNth++)) != OBJECT_INVALID)
                 {
                     ES_Core_SetObjectEventScript(oSittingObject, EVENT_SCRIPT_PLACEABLE_ON_USED, FALSE);
 
-                    NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED), sSubsystemScript, oSittingObject);
+                    NWNX_Events_AddObjectToDispatchList(sPlaceableOnUsedEvent, sSubsystemScript, oSittingObject);
                     NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oSittingObject);
                     NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oSittingObject);
                 }

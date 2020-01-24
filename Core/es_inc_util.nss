@@ -193,12 +193,8 @@ void ES_Util_Log(string sSubSystem, string sMessage)
 
 int ES_Util_GetEnvVarAsBool(string sEnvironmentVariable)
 {
-    string sResult = GetStringLowerCase(NWNX_Util_GetEnvironmentVariable(sEnvironmentVariable));
-
-    if (sResult == "")
-        return FALSE;
-
-    return FindSubString("t;true;y;yes;1", sResult) != -1;
+    string sValue = NWNX_Util_GetEnvironmentVariable(sEnvironmentVariable);
+    return sValue == "" ? FALSE : FindSubString("t;true;y;yes;1", GetStringLowerCase(sValue)) != -1;
 }
 
 location ES_Util_GetAheadLocation(object oTarget, float fDistance)

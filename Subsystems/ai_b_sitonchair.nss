@@ -9,7 +9,42 @@
 
 //void main(){}
 
+const string AIBEHAVIOR_SITONCHAIR_WAYPOINT_TAG     = "WP_AIB_SITONCHAIR";
+
+const string AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT      = "AIBSitOnChairSeatAmount";
+const string AIBEHAVIOR_SITONCHAIR_SEAT             = "AIBSitOnChairSeat_";
+
 object SitOnChair_FindSeat();
+
+// @SimAIBehavior_Init
+void SitOnChair_Init()
+{
+    int nNth = 0;
+    object oWaypoint = GetObjectByTag(AIBEHAVIOR_SITONCHAIR_WAYPOINT_TAG, nNth);
+
+    while (GetIsObjectValid(oWaypoint))
+    {
+        object oArea = GetArea(oWaypoint);
+
+        if (!ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT))
+        {
+            int nNthSeat = 1;
+            object oSeat = GetNearestObjectByTag("OBJSIT_SINGLE", oWaypoint, nNthSeat);
+
+            while (GetIsObjectValid(oSeat))
+            {
+                int nAmount = ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
+
+                ES_Util_SetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT, ++nAmount);
+                ES_Util_SetObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(nAmount), oSeat);
+
+                oSeat = GetNearestObjectByTag("OBJSIT_SINGLE", oWaypoint, ++nNthSeat);
+            }
+        }
+
+        oWaypoint = GetObjectByTag(AIBEHAVIOR_SITONCHAIR_WAYPOINT_TAG, ++nNth);
+    }
+}
 
 // @SimAIBehavior_OnSpawn
 void SitOnChair_Spawn()
@@ -58,12 +93,12 @@ void SitOnChair_Heartbeat()
     else
     if (nAction == ACTION_SIT)
     {
-        int nRandom = d100();
+        int nRandom = Random(100);
 
-        if (nRandom <= 5)
+        if (nRandom < 5)
             PlayVoiceChat(VOICE_CHAT_LAUGH);
         else
-        if(nRandom >= 97)
+        if(nRandom > 97)
             PlayVoiceChat(VOICE_CHAT_CHEER);
     }
 }
@@ -77,10 +112,10 @@ void SitOnChair_Conversation()
 
         int nRandom = Random(10);
 
-        if (nRandom >= 5)
+        if (nRandom > 4)
            PlayVoiceChat(VOICE_CHAT_THREATEN);
         else
-            SpeakString(Random(2) ? "Hey!?" : "What's the dealio?!");
+            SpeakString(Random(2) ? "Hey!" : "That's my seat!");
 
 
         ActionRandomWalk();
@@ -95,15 +130,20 @@ void SitOnChair_Conversation()
 
 object SitOnChair_FindSeat()
 {
-    int nNth = 1;
-    object oSeat = GetNearestObjectByTag("OBJSIT_SINGLE", OBJECT_SELF, nNth);
+    object oArea = GetArea(OBJECT_SELF);
+    int nSeats = ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
+    int nNumTries = 0, nMaxTries = nSeats / 2;
 
-    while (GetIsObjectValid(oSeat))
+    object oSeat = ES_Util_GetObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
+
+    while (GetIsObjectValid(oSeat) && nNumTries < nMaxTries)
     {
+        nNumTries++;
+
         if (!GetIsObjectValid(GetSittingCreature(oSeat)))
             return oSeat;
         else
-            oSeat = GetNearestObjectByTag("OBJSIT_SINGLE", OBJECT_SELF, ++nNth);
+            oSeat = ES_Util_GetObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
     }
 
     return OBJECT_INVALID;

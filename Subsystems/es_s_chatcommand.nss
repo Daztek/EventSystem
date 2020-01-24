@@ -204,7 +204,7 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
 
     sCommand = GetStringLowerCase(sCommand);
 
-    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registering Chat Command: " + sCommandID + " -> '" + sCommand + "' for Subsystem '" + sSubsystemScript + "' with Function: " + sFunction + "()");
+    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "* Registering Chat Command -> '" + sCommand + "' for Subsystem '" + sSubsystemScript + "' with Function: " + sFunction + "()");
 
     ES_Util_SetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS, nCommandID);
 
@@ -224,7 +224,7 @@ void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SYSTEM_TAG);
     string sCommandID = IntToString(nCommandID);
 
-    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > Setting Permission for CommandID: " + sCommandID + " -> '" + sFunction + (sComparison != "" ? " " + sComparison + " " : "") + sValue + "'");
+    ES_Util_Log(CHATCOMMAND_SYSTEM_TAG, "  > Setting Permission for Chat Command -> '" + sFunction + (sComparison != "" ? " " + sComparison + " " : "") + sValue + "'");
 
     ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_INCLUDE + sCommandID, sInclude);
     ES_Util_SetString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID, sFunction);
