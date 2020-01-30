@@ -13,6 +13,7 @@
 #include "es_s_randomnpc"
 #include "es_s_simai"
 #include "es_s_chatcommand"
+#include "es_s_profiler"
 
 const string EXAMPLE_SYSTEM_TAG = "Example";
 
@@ -21,6 +22,10 @@ void Example_Init(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED);
+
+    //ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_RESOURCE_ADDED");
+    //ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_RESOURCE_REMOVED");
+    //ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_RESOURCE_MODIFIED");
 
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE);
@@ -65,6 +70,16 @@ void Example_DamageCommand(object oPlayer, string sParams, int nVolume)
 // @EventSystem_EventHandler
 void Example_EventHandler(string sSubsystemScript, string sEvent)
 {
+    struct ProfilerData pd = Profiler_Start("Example_EventHandler: " + sEvent);
+
+    if (sEvent == "NWNX_ON_RESOURCE_ADDED" || sEvent == "NWNX_ON_RESOURCE_REMOVED" || sEvent == "NWNX_ON_RESOURCE_MODIFIED")
+    {
+        string sResRef = ES_Core_GetEventData_NWNX_String("RESREF");
+        string sType = ES_Core_GetEventData_NWNX_String("TYPE");
+
+        ES_Util_Log(EXAMPLE_SYSTEM_TAG, sEvent + ": " + sResRef + " -> " + sType);
+    }
+    else
     if (sEvent == SIMPLE_DIALOG_EVENT_CONVERSATION_END)
     {
         string sConversationTag = ES_Core_GetEventData_NWNX_String("CONVERSATION_TAG");
@@ -332,5 +347,7 @@ void Example_EventHandler(string sSubsystemScript, string sEvent)
             }
         }
     }
+
+    Profiler_Stop(pd);
 }
 

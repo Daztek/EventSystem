@@ -11,11 +11,11 @@
 #include "nwnx_webhook"
 
 const string WEBHOOK_SYSTEM_TAG     = "Webhook";
-const string WEBHOOK_API_URL_PLAYER = "ES_WEBHOOK_API_URL_PLAYER";
-const string WEBHOOK_API_URL_ADMIN  = "ES_WEBHOOK_API_URL_ADMIN";
+const string WEBHOOK_CHANNEL_PLAYER = "ES_WEBHOOK_API_URL_PLAYER";
+const string WEBHOOK_CHANNEL_ADMIN  = "ES_WEBHOOK_API_URL_ADMIN";
 
 // Send a webhook message to a channel
-// sChannel: WEBHOOK_API_URL_*
+// sChannel: WEBHOOK_CHANNEL_*
 void Webhook_SendMessage(string sChannel, string sMessage, string sUserName = "");
 
 // @EventSystem_Init
@@ -23,14 +23,12 @@ void Webhook_Init(string sSubsystemScript)
 {
     object oModule = GetModule();
     int bPlayerWebhook = ES_Util_ExecuteScriptChunkAndReturnInt(sSubsystemScript,
-        nssFunction("Webhook_CheckAPIUrl", nssEscapeDoubleQuotes(WEBHOOK_API_URL_PLAYER)), oModule);
+        nssFunction("Webhook_CheckAPIUrl", nssEscapeDoubleQuotes(WEBHOOK_CHANNEL_PLAYER)), oModule);
     int bAdminWebhook = ES_Util_ExecuteScriptChunkAndReturnInt(sSubsystemScript,
-        nssFunction("Webhook_CheckAPIUrl", nssEscapeDoubleQuotes(WEBHOOK_API_URL_ADMIN)), oModule);
+        nssFunction("Webhook_CheckAPIUrl", nssEscapeDoubleQuotes(WEBHOOK_CHANNEL_ADMIN)), oModule);
 
     if (bPlayerWebhook || bAdminWebhook)
         ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_WEBHOOK_FAILURE");
-
-    Webhook_SendMessage(WEBHOOK_API_URL_PLAYER, "Test Message");
 }
 
 // @EventSystem_EventHandler
@@ -58,15 +56,14 @@ int Webhook_CheckAPIUrl(string sChannel)
 {
     object oDataObject = ES_Util_GetDataObject(WEBHOOK_SYSTEM_TAG);
 
-    string sPlayerWebhookUrl = NWNX_Util_GetEnvironmentVariable(sChannel);
-    if (sPlayerWebhookUrl != "")
-    {
-        ES_Util_SetString(oDataObject, sChannel, sPlayerWebhookUrl);
-    }
+    string sWebhookUrl = NWNX_Util_GetEnvironmentVariable(sChannel);
+
+    if (sWebhookUrl != "")
+        ES_Util_SetString(oDataObject, sChannel, sWebhookUrl);
     else
         ES_Util_Log(WEBHOOK_SYSTEM_TAG, "WARNING: API URL for '" + sChannel + "' is not set");
 
-    return sPlayerWebhookUrl != "";
+    return sWebhookUrl != "";
 }
 
 void Webhook_SendMessage(string sChannel, string sMessage, string sUserName = "")

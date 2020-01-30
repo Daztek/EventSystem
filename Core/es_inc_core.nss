@@ -17,11 +17,10 @@ const int ES_CORE_EVENT_FLAG_BEFORE                 = 1;
 const int ES_CORE_EVENT_FLAG_DEFAULT                = 2;
 const int ES_CORE_EVENT_FLAG_AFTER                  = 4;
 
-const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3018;
-
 /* Internal Functions */
 int ES_Core_GetCoreHashChanged();
 int ES_Core_GetFunctionHashChanged(string sFunction);
+void ES_Core_CreateObjectEventScripts(int nStart, int nEnd);
 string ES_Core_GetDependencies(string sSubsystem, string sScriptContents);
 int ES_Core_GetEventFlags(int nEvent);
 void ES_Core_SetEventFlag(int nEvent, int nEventFlag);
@@ -68,10 +67,15 @@ void ES_Core_Init()
 {
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Core System");
 
-    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
-    string sResult;
+    // We do a lot of stuff so increase the max instruction limit for the init function
+    // 32x Ought to be Enough for Anyone
+    NWNX_Util_SetInstructionLimit(524288 * 32);
 
-    if (!ES_Util_GetEnvVarAsBool("ES_SKIP_CORE_HASH_CHECK"))
+    object oDataObject = ES_Util_GetDataObject(ES_CORE_SYSTEM_TAG), oModule = GetModule();
+
+    // This checks if any of the es_inc_* NSS files have changed
+    // Can be disabled by setting the ES_SKIP_CORE_HASH_CHECK environment variable to true
+    if (!ES_Util_GetBooleanEnvVar("ES_SKIP_CORE_HASH_CHECK"))
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Core Hashes");
         ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckCoreHashes"), oModule);
@@ -79,7 +83,9 @@ void ES_Core_Init()
     else
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Skipping Core Hash Check");
 
-    if (!ES_Util_GetEnvVarAsBool("ES_SKIP_NWNX_HASH_CHECK"))
+    // This checks if any of the nwnx_* NSS files have changed
+    // Can be disabled by setting the ES_SKIP_NWNX_HASH_CHECK environment variable to true
+    if (!ES_Util_GetBooleanEnvVar("ES_SKIP_NWNX_HASH_CHECK"))
     {
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking NWNX Hashes");
         ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckNWNXHashes"), oModule);
@@ -88,46 +94,48 @@ void ES_Core_Init()
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Skipping NWNX Hash Check");
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Checking Object Event Scripts");
+    // This checks if the 'ES_Core_SignalEvent' function has changed, if TRUE all object event scripts will be recompiled
     if (ES_Core_GetFunctionHashChanged("ES_Core_SignalEvent"))
         ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > Recompiling Object Event Scripts");
-    string sCreateObjectEventScripts =
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_AREAOFEFFECT_ON_HEARTBEAT, EVENT_SCRIPT_AREAOFEFFECT_ON_OBJECT_EXIT") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_CREATURE_ON_HEARTBEAT, EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_TRIGGER_ON_HEARTBEAT, EVENT_SCRIPT_TRIGGER_ON_CLICKED") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_PLACEABLE_ON_CLOSED, EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_DOOR_ON_OPEN, EVENT_SCRIPT_DOOR_ON_FAIL_TO_OPEN") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_ENCOUNTER_ON_OBJECT_ENTER, EVENT_SCRIPT_ENCOUNTER_ON_USER_DEFINED_EVENT") +
-        nssFunction("ES_Core_CreateObjectEventScripts", "EVENT_SCRIPT_STORE_ON_OPEN, EVENT_SCRIPT_STORE_ON_CLOSE");
-    sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sCreateObjectEventScripts, oModule);
-    if (sResult != "")
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > ERROR: " + sResult);
+
+    // Check if all the object event script exist and (re)compile them if needed
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_AREAOFEFFECT_ON_HEARTBEAT, EVENT_SCRIPT_AREAOFEFFECT_ON_OBJECT_EXIT);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_CREATURE_ON_HEARTBEAT, EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_TRIGGER_ON_HEARTBEAT, EVENT_SCRIPT_TRIGGER_ON_CLICKED);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_PLACEABLE_ON_CLOSED, EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_DOOR_ON_OPEN, EVENT_SCRIPT_DOOR_ON_FAIL_TO_OPEN);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_ENCOUNTER_ON_OBJECT_ENTER, EVENT_SCRIPT_ENCOUNTER_ON_USER_DEFINED_EVENT);
+    ES_Core_CreateObjectEventScripts(EVENT_SCRIPT_STORE_ON_OPEN, EVENT_SCRIPT_STORE_ON_CLOSE);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking Module Event Scripts");
-    string sSetModuleEventScripts = nssInt("nEvent") + nssObject("oModule", nssFunction("GetModule")) +
-        "for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT; nEvent++)" +
-        nssBrackets(nssFunction("ES_Core_SetObjectEventScript", "oModule, nEvent"));
-    sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetModuleEventScripts, oModule);
-    if (sResult != "")
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > ERROR: " + sResult);
+    // Set all module event script to the EventSystem ones
+    int nEvent;
+    for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT; nEvent++)
+    {
+        ES_Core_SetObjectEventScript(oModule, nEvent);
+    }
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "  > Hooking Area Event Scripts");
-    string sSetAreaEventScripts = nssObject("oArea", nssFunction("GetFirstArea")) + nssWhile(nssFunction("GetIsObjectValid", "oArea", FALSE)) +
-        nssBrackets(
-            nssFunction("ES_Core_SetObjectEventScript", "oArea, EVENT_SCRIPT_AREA_ON_HEARTBEAT") +
-            nssFunction("ES_Core_SetObjectEventScript", "oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT") +
-            nssFunction("ES_Core_SetObjectEventScript", "oArea, EVENT_SCRIPT_AREA_ON_ENTER") +
-            nssFunction("ES_Core_SetObjectEventScript", "oArea, EVENT_SCRIPT_AREA_ON_EXIT") +
-            nssObject("oArea", nssFunction("GetNextArea"), FALSE));
-    sResult = ES_Util_ExecuteScriptChunk(ES_CORE_SCRIPT_NAME, sSetAreaEventScripts, oModule);
-    if (sResult != "")
-        ES_Util_Log(ES_CORE_SYSTEM_TAG, "    > ERROR: " + sResult);
+    // Set all area event script to the EventSystem ones
+    object oArea = GetFirstArea();
+    while (GetIsObjectValid(oArea))
+    {
+        ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_HEARTBEAT);
+        ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT);
+        ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_ENTER);
+        ES_Core_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_EXIT);
 
+        oArea = GetNextArea();
+    }
+
+    // Check if the user has disabled any subsystems through the ES_DISABLE_SUBSYSTEMS environment variable
     string sDisabledSubsystems = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_SUBSYSTEMS");
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Disabled Subsystems: " + (sDisabledSubsystems == "" ? "N/A" : sDisabledSubsystems));
     ES_Util_SetString(oDataObject, "DisabledSubsystems", sDisabledSubsystems);
 
+    // Get an array of all the subsystems
     string sSubsystemArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
 
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Initializing Subsystems");
@@ -150,7 +158,18 @@ void ES_Core_Init()
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_Cleanup", "sArrayElement"), oModule);
     ES_Util_StringArray_Clear(oDataObject, sSubsystemArray);
 
+    // Kind of a workaround to reset the instruction limit increase without it showing an error due to it resetting while the
+    // init function isn't done executing yet
+    NWNX_Util_AddScript(ES_CORE_SCRIPT_NAME, nssInclude(ES_CORE_SCRIPT_NAME) + nssVoidMain(nssFunction("ES_Core_ModuleLoad")));
+    ES_Core_SubscribeEvent_Object(ES_CORE_SCRIPT_NAME, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
+
     ES_Util_Log(ES_CORE_SYSTEM_TAG, "* Done!");
+}
+
+void ES_Core_ModuleLoad()
+{
+    NWNX_Util_SetInstructionLimit(-1);
+    NWNX_Util_RemoveNWNXResourceFile(ES_CORE_SCRIPT_NAME, NWNX_UTIL_RESREF_TYPE_NCS);
 }
 
 void ES_Core_CheckFunctionHash(string sScriptContents, string sFunction)

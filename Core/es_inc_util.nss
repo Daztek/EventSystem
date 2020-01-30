@@ -12,6 +12,8 @@
 #include "nwnx_object"
 #include "nwnx_util"
 
+const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3018;
+
 // Create a waypoint at locLocation with sTag
 object ES_Util_CreateWaypoint(location locLocation, string sTag);
 
@@ -31,7 +33,7 @@ object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE);
 void ES_Util_Log(string sSubSystem, string sMessage);
 
 // Returns TRUE/FALSE for sEnvironmentVariable
-int ES_Util_GetEnvVarAsBool(string sEnvironmentVariable);
+int ES_Util_GetBooleanEnvVar(string sEnvironmentVariable);
 
 // Get a location fDistance ahead of oTarget
 location ES_Util_GetAheadLocation(object oTarget, float fDistance);
@@ -191,10 +193,10 @@ void ES_Util_Log(string sSubSystem, string sMessage)
     WriteTimestampedLogEntry("[EventSystem] " + sSubSystem + ": " + sMessage);
 }
 
-int ES_Util_GetEnvVarAsBool(string sEnvironmentVariable)
+int ES_Util_GetBooleanEnvVar(string sEnvironmentVariable)
 {
     string sValue = NWNX_Util_GetEnvironmentVariable(sEnvironmentVariable);
-    return sValue == "" ? FALSE : FindSubString("t;true;y;yes;1", GetStringLowerCase(sValue)) != -1;
+    return sValue == "" ? FALSE : FindSubString(";t;true;y;yes;1;yep;righto;nod;sure;why not;taro;", ";" + GetStringLowerCase(sValue) + ";") != -1;
 }
 
 location ES_Util_GetAheadLocation(object oTarget, float fDistance)

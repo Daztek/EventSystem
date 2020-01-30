@@ -9,6 +9,8 @@
 
 #include "es_inc_core"
 
+const string UUIDCOLLISION_SYSTEM_TAG = "UUIDCollision";
+
 // @EventSystem_Init
 void UUIDCollision_Init(string sSubsystemScript)
 {
@@ -26,7 +28,10 @@ void UUIDCollision_EventHandler(string sSubsystemScript, string sEvent)
         string sUUID = GetObjectUUID(oWP);
         object oCopy = CopyObject(oWP, GetStartingLocation());
 
-        PrintString("MODULELOAD: ExistingObject: " + ObjectToString(oWP) + ", CollisionObject: " + ObjectToString(oCopy) + ", UUID: " + sUUID);
+        ES_Util_Log(UUIDCOLLISION_SYSTEM_TAG, "MODULELOAD: ExistingObject: " + ObjectToString(oWP) + ", CollisionObject: " + ObjectToString(oCopy) + ", UUID: " + sUUID);
+
+        DestroyObject(oWP);
+        DestroyObject(oCopy);
     }
     else
     {
@@ -35,7 +40,7 @@ void UUIDCollision_EventHandler(string sSubsystemScript, string sEvent)
         object oExistingObject = GetObjectByUUID(sUUID);
         int bBefore = sEvent == "NWNX_ON_UUID_COLLISION_BEFORE";
 
-        PrintString((bBefore ? "BEFORE" : "AFTER") + " EVENT: CollisionObject: " + ObjectToString(oCollisionObject) + ",  ExistingObject: " + ObjectToString(oExistingObject) + ", UUID: " + sUUID);
+        ES_Util_Log(UUIDCOLLISION_SYSTEM_TAG, (bBefore ? "BEFORE" : "AFTER") + " EVENT: CollisionObject: " + ObjectToString(oCollisionObject) + ",  ExistingObject: " + ObjectToString(oExistingObject) + ", UUID: " + sUUID);
     }
 }
 
