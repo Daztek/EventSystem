@@ -32,23 +32,9 @@ void Example_Init(string sSubsystemScript)
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END);
 
-    int nId = ChatCommand_Register(sSubsystemScript, "Example_TestCommand", CHATCOMMAND_GLOBAL_PREFIX + "test", "[vfx]", "A test chat command!");
-    ChatCommand_SetPermission(nId, sSubsystemScript, "Example_TestPermission(oPlayer)", "0", "!=");
-
+    int nId;
     nId = ChatCommand_Register(sSubsystemScript, "Example_DamageCommand", CHATCOMMAND_GLOBAL_PREFIX + "dam", "[amount]", "Damage yourself for [amount]");
     ChatCommand_SetPermission(nId, "", "!GetIsDM(oPlayer)", "", "");
-}
-
-int Example_TestPermission(object oPlayer)
-{
-    return GetHitDice(oPlayer);
-}
-
-void Example_TestCommand(object oPlayer, string sParams, int nVolume)
-{
-    ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(StringToInt(sParams)), oPlayer);
-
-    SetPCChatMessage("");
 }
 
 void Example_DamageCommand(object oPlayer, string sParams, int nVolume)
@@ -70,8 +56,6 @@ void Example_DamageCommand(object oPlayer, string sParams, int nVolume)
 // @EventSystem_EventHandler
 void Example_EventHandler(string sSubsystemScript, string sEvent)
 {
-    struct ProfilerData pd = Profiler_Start("Example_EventHandler: " + sEvent);
-
     if (sEvent == "NWNX_ON_RESOURCE_ADDED" || sEvent == "NWNX_ON_RESOURCE_REMOVED" || sEvent == "NWNX_ON_RESOURCE_MODIFIED")
     {
         string sResRef = ES_Core_GetEventData_NWNX_String("RESREF");
@@ -347,7 +331,5 @@ void Example_EventHandler(string sSubsystemScript, string sEvent)
             }
         }
     }
-
-    Profiler_Stop(pd);
 }
 

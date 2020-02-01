@@ -26,7 +26,6 @@
 
 #include "es_inc_core"
 #include "es_s_randomarmor"
-
 #include "nwnx_area"
 
 const string SIMPLE_AI_SYSTEM_TAG           = "SimpleAI";

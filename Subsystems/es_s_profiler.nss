@@ -39,6 +39,7 @@ void Profiler_SetOverheadCompensation(int nOverhead);
 int Profiler_Calibrate(int nIterations);
 struct ProfilerStats Profiler_GetStats(string sName);
 void Profiler_DeleteStats(string sName);
+string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = FALSE);
 
 // @EventSystem_Init
 void Profiler_Init(string sSubsystemScript)
@@ -46,7 +47,6 @@ void Profiler_Init(string sSubsystemScript)
     int nOverhead = Profiler_Calibrate(PROFILER_OVERHEAD_COMPENSATION_ITERATIONS);
 
     ES_Util_Log(PROFILER_SYSTEM_TAG, "Overhead Compensation: " + IntToString(nOverhead) + "us");
-
     Profiler_SetOverheadCompensation(nOverhead);
 }
 
@@ -144,27 +144,30 @@ void Profiler_SetOverheadCompensation(int nOverhead)
 int Profiler_Calibrate(int nIterations)
 {
     int i, nSum;
-    struct ProfilerData pd;
 
     for (i = 0; i < nIterations; i++)
     {
         nSum += Profiler_Stop(Profiler_Start("Calibration", TRUE));
     }
 
-    return nSum / nIterations;
+    return nIterations == 0 ? 0 : nSum / nIterations;
 }
 
 struct ProfilerStats Profiler_GetStats(string sName)
 {
     struct ProfilerStats ps;
-    object oDataObject = ES_Util_GetDataObject(PROFILER_SYSTEM_TAG + "!" + sName);
+    object oDataObject = ES_Util_GetDataObject(PROFILER_SYSTEM_TAG + "!" + sName, FALSE);
 
     ps.sName = sName;
-    ps.nSum = ES_Util_GetInt(oDataObject, "PROFILER_SUM");
-    ps.nCount = ES_Util_GetInt(oDataObject, "PROFILER_COUNT");
-    ps.nMin = ES_Util_GetInt(oDataObject, "PROFILER_MIN");
-    ps.nMax = ES_Util_GetInt(oDataObject, "PROFILER_MAX");
-    ps.nAvg = ps.nSum / ps.nCount;
+
+    if (GetIsObjectValid(oDataObject))
+    {
+        ps.nSum = ES_Util_GetInt(oDataObject, "PROFILER_SUM");
+        ps.nCount = ES_Util_GetInt(oDataObject, "PROFILER_COUNT");
+        ps.nMin = ES_Util_GetInt(oDataObject, "PROFILER_MIN");
+        ps.nMax = ES_Util_GetInt(oDataObject, "PROFILER_MAX");
+        ps.nAvg = ps.nCount == 0 ? 0 : ps.nSum / ps.nCount;
+    }
 
     return ps;
 }
@@ -173,6 +176,13 @@ void Profiler_DeleteStats(string sName)
 {
     ES_Util_DestroyDataObject(PROFILER_SYSTEM_TAG + "!" + sName);
 
-    ES_Util_Log(PROFILER_SYSTEM_TAG, "Destroying Stats for: " +sName);
+    ES_Util_Log(PROFILER_SYSTEM_TAG, "Deleted stats for: '" +sName + "'");
+}
+
+string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = FALSE)
+{
+    return "struct ProfilerData pd = " + nssFunction("Profiler_Start",
+        nssEscapeDoubleQuotes(sName) + ", " + IntToString(bSkipLog) + ", " +
+        IntToString(bEnableStats)) + sContents + " Profiler_Stop(pd);";
 }
 

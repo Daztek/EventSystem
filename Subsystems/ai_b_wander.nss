@@ -14,10 +14,10 @@ const string AIBEHAVIOR_WANDER_WAYPOINT_TAG     = "WP_AIB_WANDER";
 const string AIBEHAVIOR_WANDER_AREA_WAYPOINTS   = "AIBWanderWaypoints";
 const string AIBEHAVIOR_WANDER_NEXT_MOVE_TICK   = "AIBWanderNextMoveTick";
 
-object GetRandomWaypointInArea();
+object Wander_GetRandomWaypointInArea();
 
 // @SimAIBehavior_Init
-void Init()
+void Wander_Init()
 {
     int nNth = 0;
     object oWaypoint = GetObjectByTag(AIBEHAVIOR_WANDER_WAYPOINT_TAG, nNth);
@@ -35,18 +35,18 @@ void Init()
 }
 
 // @SimAIBehavior_OnSpawn
-void Spawn()
+void Wander_Spawn()
 {
     SimpleAI_InitialSetup();
 
     ES_Util_SetInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
 
-    ActionForceMoveToObject(GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
+    ActionForceMoveToObject(Wander_GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
     ActionRandomWalk();
 }
 
 // @SimAIBehavior_OnHeartbeat
-void Heartbeat()
+void Wander_Heartbeat()
 {
     if (SimpleAI_GetIsAreaEmpty())
     {
@@ -67,7 +67,7 @@ void Heartbeat()
             SimpleAI_SetTick(0);
 
             ClearAllActions();
-            ActionForceMoveToObject(GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
+            ActionForceMoveToObject(Wander_GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);
         }
     }
     else
@@ -81,12 +81,12 @@ void Heartbeat()
 }
 
 // @SimAIBehavior_OnConversation
-void Conversation()
+void Wander_Conversation()
 {
    SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
 }
 
-object GetRandomWaypointInArea()
+object Wander_GetRandomWaypointInArea()
 {
     object oArea = GetArea(OBJECT_SELF);
     int nNumWaypoints = ES_Util_GetInt(oArea, AIBEHAVIOR_WANDER_AREA_WAYPOINTS);
