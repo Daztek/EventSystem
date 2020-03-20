@@ -10,8 +10,8 @@
 #include "es_inc_core"
 #include "es_srv_chatcom"
 
-// @Init
-void Emote_Init(string sSubsystemScript)
+// @Load
+void Emote_Load(string sSubsystemScript)
 {
     ChatCommand_Register(sSubsystemScript, "Emote_HandleEmoteChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + "emote", "[emote]", "Perform an emote!");
 }

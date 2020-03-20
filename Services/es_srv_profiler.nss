@@ -43,8 +43,8 @@ struct ProfilerStats Profiler_GetStats(string sName);
 void Profiler_DeleteStats(string sName);
 string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = FALSE);
 
-// @Init
-void Profiler_Init(string sServiceScript)
+// @Load
+void Profiler_Load(string sServiceScript)
 {
     int nOverhead = Profiler_Calibrate(PROFILER_OVERHEAD_COMPENSATION_ITERATIONS);
 

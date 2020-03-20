@@ -20,8 +20,8 @@ const string WEBHOOK_CHANNEL_ADMIN  = "ES_WEBHOOK_API_URL_ADMIN";
 // sChannel: WEBHOOK_CHANNEL_*
 void Webhook_SendMessage(string sChannel, string sMessage, string sUserName = "");
 
-// @Init
-void Webhook_Init(string sServiceScript)
+// @Load
+void Webhook_Load(string sServiceScript)
 {
     object oModule = GetModule();
     int bPlayerWebhook = ES_Util_ExecuteScriptChunkAndReturnInt(sServiceScript,

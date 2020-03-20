@@ -14,8 +14,10 @@ const string CHATCOMMAND_LOG_TAG                = "ChatCommand";
 const string CHATCOMMAND_SCRIPT_NAME            = "es_srv_chatcom";
 
 const string CHATCOMMAND_GLOBAL_PREFIX          = "/";
+const string CHATCOMMAND_HELP_COMMAND           = "help";
 
-const string CHATCOMMAND_NUM_COMMANDS           = "ChatHandlerNumCommands";
+const string CHATCOMMAND_NUM_COMMANDS           = "ChatCommandNumCommands";
+const string CHATCOMMAND_REGISTERED_COMMAND     = "ChatCommandRegisteredCommand_";
 
 const string CHATCOMMAND_COMMAND                = "ChatCommandCommand_";
 const string CHATCOMMAND_PARAMS                 = "ChatCommandParams_";
@@ -28,7 +30,7 @@ const string CHATCOMMAND_PERMISSION_FUNCTION    = "ChatCommandPermissionFunction
 const string CHATCOMMAND_PERMISSION_VALUE       = "ChatCommandPermissionValue_";
 const string CHATCOMMAND_PERMISSION_COMPARISON  = "ChatCommandPermissionComparison_";
 
-const string CHATCOMMAND_HELP_TEXT              = "ChatCommandHelpText";
+const string CHATCOMMAND_HELP_TEXT              = "ChatCommandHelpText_";
 
 // Register a chat command
 //
@@ -51,6 +53,13 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
 // sComparison: The comparison type, ==, !=, >= etc
 void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction, string sValue, string sComparison = "==");
 
+// @Load
+void ChatCommand_Load(string sServiceScript)
+{
+    object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SCRIPT_NAME);
+    ES_Util_SetString(oDataObject, CHATCOMMAND_REGISTERED_COMMAND + CHATCOMMAND_GLOBAL_PREFIX + CHATCOMMAND_HELP_COMMAND, sServiceScript);
+}
+
 // @Post
 void ChatCommand_Post(string sServiceScript)
 {
@@ -69,7 +78,7 @@ string ChatCommand_Parse(string sMessage, string sCommand)
 void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
 {
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SCRIPT_NAME);
-    string sHelp = ES_Util_GetString(oPlayer, CHATCOMMAND_HELP_TEXT);
+    string sHelp = ES_Util_GetString(oDataObject, CHATCOMMAND_HELP_TEXT + GetObjectUUID(oPlayer));
 
     if (sHelp == "")
     {
@@ -105,7 +114,7 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
                 sHelp += "\n" + ES_Util_ColorString(sCommand + (sParams != "" ? " " + sParams : ""), "070") + " - " + sDescription;
         }
 
-        ES_Util_SetString(oPlayer, CHATCOMMAND_HELP_TEXT, sHelp);
+        ES_Util_SetString(oDataObject, CHATCOMMAND_HELP_TEXT + GetObjectUUID(oPlayer), sHelp);
     }
 
     SendMessageToPC(oPlayer, sHelp);
@@ -134,7 +143,7 @@ void ChatCommand_CreateChatEventHandler(string sServiceScript)
         {
             sIncludes += nssInclude(sServiceScript);
             sCommands += nssIfStatement("(sParams = " + nssFunction("ChatCommand_Parse", "sMessage, " +
-                         nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + "help"), FALSE) + ")", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
+                         nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + CHATCOMMAND_HELP_COMMAND), FALSE) + ")", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
                          nssBrackets(nssFunction("ChatCommand_ShowHelp", "oPlayer, sParams, nVolume"));
         }
         else
@@ -189,16 +198,22 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
     if (sSubsystemScript == "" || sFunction == "" || sCommand == "" || sHelpDescription == "")
         return -1;
 
-    object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SCRIPT_NAME);
-    int nCommandID = ES_Util_GetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS) + 1;
-    string sCommandID = IntToString(nCommandID);
-
-    sSubsystemScript = "es_s_" + GetSubString(sSubsystemScript, 5, GetStringLength(sSubsystemScript) - 5);
-
     sCommand = GetStringLowerCase(sCommand);
+    object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SCRIPT_NAME);
 
     ES_Util_Log(CHATCOMMAND_LOG_TAG, "* Registering Chat Command -> '" + sCommand + "' for Subsystem '" + sSubsystemScript + "' with Function: " + sFunction + "()");
 
+    string sCommandRegisteredBy = ES_Util_GetString(oDataObject, CHATCOMMAND_REGISTERED_COMMAND + sCommand);
+    if (sCommandRegisteredBy != "")
+    {
+        ES_Util_Log(CHATCOMMAND_LOG_TAG, "  > ERROR: Chat Command -> '" + sCommand + "' has already been registered by: " + sCommandRegisteredBy);
+        return -1;
+    }
+
+    int nCommandID = ES_Util_GetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS) + 1;
+    string sCommandID = IntToString(nCommandID);
+
+    ES_Util_SetString(oDataObject, CHATCOMMAND_REGISTERED_COMMAND + sCommand, sSubsystemScript);
     ES_Util_SetInt(oDataObject, CHATCOMMAND_NUM_COMMANDS, nCommandID);
 
     ES_Util_SetString(oDataObject, CHATCOMMAND_COMMAND + sCommandID, sCommand);

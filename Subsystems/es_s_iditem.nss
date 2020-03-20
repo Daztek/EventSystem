@@ -12,8 +12,8 @@
 
 const int IDITEM_IDENTIFY_SKILL = SKILL_SPELLCRAFT;
 
-// @Init
-void IdentifyItem_Init(string sSubsystemScript)
+// @Load
+void IdentifyItem_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_ITEM_USE_LORE_BEFORE");
 }

@@ -19,8 +19,8 @@ const string PERSISTENT_LOCATION_SCRIPT_NAME    = "es_s_persistloc";
 void PersistentLocation_SaveLocation(object oPlayer);
 void PersistentLocation_LoadLocation(object oPlayer);
 
-// @Init
-void PersistentLocation_Init(string sSubsystemScript)
+// @Load
+void PersistentLocation_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
 
@@ -40,7 +40,10 @@ void PersistentLocation_EventHandler(string sSubsystemScript, string sEvent)
 
 void PersistentLocation_SaveLocation(object oPlayer)
 {
-    if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer)) return;
+    if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer) || GetIsDMPossessed(oPlayer)) return;
+
+    object oMaster = GetMaster(oPlayer);
+    if (GetIsObjectValid(oMaster)) oPlayer = oMaster;
 
     ES_Util_SetLocation(oPlayer, PERSISTENT_LOCATION_SCRIPT_NAME + "_Location", GetLocation(oPlayer), TRUE);
 }

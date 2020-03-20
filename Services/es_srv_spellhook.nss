@@ -21,8 +21,8 @@ void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpell);
 // Skip a spellhook event
 void Spellhook_SkipEvent();
 
-// @Init
-void Spellhook_Init(string sServiceScript)
+// @Load
+void Spellhook_Load(string sServiceScript)
 {
     ES_Util_AddScript(sServiceScript, sServiceScript, nssFunction("Spellhook_SignalEvent"));
 }
@@ -41,7 +41,7 @@ void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpell)
 
     ES_Util_SetInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), TRUE);
 
-    NWNX_Events_SubscribeEvent(SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), sSubsystemScript);
+    ES_Core_SubscribeEvent(sSubsystemScript, SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), FALSE);
 }
 
 void Spellhook_SkipEvent()

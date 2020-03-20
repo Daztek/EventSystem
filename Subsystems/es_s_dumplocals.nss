@@ -10,8 +10,8 @@
 
 #include "es_inc_core"
 
-// @Init
-void DumpLocals_Init(string sSubsystemScript)
+// @Load
+void DumpLocals_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_DUMP_LOCALS_BEFORE");
 }

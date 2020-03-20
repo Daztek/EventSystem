@@ -20,8 +20,8 @@ const string CHARACTERSAVE_CHAT_COMMAND         = "save";
 const string CHARACTERSAVE_AUTO_SAVE_INTERVAL   = WORLD_TIMER_EVENT_5_MINUTES;
 const float  CHARACTERSAVE_MANUAL_COOLDOWN      = 60.0f;
 
-// @Init
-void CharacterSave_Init(string sSubsystemScript)
+// @Load
+void CharacterSave_Load(string sSubsystemScript)
 {
     WorldTimer_SubscribeEvent(sSubsystemScript, CHARACTERSAVE_AUTO_SAVE_INTERVAL);
 
@@ -38,15 +38,19 @@ void CharacterSave_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == CHARACTERSAVE_AUTO_SAVE_INTERVAL)
     {
+        if (!ES_Util_GetPlayersOnline()) return;
+
         ES_Util_Log(CHARACTERSAVE_LOG_TAG, "Saving all characters.");
 
         object oPlayer = GetFirstPC();
-
         while (GetIsObjectValid(oPlayer))
         {
-            ExportSingleCharacter(oPlayer);
+            if (!GetIsDM(oPlayer))
+            {
+                ExportSingleCharacter(oPlayer);
 
-            ES_Util_SendServerMessage("Your character has been automatically saved.", oPlayer);
+                ES_Util_SendServerMessage("Your character has been automatically saved.", oPlayer);
+            }
 
             oPlayer = GetNextPC();
         }

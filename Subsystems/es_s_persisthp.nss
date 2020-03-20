@@ -17,8 +17,8 @@ const string PERSISTENT_HITPOINTS_SCRIPT_NAME   = "es_s_persisthp";
 void PersistentHitPoints_SaveHitPoints(object oPlayer);
 void PersistentHitPoints_RestoreHitPoints(object oPlayer);
 
-// @Init
-void PersistentHitPoints_Init(string sSubsystemScript)
+// @Load
+void PersistentHitPoints_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
@@ -36,7 +36,10 @@ void PersistentHitPoints_EventHandler(string sSubsystemScript, string sEvent)
 
 void PersistentHitPoints_SaveHitPoints(object oPlayer)
 {
-    if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer)) return;
+    if (!GetIsObjectValid(oPlayer) || GetIsDM(oPlayer) || GetIsDMPossessed(oPlayer)) return;
+
+    object oMaster = GetMaster(oPlayer);
+    if (GetIsObjectValid(oMaster)) oPlayer = oMaster;
 
     ES_Util_SetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_Dead", GetIsDead(oPlayer), TRUE);
     ES_Util_SetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_HP", GetCurrentHitPoints(oPlayer), TRUE);

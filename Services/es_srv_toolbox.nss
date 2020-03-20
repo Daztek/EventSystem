@@ -9,6 +9,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "nwnx_area"
 
 const string TOOLBOX_LOG_TAG                            = "Toolbox";
 const string TOOLBOX_SCRIPT_NAME                        = "es_srv_toolbox";
@@ -23,6 +24,8 @@ object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid);
 string Toolbox_GeneratePlaceable(struct Toolbox_PlaceableData pd);
 // Create a new placeable from template string
 object Toolbox_CreatePlaceable(string sPlaceable, location locLocation, string sNewTag = "");
+// Create a new trigger in the shape of a circle
+object Toolbox_CreateCircleTrigger(struct Toolbox_CircleTriggerData ctd, location locLocation);
 
 struct Toolbox_SmallItemData
 {
@@ -69,8 +72,25 @@ struct Toolbox_PlaceableData
     int scriptOnTrapTriggered;
 };
 
-// @Init
-void Toolbox_Init(string sServiceScript)
+struct Toolbox_CircleTriggerData
+{
+    string sTag;
+    string sName;
+
+    float fRadius;
+    int nPoints;
+
+    int bUseSpawnZ;
+
+    int scriptOnClick;
+    int scriptOnEnter;
+    int scriptOnExit;
+    int scriptOnHearbeat;
+    int scriptOnUserDefined;
+};
+
+// @Load
+void Toolbox_Load(string sServiceScript)
 {
     ES_Util_Log(TOOLBOX_LOG_TAG, "* Generating Small Item Template");
 
@@ -178,5 +198,43 @@ object Toolbox_CreatePlaceable(string sPlaceable, location locLocation, string s
     NWNX_Object_AddToArea(oPlaceable, GetAreaFromLocation(locLocation), GetPositionFromLocation(locLocation));
 
     return oPlaceable;
+}
+
+object Toolbox_CreateCircleTrigger(struct Toolbox_CircleTriggerData ctd, location locLocation)
+{
+    object oArea = GetAreaFromLocation(locLocation);
+    vector vPosition = GetPositionFromLocation(locLocation);
+
+    object oTrigger = NWNX_Area_CreateGenericTrigger(oArea, vPosition.x, vPosition.y, vPosition.z, ctd.sTag);
+
+    if (ctd.sName != "") SetName(oTrigger, ctd.sName);
+
+    ctd.nPoints = abs(ctd.nPoints);
+    ctd.fRadius = fabs(ctd.fRadius);
+    if (ctd.nPoints < 3) ctd.nPoints = 12;
+    if (ctd.fRadius == 0.0f) ctd.fRadius = 1.0f;
+
+    float fAngleIncrement = 360.0f / ctd.nPoints;
+    string sGeometry;
+
+    int i;
+    for (i = 0; i < ctd.nPoints; i++)
+    {
+        float fAngle = fAngleIncrement * i;
+        float x = (ctd.fRadius * cos(fAngle)) + vPosition.x;
+        float y = (ctd.fRadius * sin(fAngle)) + vPosition.y;
+
+        sGeometry += "{" + FloatToString(x) + ", " + FloatToString(y) + (ctd.bUseSpawnZ ? ", " + FloatToString(vPosition.z) + "}" : "}");
+    }
+
+    NWNX_Object_SetTriggerGeometry(oTrigger, sGeometry);
+
+    if (ctd.scriptOnClick)          ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_CLICKED, FALSE);
+    if (ctd.scriptOnEnter)          ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, FALSE);
+    if (ctd.scriptOnExit)           ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, FALSE);
+    if (ctd.scriptOnHearbeat)       ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_HEARTBEAT, FALSE);
+    if (ctd.scriptOnUserDefined)    ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_USER_DEFINED_EVENT, FALSE);
+
+    return oTrigger;
 }
 

@@ -16,8 +16,8 @@ const string OBJSIT_SCRIPT_NAME         = "es_s_objsit";
 
 const string OBJSIT_SINGLE_SEAT_TAG     = "OBJSIT_SINGLE";
 
-// @Init
-void ObjectSit_Init(string sSubsystemScript)
+// @Load
+void ObjectSit_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
 

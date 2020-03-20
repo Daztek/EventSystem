@@ -23,8 +23,8 @@ const string SIMPLE_DIALOG_LOG_TAG                          = "SimpleDialog";
 const string SIMPLE_DIALOG_SCRIPT_NAME                      = "es_srv_simdialog";
 
 const string SIMPLE_DIALOG_CONVERSATION                     = "cv_simdialog";
-const int SIMPLE_DIALOG_NUMBER_OF_OPTIONS                   = 13; // If you change this, also add/remove them from the conversation file.
-const int SIMPLE_DIALOG_LIST_RANGE_SIZE                     = 10;
+const int    SIMPLE_DIALOG_NUMBER_OF_OPTIONS                = 13; // If you change this, also add/remove them from the conversation file.
+const int    SIMPLE_DIALOG_LIST_RANGE_SIZE                  = 10;
 
 const string SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION         = "SDPlayerCurrentConversation";
 const string SIMPLE_DIALOG_PLR_CURRENT_PAGE                 = "SDPlayerCurrentPage";
@@ -130,8 +130,8 @@ string SimpleDialog_Token_Highlight(string sText);
 
 /* *** */
 
-// @Init
-void SimpleDialog_Init(string sServiceScript)
+// @Load
+void SimpleDialog_Load(string sServiceScript)
 {
     ES_Util_AddConditionalScript("simdialog_sc", sServiceScript, nssFunction("SimpleDialog_HandleStartingConditional"));
     ES_Util_AddScript("simdialog_at", sServiceScript, nssFunction("SimpleDialog_HandleActionTaken"));
@@ -254,10 +254,7 @@ void SimpleDialog_HandleConversationEnd(int bAborted)
 
 void SimpleDialog_SubscribeEvent(string sSubsystemScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE)
 {
-    NWNX_Events_SubscribeEvent(sSimpleDialogEvent, sSubsystemScript);
-
-    if (bDispatchListMode)
-        NWNX_Events_ToggleDispatchListMode(sSimpleDialogEvent, sSubsystemScript, bDispatchListMode);
+    ES_Core_SubscribeEvent(sSubsystemScript, sSimpleDialogEvent, bDispatchListMode);
 }
 
 /* Conditional Event Related Functions */

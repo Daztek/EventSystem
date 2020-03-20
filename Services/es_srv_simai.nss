@@ -44,8 +44,8 @@ int SimpleAI_GetIsAreaEmpty();
 int SimpleAI_GetTick();
 void SimpleAI_SetTick(int nTick);
 
-// @Init
-void SimpleAI_Init(string sServiceScript)
+// @Load
+void SimpleAI_Load(string sServiceScript)
 {
     object oSystemDataObject = ES_Util_GetDataObject(sServiceScript), oModule = GetModule();
     string sAIBehaviorArray = ES_Util_GetResRefArray(oSystemDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "ai_b_.+", FALSE);

@@ -18,8 +18,8 @@ const string ELC_EVENT          = "ELC_EVENT";
 // Subscribe sSubsystemScript to the ELC event
 void ELC_SubscribeEvent(string sSubsystemScript);
 
-// @Init
-void ELC_Init(string sServiceScript)
+// @Load
+void ELC_Load(string sServiceScript)
 {
     ES_Util_AddScript(sServiceScript, "nwnx_events", nssFunction("NWNX_Events_SignalEvent", nssEscapeDoubleQuotes(ELC_EVENT) + ", OBJECT_SELF"));
 }
@@ -28,6 +28,6 @@ void ELC_SubscribeEvent(string sSubsystemScript)
 {
     NWNX_ELC_SetELCScript(ELC_SCRIPT_NAME);
 
-    NWNX_Events_SubscribeEvent(ELC_EVENT, sSubsystemScript);
+    ES_Core_SubscribeEvent(sSubsystemScript, ELC_EVENT, FALSE);
 }
 

@@ -33,7 +33,9 @@ void ES_Util_DestroyDataObject(string sTag);
 object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE);
 
 // Write an Event System message to the log
-void ES_Util_Log(string sSubSystem, string sMessage);
+void ES_Util_Log(string sSubSystem, string sMessage, int bSuppressible = TRUE);
+// Toggle log supression
+void ES_Util_SuppressLog(int bSuppress);
 
 // Returns TRUE/FALSE for sEnvironmentVariable
 int ES_Util_GetBooleanEnvVar(string sEnvironmentVariable);
@@ -49,6 +51,8 @@ string ES_Util_AddScript(string sFileName, string sInclude, string sScriptChunk)
 string ES_Util_AddConditionalScript(string sFileName, string sInclude, string sScriptConditionalChunk);
 // Convenience wrapper for ExecuteScriptChunk()
 string ES_Util_ExecuteScriptChunk(string sInclude, string sScriptChunk, object oObject);
+// Convenience wrapper for NWNX_Util_RegisterServerConsoleCommand()
+int ES_Util_RegisterServerConsoleCommand(string sCommand, string sInclude, string sScriptChunk, int bUnregisterExisting = FALSE);
 
 // Get a functionname from sScriptContents using sDecorator
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void");
@@ -63,6 +67,8 @@ string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string
 // }
 // // @FunctionEnd TestFunction
 string ES_Util_GetFunctionImplementation(string sScriptContents, string sFunctionName);
+// Returns TRUE if sScriptContents has sFlag
+int ES_Util_GetHasScriptFlag(string sScriptContents, string sFlag);
 
 // Create an array of resrefs on oArrayObject
 // Returns: The array name
@@ -141,8 +147,12 @@ int ES_Util_StringArray_Size(object oObject, string sArrayName);
 string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex);
 // Delete sArrayName
 void ES_Util_StringArray_Clear(object oObject, string sArrayName);
-// Returns TRUE if sValue exists in sArrayName
+// Returns the index of sValue if it exists in sArrayName or -1 if not
 int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue);
+// Delete nIndex from sArrayName on oObject
+void ES_Util_StringArray_Delete(object oObject, string sArrayName, int nIndex);
+// Delete sValue from sArrayName on oObject
+void ES_Util_StringArray_DeleteByValue(object oObject, string sArrayName, string sValue);
 
 // NWNX_Events_GetEventData() string data wrapper
 string ES_Util_GetEventData_NWNX_String(string sTag);
@@ -171,6 +181,10 @@ string ES_Util_ColorString(string sString, string sRGB);
 // Send a server message
 // If oPlayer is OBJECT_INVALID, the message will be sent to all players
 void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID, int bServerTag = TRUE);
+
+// Returns TRUE if there is at least 1 player or DM online
+int ES_Util_GetPlayersOnline();
+
 
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
 {
@@ -208,9 +222,20 @@ object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE)
     return GetIsObjectValid(oDataObject) ? oDataObject : bCreateIfNotExists ? ES_Util_CreateDataObject(sTag) : OBJECT_INVALID;
 }
 
-void ES_Util_Log(string sSubSystem, string sMessage)
+void ES_Util_Log(string sSubSystem, string sMessage, int bSuppressible = TRUE)
 {
-    WriteTimestampedLogEntry("[EventSystem] " + sSubSystem + ": " + sMessage);
+    if (bSuppressible)
+    {
+        if (!ES_Util_GetInt(GetModule(), "ES_SuppressLogs"))
+            WriteTimestampedLogEntry("[EventSystem] " + sSubSystem + ": " + sMessage);
+    }
+    else
+        WriteTimestampedLogEntry("[EventSystem] " + sSubSystem + ": " + sMessage);
+}
+
+void ES_Util_SuppressLog(int bSuppress)
+{
+    ES_Util_SetInt(GetModule(), "ES_SuppressLogs", bSuppress);
 }
 
 int ES_Util_GetBooleanEnvVar(string sEnvironmentVariable)
@@ -294,6 +319,16 @@ string ES_Util_ExecuteScriptChunk(string sInclude, string sScriptChunk, object o
     return ExecuteScriptChunk(sScript, oObject, FALSE);
 }
 
+int ES_Util_RegisterServerConsoleCommand(string sCommand, string sInclude, string sScriptChunk, int bUnregisterExisting = FALSE)
+{
+    string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sArgs", nssEscapeDoubleQuotes("$args")) + sScriptChunk);
+
+    if (bUnregisterExisting)
+        NWNX_Util_UnregisterServerConsoleCommand(sCommand);
+
+    return NWNX_Util_RegisterServerConsoleCommand(sCommand, sScript);
+}
+
 string ES_Util_GetFunctionName(string sScriptContents, string sDecorator, string sFunctionType = "void")
 {
     int nDecoratorPosition = FindSubString(sScriptContents, "@" + sDecorator, 0);
@@ -316,9 +351,14 @@ string ES_Util_GetFunctionImplementation(string sScriptContents, string sFunctio
     if (nImplementationStart == -1 || nImplementationEnd == -1)
         return "";
 
-    int nImplementationStartLength = GetStringLength("@EventSystem_Function_Start " + sFunctionName);
+    int nImplementationStartLength = GetStringLength("@FunctionStart " + sFunctionName);
 
     return GetSubString(sScriptContents, nImplementationStart + nImplementationStartLength, nImplementationEnd - nImplementationStart - nImplementationStartLength - 3);
+}
+
+int ES_Util_GetHasScriptFlag(string sScriptContents, string sFlag)
+{
+    return FindSubString(sScriptContents, "@" + sFlag, 0) != -1;
 }
 
 string ES_Util_GetResRefArray(object oArrayObject, int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE)
@@ -553,12 +593,44 @@ int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValu
 
             if (sElement == sValue)
             {
-                return TRUE;
+                return nIndex;
             }
         }
     }
 
-    return FALSE;
+    return -1;
+}
+
+void ES_Util_StringArray_Delete(object oObject, string sArrayName, int nIndex)
+{
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndexNew;
+    if (nIndex < nSize)
+    {
+        for (nIndexNew = nIndex; nIndexNew < nSize - 1; nIndexNew++)
+        {
+            ES_Util_StringArray_Set(oObject, sArrayName, nIndexNew, ES_Util_StringArray_At(oObject, sArrayName, nIndexNew + 1));
+        }
+
+        ES_Util_DeleteString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize - 1));
+        ES_Util_SetInt(oObject, "SA!NUM!" + sArrayName, nSize - 1);
+    }
+}
+
+void ES_Util_StringArray_DeleteByValue(object oObject, string sArrayName, string sValue)
+{
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
+    string sElement;
+
+    for (nIndex = 0; nIndex < nSize; nIndex++)
+    {
+        sElement = ES_Util_StringArray_At(oObject, sArrayName, nIndex);
+
+        if (sElement == sValue)
+        {
+            ES_Util_StringArray_Delete(oObject, sArrayName, nIndex);
+            break;
+        }
+   }
 }
 
 string ES_Util_GetEventData_NWNX_String(string sTag)
@@ -616,5 +688,10 @@ void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID,
     }
     else
         SendMessageToPC(oPlayer, sMessage);
+}
+
+int ES_Util_GetPlayersOnline()
+{
+    return GetFirstPC() != OBJECT_INVALID;
 }
 

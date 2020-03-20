@@ -28,8 +28,8 @@ void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent,
 // Get the current heartbeat count tick
 int WorldTimer_GetHeartbeatCount();
 
-// @Init
-void WorldTimer_Init(string sServiceScript)
+// @Load
+void WorldTimer_Load(string sServiceScript)
 {
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME);
     ES_Util_SetInt(oDataObject, "WORLD_TIMER_MINUTES_PER_HOUR", NWNX_Util_GetMinutesPerHour());
@@ -87,11 +87,7 @@ void WorldTimer_EventHandler(string sServiceScript, string sEvent)
 void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bDispatchListMode = FALSE)
 {
     ES_Util_SetInt(ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME), sWorldTimerEvent, TRUE);
-
-    NWNX_Events_SubscribeEvent(sWorldTimerEvent, sSubsystemScript);
-
-    if (bDispatchListMode)
-        NWNX_Events_ToggleDispatchListMode(sWorldTimerEvent, sSubsystemScript, bDispatchListMode);
+    ES_Core_SubscribeEvent(sSubsystemScript, sWorldTimerEvent, bDispatchListMode);
 }
 
 int WorldTimer_GetHeartbeatCount()

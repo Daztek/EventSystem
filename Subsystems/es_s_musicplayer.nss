@@ -40,9 +40,11 @@ int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF);
 void MusicPlayer_DisableMusicPlayer();
 void MusicPlayer_ApplyDisabledEffects(object oMusicPlayer);
 
-// @Init
-void MusicPlayer_Init(string sSubsystemScript)
+// @Load
+void MusicPlayer_Load(string sSubsystemScript)
 {
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
+
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
@@ -53,7 +55,6 @@ void MusicPlayer_Init(string sSubsystemScript)
 
     MusicPlayer_LoadMusicTracks();
     MusicPlayer_CreateConversation();
-    MusicPlayer_SpawnPlaceables(sSubsystemScript);
 }
 
 // @EventHandler
@@ -253,6 +254,10 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
     {
         switch (StringToInt(sEvent))
         {
+            case EVENT_SCRIPT_MODULE_ON_MODULE_LOAD:
+                MusicPlayer_SpawnPlaceables(sSubsystemScript);
+                break;
+
             case EVENT_SCRIPT_PLACEABLE_ON_USED:
                 SimpleDialog_StartConversation(GetLastUsedBy(), OBJECT_SELF, MUSICPLAYER_SCRIPT_NAME, MusicPlayer_GetIsDisabled() ? 3 : 1);
                 break;
