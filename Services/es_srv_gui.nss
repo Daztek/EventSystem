@@ -27,7 +27,9 @@ const string GUI_WINDOW_BOTTOM_RIGHT    = "g";
 const string GUI_WINDOW_BOTTOM_MIDDLE   = "e";
 
 int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console");
+void GUI_ClearIDRange(object oPlayer, int nStart, int nEnd);
 int GUI_DrawWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f);
+int GUI_DrawConversationWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f);
 
 // @Load
 void GUI_Load(string sServiceScript)
@@ -54,6 +56,15 @@ int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console")
         return GetStringLength(sMessage);
 }
 
+void GUI_ClearIDRange(object oPlayer, int nStart, int nEnd)
+{
+    int i;
+    for(i = nStart; i < nEnd; i++)
+    {
+        PostString(oPlayer, "", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 0.01f, 0xFFFFFF00, 0xFFFFFF00, i);
+    }
+}
+
 int GUI_DrawWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f)
 {
     int nStartColor = 0xFFFFFFFF;
@@ -72,6 +83,37 @@ int GUI_DrawWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWi
     }
 
     sTop    += GUI_WINDOW_TOP_RIGHT;
+    sMiddle += GUI_WINDOW_MIDDLE_RIGHT;
+    sBottom += GUI_WINDOW_BOTTOM_RIGHT;
+
+    PostString(oPlayer, sTop, nX, nY, nAnchor, fLifetime, nStartColor, nEndColor, nId++, GUI_FONT_WINDOW_NAME);
+    for (i = 0; i < nHeight; i++)
+    {
+        PostString(oPlayer, sMiddle, nX, ++nY, nAnchor, fLifetime, nStartColor, nEndColor, nId++, GUI_FONT_WINDOW_NAME);
+    }
+    PostString(oPlayer, sBottom, nX, ++nY, nAnchor, fLifetime, nStartColor, nEndColor, nId++, GUI_FONT_WINDOW_NAME);
+
+    return nId;
+}
+
+int GUI_DrawConversationWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f)
+{
+    int nStartColor = 0xFFFFFFFF;
+    int nEndColor   = 0xFFFFFFFF;
+
+    string sTop = GUI_WINDOW_MIDDLE_BLANK;
+    string sMiddle = GUI_WINDOW_MIDDLE_BLANK;
+    string sBottom = GUI_WINDOW_BOTTOM_MIDDLE;
+
+    int i;
+    for (i = 0; i < nWidth; i++)
+    {
+        sTop    += GUI_WINDOW_MIDDLE_BLANK;
+        sMiddle += GUI_WINDOW_MIDDLE_BLANK;
+        sBottom += GUI_WINDOW_BOTTOM_MIDDLE;
+    }
+
+    sTop    += GUI_WINDOW_MIDDLE_RIGHT;
     sMiddle += GUI_WINDOW_MIDDLE_RIGHT;
     sBottom += GUI_WINDOW_BOTTOM_RIGHT;
 
