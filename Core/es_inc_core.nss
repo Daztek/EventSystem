@@ -214,6 +214,10 @@ void ES_Core_Init()
         nssFunction("ES_Core_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Post")), oModule);
 
 
+    // Delete the CoreHashChanged variable so HotSwappable subsystems don't needlessly get recompiled
+    ES_Util_DeleteInt(oDataObject, "CoreHashChanged");
+
+
     ES_Util_Log(ES_CORE_LOG_TAG, "");
     ES_Util_Log(ES_CORE_LOG_TAG, "* Done!");
 }
@@ -429,7 +433,7 @@ string ES_Core_GetScriptFlags(string sScriptContents)
     string sFlags;
 
     if (ES_Util_GetHasScriptFlag(sScriptContents, "HotSwap"))
-        sFlags += "HotSwap";
+        sFlags += "HotSwap ";
 
     return sFlags;
 }

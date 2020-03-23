@@ -211,7 +211,7 @@ object Toolbox_CreateCircleTrigger(struct Toolbox_CircleTriggerData ctd, locatio
 
     ctd.nPoints = abs(ctd.nPoints);
     ctd.fRadius = fabs(ctd.fRadius);
-    if (ctd.nPoints < 3) ctd.nPoints = 12;
+    if (ctd.nPoints < 3) ctd.nPoints = 3;
     if (ctd.fRadius == 0.0f) ctd.fRadius = 1.0f;
 
     float fAngleIncrement = 360.0f / ctd.nPoints;
