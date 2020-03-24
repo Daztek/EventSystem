@@ -9,28 +9,42 @@
 
 #include "es_inc_core"
 
-const string GUI_LOG_TAG                    = "GUI";
-const string GUI_SCRIPT_NAME                = "es_srv_gui";
-const string GUI_FONT_WINDOW_NAME           = "fnt_esgui";
-const float GUI_PRELOAD_DELAY               = 5.0f;
-const int GUI_PRELOAD_POSTSTRING_START_ID   = 10000;
+const string GUI_LOG_TAG                = "GUI";
+const string GUI_SCRIPT_NAME            = "es_srv_gui";
 
-const string GUI_WINDOW_TOP_LEFT            = "a";
-const string GUI_WINDOW_TOP_RIGHT           = "c";
-const string GUI_WINDOW_TOP_MIDDLE          = "b";
-const string GUI_WINDOW_MIDDLE_LEFT         = "d";
-const string GUI_WINDOW_MIDDLE_RIGHT        = "f";
-const string GUI_WINDOW_MIDDLE_BLANK        = "i";
-const string GUI_WINDOW_BOTTOM_LEFT         = "h";
-const string GUI_WINDOW_BOTTOM_RIGHT        = "g";
-const string GUI_WINDOW_BOTTOM_MIDDLE       = "e";
+const float GUI_PRELOAD_DELAY           = 5.0f;
 
-const int GUI_COLOR_WHITE                   = 0xFFFFFFFF;
-const int GUI_COLOR_RED                     = 0xFF0000FF;
+const int GUI_ID_START                  = 100;
+const string GUI_ID_TOTAL               = "IDTotal";
+const string GUI_ID_SUBSYSTEM_AMOUNT    = "IDSubsystemAmount_";
+const string GUI_ID_SUBSYSTEM_START     = "IDSubsystemStart_";
+const string GUI_ID_SUBSYSTEM_END       = "IDSubsystemEnd_";
+
+const string GUI_FONT_WINDOW_NAME       = "fnt_esgui";
+const string GUI_WINDOW_TOP_LEFT        = "a";
+const string GUI_WINDOW_TOP_RIGHT       = "c";
+const string GUI_WINDOW_TOP_MIDDLE      = "b";
+const string GUI_WINDOW_MIDDLE_LEFT     = "d";
+const string GUI_WINDOW_MIDDLE_RIGHT    = "f";
+const string GUI_WINDOW_MIDDLE_BLANK    = "i";
+const string GUI_WINDOW_BOTTOM_LEFT     = "h";
+const string GUI_WINDOW_BOTTOM_RIGHT    = "g";
+const string GUI_WINDOW_BOTTOM_MIDDLE   = "e";
+
+const int GUI_COLOR_WHITE               = 0xFFFFFFFF;
+const int GUI_COLOR_RED                 = 0xFF0000FF;
 
 void GUI_PreloadFont(string sFont);
-void GUI_Clear(object oPlayer, int nID);
-void GUI_ClearRange(object oPlayer, int nStartID, int nEndID);
+
+void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount);
+int GUI_GetSubsystemID_Start(string sSubsystemScript);
+int GUI_GetSubsystemID_End(string sSubsystemScript);
+int GUI_GetSubsystemID_Amount(string sSubsystemScript);
+
+void GUI_ClearByID(object oPlayer, int nID);
+void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID);
+void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript);
+
 int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console");
 int GUI_DrawWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f);
 int GUI_DrawConversationWindow(object oPlayer, int nId, int nWidth, int nHeight, float fLifetime = 1.0f);
@@ -38,7 +52,11 @@ int GUI_DrawConversationWindow(object oPlayer, int nId, int nWidth, int nHeight,
 // @Load
 void GUI_Load(string sServiceScript)
 {
+    object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
+
     ES_Core_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
+
+    ES_Util_SetInt(oDataObject, GUI_ID_TOTAL, GUI_ID_START);
 }
 
 // @EventHandler
@@ -55,7 +73,7 @@ void GUI_EventHandler(string sServiceScript, string sEvent)
         for (i = 0; i < nNumPreloadableFonts; i++)
         {
             string sFont = ES_Util_StringArray_At(oDataObject, "PreloadFonts", i);
-            DelayCommand(GUI_PRELOAD_DELAY, PostString(oPlayer, "a", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 1.0f, 0xFFFFFFF00, 0xFFFFFF00, GUI_PRELOAD_POSTSTRING_START_ID + i, sFont));
+            DelayCommand(GUI_PRELOAD_DELAY, PostString(oPlayer, "a", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 1.0f, 0xFFFFFFF00, 0xFFFFFF00, 1 + i, sFont));
         }
     }
 }
@@ -72,18 +90,63 @@ void GUI_PreloadFont(string sFont)
     }
 }
 
-void GUI_Clear(object oPlayer, int nID)
+void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount)
+{
+    object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
+
+    int nTotal = ES_Util_GetInt(oDataObject, GUI_ID_TOTAL);
+    int nStart = nTotal;
+    int nEnd = nTotal + nAmount - 1;
+
+    ES_Util_SetInt(oDataObject, GUI_ID_TOTAL, nTotal + nAmount);
+    ES_Util_SetInt(oDataObject, GUI_ID_SUBSYSTEM_AMOUNT + sSubsystemScript, nAmount);
+    ES_Util_SetInt(oDataObject, GUI_ID_SUBSYSTEM_START + sSubsystemScript, nStart);
+    ES_Util_SetInt(oDataObject, GUI_ID_SUBSYSTEM_END + sSubsystemScript, nEnd);
+
+    ES_Util_Log(GUI_LOG_TAG, "Subsystem '" + sSubsystemScript + "' requested '" + IntToString(nAmount) + "' IDs -> " + IntToString(nStart) + " - " + IntToString(nEnd));
+}
+
+int GUI_GetSubsystemID_Start(string sSubsystemScript)
+{
+    object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
+
+    return ES_Util_GetInt(oDataObject, GUI_ID_SUBSYSTEM_START + sSubsystemScript);
+}
+
+int GUI_GetSubsystemID_End(string sSubsystemScript)
+{
+    object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
+
+    return ES_Util_GetInt(oDataObject, GUI_ID_SUBSYSTEM_END + sSubsystemScript);
+}
+
+int GUI_GetSubsystemID_Amount(string sSubsystemScript)
+{
+    object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
+
+    return ES_Util_GetInt(oDataObject, GUI_ID_SUBSYSTEM_AMOUNT + sSubsystemScript);
+}
+
+void GUI_ClearByID(object oPlayer, int nID)
 {
     PostString(oPlayer, "", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 0.01f, 0xFFFFFF00, 0xFFFFFF00, nID);
 }
 
-void GUI_ClearRange(object oPlayer, int nStartID, int nEndID)
+void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID)
 {
     int i;
     for(i = nStartID; i < nEndID; i++)
     {
-        GUI_Clear(oPlayer, i);
+        GUI_ClearByID(oPlayer, i);
     }
+}
+
+void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript)
+{
+    int nStartID = GUI_GetSubsystemID_Start(sSubsystemScript);
+    int nEndID = nStartID + GUI_GetSubsystemID_Amount(sSubsystemScript);
+
+    GUI_ClearByRange(oPlayer, nStartID, nEndID);
 }
 
 int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console")

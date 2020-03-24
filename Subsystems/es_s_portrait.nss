@@ -18,7 +18,7 @@ const string PORTRAIT_LOG_TAG               = "Portrait";
 const string PORTRAIT_SCRIPT_NAME           = "es_s_portrait";
 
 const string PORTRAIT_CHATCOMMAND_NAME      = "portrait";
-const int PORTRAIT_POSTSTRING_START_ID      = 100;
+const int PORTRAIT_GUI_NUM_IDS              = 50;
 const string PORTRAIT_FONT_TEXTURE_NAME     = "fnt_portrait";
 
 // @Load
@@ -38,6 +38,7 @@ void Portrait_Load(string sSubsystemScript)
 
     ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
 
+    GUI_RequestSubsystemIDs(sSubsystemScript, PORTRAIT_GUI_NUM_IDS);
     GUI_PreloadFont(PORTRAIT_FONT_TEXTURE_NAME);
 }
 
@@ -55,9 +56,9 @@ string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
         return "po_hu_" + sGender + "_99_";
 }
 
-int Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int nGender)
+void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int nGender)
 {
-    int nId = PORTRAIT_POSTSTRING_START_ID;
+    int nId = GUI_GetSubsystemID_Start(PORTRAIT_SCRIPT_NAME);
     string sOptionFont = "fnt_dialog16x16";
     int nTextColor = GUI_COLOR_WHITE;
     int nPortraitColor = GUI_COLOR_WHITE;
@@ -85,7 +86,7 @@ int Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int
     PostString(oPlayer, "5. [" + sGender + "]", 3, 12, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
     PostString(oPlayer, "6. [End]", 3, 13, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
 
-    return GUI_DrawConversationWindow(oPlayer, nId, 46, 32, 0.0f);
+    GUI_DrawConversationWindow(oPlayer, nId, 46, 32, 0.0f);
 }
 
 void Portrait_ChatCommand(object oPlayer, string sEmote, int nVolume)
@@ -108,9 +109,7 @@ void Portrait_ChatCommand(object oPlayer, string sEmote, int nVolume)
 
     SimpleDialog_StartConversation(oPlayer, oPlayer, PORTRAIT_SCRIPT_NAME, 1, TRUE);
 
-    int nMaxPostStringID = Portrait_DrawPortraitGUI(oPlayer, nPortraitNumber, nRace, nGender);
-
-    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_MaxPostStringID", nMaxPostStringID);
+    Portrait_DrawPortraitGUI(oPlayer, nPortraitNumber, nRace, nGender);
 
     SetPCChatMessage("");
 }
@@ -180,14 +179,13 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == SIMPLE_DIALOG_EVENT_CONVERSATION_END)
     {
         object oPlayer = OBJECT_SELF;
-        int nMaxPostStringID = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_MaxPostStringID");
 
         ES_Util_DeleteIntRegex(oPlayer, ".*" + PORTRAIT_SCRIPT_NAME + ".*");
 
         NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oPlayer);
         NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_CONVERSATION_END, sSubsystemScript, oPlayer);
 
-        DelayCommand(0.1f, GUI_ClearRange(oPlayer, PORTRAIT_POSTSTRING_START_ID, nMaxPostStringID));
+        DelayCommand(0.1f, GUI_ClearBySubsystem(oPlayer, PORTRAIT_SCRIPT_NAME));
     }
 }
 
