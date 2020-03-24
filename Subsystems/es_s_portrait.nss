@@ -36,18 +36,14 @@ void Portrait_Load(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, "[Gender]");
         SimpleDialog_AddOption(oConversation, "[End]");
 
-    ChatCommand_Register(sSubsystemScript, "Emote_PortraitChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
+    ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
 
     GUI_PreloadFont(PORTRAIT_FONT_TEXTURE_NAME);
 }
 
-string Portrait_GetPortraitName(object oPlayer)
+string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
 {
-    int nPortrait = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Portrait");
-    int nRace = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
-    int nGender = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
-
-    string sNumber = nPortrait < 10 ? "0" + IntToString(nPortrait) : IntToString(nPortrait);
+    string sNumber = nPortraitNumber < 10 ? "0" + IntToString(nPortraitNumber) : IntToString(nPortraitNumber);
     string sRace = GetSubString("dwelgnhahuorhu", 2 * nRace, 2);
     string sGender = !nGender ? "m" : "f";
 
@@ -59,56 +55,51 @@ string Portrait_GetPortraitName(object oPlayer)
         return "po_hu_" + sGender + "_99_";
 }
 
-string Portrait_GetPrettyPortraitString(object oPlayer)
-{
-    int nPortrait = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Portrait");
-    int nRace = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
-    int nGender = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
-
-    return Get2DAString("racialtypes", "Label", nRace) + ", " + (nGender ? "Female" : "Male") + ": " + IntToString(nPortrait);
-}
-
-int Portrait_DrawPortraitGUI(object oPlayer, string sPortrait)
+int Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int nGender)
 {
     int nId = PORTRAIT_POSTSTRING_START_ID;
     string sOptionFont = "fnt_dialog16x16";
     int nTextColor = GUI_COLOR_WHITE;
     int nPortraitColor = GUI_COLOR_WHITE;
     float fLifeTime = 0.0f;
-    string sPrettyPortraitString = Portrait_GetPrettyPortraitString(oPlayer);
-    int nPrettyLength = GUI_CalculateStringLength(sPrettyPortraitString);
+    string sRace = Get2DAString("racialtypes", "Label", nRace);
+    string sGender = nGender ? "Female" : "Male";
+    string sPortraitString = sRace + ", " + sGender + ": " + IntToString(nPortraitNumber);
+    string sPortraitTexture = Portrait_GetPortraitTexture(nPortraitNumber, nRace, nGender) + "h";
 
-    SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortrait, oPlayer);
-
-    if (FindSubString(sPortrait, "_99_") != -1)
+    if (FindSubString(sPortraitTexture, "_99_") != -1)
         nPortraitColor = GUI_COLOR_RED;
+
+    SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortraitTexture, oPlayer);
 
     PostString(oPlayer, "Fancy Portrait Changer", 14, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
     PostString(oPlayer, "a", 12, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
-    PostString(oPlayer, sPrettyPortraitString, 27 - (GUI_CalculateStringLength(sPrettyPortraitString) / 2), 32, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
+    PostString(oPlayer, sPortraitString, 27 - (GUI_CalculateStringLength(sPortraitString) / 2), 32, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
 
-    PostString(oPlayer, "Options",          2, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
-    PostString(oPlayer, "1. [Select]",      3, 8,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "2. [Next]",        3, 9,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "3. [Previous]",    3, 10, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "4. [Race]",        3, 11, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "5. [Gender]",      3, 12, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "6. [End]",         3, 13, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
+    PostString(oPlayer, "Options", 2, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+    PostString(oPlayer, "1. [Select]", 3, 8,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
+    PostString(oPlayer, "2. [Next]", 3, 9,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
+    PostString(oPlayer, "3. [Previous]", 3, 10, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
+    PostString(oPlayer, "4. [" + sRace + "]", 3, 11, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
+    PostString(oPlayer, "5. [" + sGender + "]", 3, 12, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
+    PostString(oPlayer, "6. [End]", 3, 13, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
 
     return GUI_DrawConversationWindow(oPlayer, nId, 46, 32, 0.0f);
 }
 
-void Emote_PortraitChatCommand(object oPlayer, string sEmote, int nVolume)
+void Portrait_ChatCommand(object oPlayer, string sEmote, int nVolume)
 {
-    int nCurrentPortraitNum = StringToInt(GetSubString(GetPortraitResRef(oPlayer), 8, 2));
+    int nPortraitNumber = StringToInt(GetSubString(GetPortraitResRef(oPlayer), 8, 2));
+    int nRace = GetRacialType(oPlayer);
+    int nGender = GetGender(oPlayer);
 
-    if (nCurrentPortraitNum == 99)
-        nCurrentPortraitNum = 1;
+    if (nPortraitNumber == 99)
+        nPortraitNumber = 1;
 
-    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Portrait", nCurrentPortraitNum);
-    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", GetRacialType(oPlayer));
-    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", GetGender(oPlayer));
+    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", nPortraitNumber);
+    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
+    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
 
     NWNX_Player_PlaySound(oPlayer, "gui_select");
 
@@ -117,8 +108,7 @@ void Emote_PortraitChatCommand(object oPlayer, string sEmote, int nVolume)
 
     SimpleDialog_StartConversation(oPlayer, oPlayer, PORTRAIT_SCRIPT_NAME, 1, TRUE);
 
-    string sPortrait = Portrait_GetPortraitName(oPlayer) + "h";
-    int nMaxPostStringID = Portrait_DrawPortraitGUI(oPlayer, sPortrait);
+    int nMaxPostStringID = Portrait_DrawPortraitGUI(oPlayer, nPortraitNumber, nRace, nGender);
 
     ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_MaxPostStringID", nMaxPostStringID);
 
@@ -133,7 +123,7 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
         object oPlayer = OBJECT_SELF;
         int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
 
-        int nPortrait = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Portrait");
+        int nPortraitNumber = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber");
         int nRace = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
         int nGender = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
 
@@ -143,38 +133,37 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
         {
             case 1:
             {
-                string sPortrait = Portrait_GetPortraitName(oPlayer);
+                string sPortrait = Portrait_GetPortraitTexture(nPortraitNumber, nRace, nGender);
                 SetPortraitResRef(oPlayer, sPortrait);
                 break;
             }
 
             case 2:
             {
-                nPortrait++;
+                ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", ++nPortraitNumber);
                 break;
             }
 
             case 3:
             {
-                if (nPortrait > 1)
-                    nPortrait--;
+                if (nPortraitNumber > 1)
+                    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", --nPortraitNumber);
                 break;
             }
 
             case 4:
             {
-
-                nRace++;
-
-                if (nRace > 6)
+                if (++nRace > 6)
                     nRace = 0;
 
+                ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
                 break;
             }
 
             case 5:
             {
                 nGender = !nGender;
+                ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
                 break;
             }
 
@@ -185,12 +174,7 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
             }
         }
 
-        ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Portrait", nPortrait);
-        ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
-        ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
-
-        string sPortrait = Portrait_GetPortraitName(oPlayer) + "h";
-        Portrait_DrawPortraitGUI(oPlayer, sPortrait);
+        Portrait_DrawPortraitGUI(oPlayer, nPortraitNumber, nRace, nGender);
     }
     else
     if (sEvent == SIMPLE_DIALOG_EVENT_CONVERSATION_END)
