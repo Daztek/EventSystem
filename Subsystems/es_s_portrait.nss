@@ -18,8 +18,11 @@ const string PORTRAIT_LOG_TAG               = "Portrait";
 const string PORTRAIT_SCRIPT_NAME           = "es_s_portrait";
 
 const string PORTRAIT_CHATCOMMAND_NAME      = "portrait";
+
 const int PORTRAIT_GUI_NUM_IDS              = 50;
+
 const string PORTRAIT_FONT_TEXTURE_NAME     = "fnt_portrait";
+const string PORTRAIT_GLYPH_NAME            = "a";
 
 // @Load
 void Portrait_Load(string sSubsystemScript)
@@ -58,7 +61,7 @@ string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
 
 void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int nGender)
 {
-    int nId = GUI_GetSubsystemID_Start(PORTRAIT_SCRIPT_NAME);
+    int nId = GUI_GetSubsystemStartID(PORTRAIT_SCRIPT_NAME);
     string sOptionFont = "fnt_dialog16x16";
     int nTextColor = GUI_COLOR_WHITE;
     int nPortraitColor = GUI_COLOR_WHITE;
@@ -75,7 +78,7 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
 
     PostString(oPlayer, "Fancy Portrait Changer", 14, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, "a", 12, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
+    PostString(oPlayer, PORTRAIT_GLYPH_NAME, 12, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
     PostString(oPlayer, sPortraitString, 27 - (GUI_CalculateStringLength(sPortraitString) / 2), 32, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
 
     PostString(oPlayer, "Options", 2, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
@@ -130,27 +133,27 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
 
         switch (nOption)
         {
-            case 1:
+            case 1: // Select
             {
                 string sPortrait = Portrait_GetPortraitTexture(nPortraitNumber, nRace, nGender);
                 SetPortraitResRef(oPlayer, sPortrait);
                 break;
             }
 
-            case 2:
+            case 2: // Next
             {
                 ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", ++nPortraitNumber);
                 break;
             }
 
-            case 3:
+            case 3: // Previous
             {
                 if (nPortraitNumber > 1)
                     ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", --nPortraitNumber);
                 break;
             }
 
-            case 4:
+            case 4: // Race
             {
                 if (++nRace > 6)
                     nRace = 0;
@@ -159,14 +162,14 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
                 break;
             }
 
-            case 5:
+            case 5: // Gender
             {
                 nGender = !nGender;
                 ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
                 break;
             }
 
-            case 6:
+            case 6: // End
             {
                 SimpleDialog_EndConversation(oPlayer);
                 return;

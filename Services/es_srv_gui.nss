@@ -9,43 +9,42 @@
 
 #include "es_inc_core"
 
-const string GUI_LOG_TAG                = "GUI";
-const string GUI_SCRIPT_NAME            = "es_srv_gui";
+const string GUI_LOG_TAG                    = "GUI";
+const string GUI_SCRIPT_NAME                = "es_srv_gui";
 
-const float GUI_PRELOAD_DELAY           = 5.0f;
+const float GUI_PRELOAD_DELAY               = 5.0f;
+const int GUI_ID_START                      = 100;
 
-const int GUI_ID_START                  = 100;
-const string GUI_ID_TOTAL               = "IDTotal";
-const string GUI_ID_SUBSYSTEM_AMOUNT    = "IDSubsystemAmount_";
-const string GUI_ID_SUBSYSTEM_START     = "IDSubsystemStart_";
-const string GUI_ID_SUBSYSTEM_END       = "IDSubsystemEnd_";
+const string GUI_FONT_WINDOW_NAME           = "fnt_esgui";
+const string GUI_FONT_WINDOW_TOP_LEFT       = "a";
+const string GUI_FONT_WINDOW_TOP_RIGHT      = "c";
+const string GUI_FONT_WINDOW_TOP_MIDDLE     = "b";
+const string GUI_FONT_WINDOW_MIDDLE_LEFT    = "d";
+const string GUI_FONT_WINDOW_MIDDLE_RIGHT   = "f";
+const string GUI_FONT_WINDOW_MIDDLE_BLANK   = "i";
+const string GUI_FONT_WINDOW_BOTTOM_LEFT    = "h";
+const string GUI_FONT_WINDOW_BOTTOM_RIGHT   = "g";
+const string GUI_FONT_WINDOW_BOTTOM_MIDDLE  = "e";
 
-const string GUI_FONT_WINDOW_NAME       = "fnt_esgui";
-const string GUI_WINDOW_TOP_LEFT        = "a";
-const string GUI_WINDOW_TOP_RIGHT       = "c";
-const string GUI_WINDOW_TOP_MIDDLE      = "b";
-const string GUI_WINDOW_MIDDLE_LEFT     = "d";
-const string GUI_WINDOW_MIDDLE_RIGHT    = "f";
-const string GUI_WINDOW_MIDDLE_BLANK    = "i";
-const string GUI_WINDOW_BOTTOM_LEFT     = "h";
-const string GUI_WINDOW_BOTTOM_RIGHT    = "g";
-const string GUI_WINDOW_BOTTOM_MIDDLE   = "e";
-
-const int GUI_COLOR_WHITE               = 0xFFFFFFFF;
-const int GUI_COLOR_RED                 = 0xFF0000FF;
+const int GUI_COLOR_BLACK                   = 0x000000FF;
+const int GUI_COLOR_WHITE                   = 0xFFFFFFFF;
+const int GUI_COLOR_RED                     = 0xFF0000FF;
+const int GUI_COLOR_GREEN                   = 0x00FF00FF;
+const int GUI_COLOR_BLUE                    = 0x0000FFFF;
 
 void GUI_PreloadFont(string sFont);
 
 void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount);
-int GUI_GetSubsystemID_Start(string sSubsystemScript);
-int GUI_GetSubsystemID_End(string sSubsystemScript);
-int GUI_GetSubsystemID_Amount(string sSubsystemScript);
+int GUI_GetSubsystemStartID(string sSubsystemScript);
+int GUI_GetSubsystemEndID(string sSubsystemScript);
+int GUI_GetSubsystemIDAmount(string sSubsystemScript);
 
 void GUI_ClearByID(object oPlayer, int nID);
 void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID);
 void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript);
 
 int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console");
+
 int GUI_DrawWindow(object oPlayer, int nId, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f);
 int GUI_DrawConversationWindow(object oPlayer, int nId, int nWidth, int nHeight, float fLifetime = 1.0f);
 
@@ -54,9 +53,9 @@ void GUI_Load(string sServiceScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    ES_Core_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
+    ES_Util_SetInt(oDataObject, "TotalIDs", GUI_ID_START);
 
-    ES_Util_SetInt(oDataObject, GUI_ID_TOTAL, GUI_ID_START);
+    ES_Core_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
 }
 
 // @EventHandler
@@ -94,37 +93,37 @@ void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    int nTotal = ES_Util_GetInt(oDataObject, GUI_ID_TOTAL);
+    int nTotal = ES_Util_GetInt(oDataObject, "TotalIDs");
     int nStart = nTotal;
     int nEnd = nTotal + nAmount - 1;
 
-    ES_Util_SetInt(oDataObject, GUI_ID_TOTAL, nTotal + nAmount);
-    ES_Util_SetInt(oDataObject, GUI_ID_SUBSYSTEM_AMOUNT + sSubsystemScript, nAmount);
-    ES_Util_SetInt(oDataObject, GUI_ID_SUBSYSTEM_START + sSubsystemScript, nStart);
-    ES_Util_SetInt(oDataObject, GUI_ID_SUBSYSTEM_END + sSubsystemScript, nEnd);
+    ES_Util_SetInt(oDataObject, "TotalIDs", nTotal + nAmount);
+    ES_Util_SetInt(oDataObject, sSubsystemScript + "_Amount", nAmount);
+    ES_Util_SetInt(oDataObject, sSubsystemScript + "_StartID", nStart);
+    ES_Util_SetInt(oDataObject, sSubsystemScript + "_EndID", nEnd);
 
     ES_Util_Log(GUI_LOG_TAG, "Subsystem '" + sSubsystemScript + "' requested '" + IntToString(nAmount) + "' IDs -> " + IntToString(nStart) + " - " + IntToString(nEnd));
 }
 
-int GUI_GetSubsystemID_Start(string sSubsystemScript)
+int GUI_GetSubsystemStartID(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    return ES_Util_GetInt(oDataObject, GUI_ID_SUBSYSTEM_START + sSubsystemScript);
+    return ES_Util_GetInt(oDataObject, sSubsystemScript + "_StartID");
 }
 
-int GUI_GetSubsystemID_End(string sSubsystemScript)
+int GUI_GetSubsystemEndID(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    return ES_Util_GetInt(oDataObject, GUI_ID_SUBSYSTEM_END + sSubsystemScript);
+    return ES_Util_GetInt(oDataObject, sSubsystemScript + "_EndID");
 }
 
-int GUI_GetSubsystemID_Amount(string sSubsystemScript)
+int GUI_GetSubsystemIDAmount(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    return ES_Util_GetInt(oDataObject, GUI_ID_SUBSYSTEM_AMOUNT + sSubsystemScript);
+    return ES_Util_GetInt(oDataObject, sSubsystemScript + "_Amount");
 }
 
 void GUI_ClearByID(object oPlayer, int nID)
@@ -143,8 +142,8 @@ void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID)
 
 void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript)
 {
-    int nStartID = GUI_GetSubsystemID_Start(sSubsystemScript);
-    int nEndID = nStartID + GUI_GetSubsystemID_Amount(sSubsystemScript);
+    int nStartID = GUI_GetSubsystemStartID(sSubsystemScript);
+    int nEndID = nStartID + GUI_GetSubsystemIDAmount(sSubsystemScript);
 
     GUI_ClearByRange(oPlayer, nStartID, nEndID);
 }
@@ -167,21 +166,21 @@ int GUI_DrawWindow(object oPlayer, int nID, int nAnchor, int nX, int nY, int nWi
     int nStartColor = 0xFFFFFFFF;
     int nEndColor   = 0xFFFFFFFF;
 
-    string sTop = GUI_WINDOW_TOP_LEFT;
-    string sMiddle = GUI_WINDOW_MIDDLE_LEFT;
-    string sBottom = GUI_WINDOW_BOTTOM_LEFT;
+    string sTop = GUI_FONT_WINDOW_TOP_LEFT;
+    string sMiddle = GUI_FONT_WINDOW_MIDDLE_LEFT;
+    string sBottom = GUI_FONT_WINDOW_BOTTOM_LEFT;
 
     int i;
     for (i = 0; i < nWidth; i++)
     {
-        sTop    += GUI_WINDOW_TOP_MIDDLE;
-        sMiddle += GUI_WINDOW_MIDDLE_BLANK;
-        sBottom += GUI_WINDOW_BOTTOM_MIDDLE;
+        sTop    += GUI_FONT_WINDOW_TOP_MIDDLE;
+        sMiddle += GUI_FONT_WINDOW_MIDDLE_BLANK;
+        sBottom += GUI_FONT_WINDOW_BOTTOM_MIDDLE;
     }
 
-    sTop    += GUI_WINDOW_TOP_RIGHT;
-    sMiddle += GUI_WINDOW_MIDDLE_RIGHT;
-    sBottom += GUI_WINDOW_BOTTOM_RIGHT;
+    sTop    += GUI_FONT_WINDOW_TOP_RIGHT;
+    sMiddle += GUI_FONT_WINDOW_MIDDLE_RIGHT;
+    sBottom += GUI_FONT_WINDOW_BOTTOM_RIGHT;
 
     PostString(oPlayer, sTop, nX, nY, nAnchor, fLifetime, nStartColor, nEndColor, nID++, GUI_FONT_WINDOW_NAME);
     for (i = 0; i < nHeight; i++)
@@ -200,21 +199,21 @@ int GUI_DrawConversationWindow(object oPlayer, int nID, int nWidth, int nHeight,
     int nStartColor = 0xFFFFFFFF;
     int nEndColor   = 0xFFFFFFFF;
 
-    string sTop = GUI_WINDOW_MIDDLE_BLANK;
-    string sMiddle = GUI_WINDOW_MIDDLE_BLANK;
-    string sBottom = GUI_WINDOW_BOTTOM_MIDDLE;
+    string sTop = GUI_FONT_WINDOW_MIDDLE_BLANK;
+    string sMiddle = GUI_FONT_WINDOW_MIDDLE_BLANK;
+    string sBottom = GUI_FONT_WINDOW_BOTTOM_MIDDLE;
 
     int i;
     for (i = 0; i < nWidth; i++)
     {
-        sTop    += GUI_WINDOW_MIDDLE_BLANK;
-        sMiddle += GUI_WINDOW_MIDDLE_BLANK;
-        sBottom += GUI_WINDOW_BOTTOM_MIDDLE;
+        sTop    += GUI_FONT_WINDOW_MIDDLE_BLANK;
+        sMiddle += GUI_FONT_WINDOW_MIDDLE_BLANK;
+        sBottom += GUI_FONT_WINDOW_BOTTOM_MIDDLE;
     }
 
-    sTop    += GUI_WINDOW_MIDDLE_RIGHT;
-    sMiddle += GUI_WINDOW_MIDDLE_RIGHT;
-    sBottom += GUI_WINDOW_BOTTOM_RIGHT;
+    sTop    += GUI_FONT_WINDOW_MIDDLE_RIGHT;
+    sMiddle += GUI_FONT_WINDOW_MIDDLE_RIGHT;
+    sBottom += GUI_FONT_WINDOW_BOTTOM_RIGHT;
 
     PostString(oPlayer, sTop, nX, nY, nAnchor, fLifetime, nStartColor, nEndColor, nID++, GUI_FONT_WINDOW_NAME);
     for (i = 0; i < nHeight; i++)
