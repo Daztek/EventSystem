@@ -43,7 +43,6 @@ void Portrait_Load(string sSubsystemScript)
     ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
 
     GUI_RequestSubsystemIDs(sSubsystemScript, PORTRAIT_GUI_NUM_IDS);
-    GUI_PreloadFontTexture(PORTRAIT_FONT_TEXTURE_NAME);
 }
 
 string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
@@ -74,8 +73,6 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
     if (sPortraitTexture == "po_hu_m_99_h" || sPortraitTexture == "po_hu_f_99_h")
         nPortraitColor = GUI_COLOR_RED;
 
-    SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortraitTexture, oPlayer);
-
     PostString(oPlayer, "Fancy Portrait Changer", 16, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
     PostString(oPlayer, PORTRAIT_GLYPH_NAME, 14, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
@@ -103,6 +100,8 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
     PostString(oPlayer, "6.End", nOptionsX, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
     GUI_DrawConversationWindow(oPlayer, nId, 50, 32, 0.0f);
+
+    SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortraitTexture, oPlayer);
 }
 
 void Portrait_ChatCommand(object oPlayer, string sParams, int nVolume)
