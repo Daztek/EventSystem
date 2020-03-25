@@ -19,7 +19,7 @@ const string PORTRAIT_SCRIPT_NAME           = "es_s_portrait";
 
 const string PORTRAIT_CHATCOMMAND_NAME      = "portrait";
 
-const int PORTRAIT_GUI_NUM_IDS              = 50;
+const int PORTRAIT_GUI_NUM_IDS              = 55;
 
 const string PORTRAIT_FONT_TEXTURE_NAME     = "fnt_portrait";
 const string PORTRAIT_GLYPH_NAME            = "a";
@@ -63,7 +63,6 @@ string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
 void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int nGender)
 {
     int nId = GUI_GetSubsystemStartID(PORTRAIT_SCRIPT_NAME);
-    string sOptionFont = "fnt_dialog16x16";
     int nTextColor = GUI_COLOR_WHITE;
     int nPortraitColor = GUI_COLOR_WHITE;
     float fLifeTime = 0.0f;
@@ -77,20 +76,33 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
 
     SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortraitTexture, oPlayer);
 
-    PostString(oPlayer, "Fancy Portrait Changer", 14, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+    PostString(oPlayer, "Fancy Portrait Changer", 16, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, PORTRAIT_GLYPH_NAME, 12, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
-    PostString(oPlayer, sPortraitString, 27 - (GUI_CalculateStringLength(sPortraitString) / 2), 32, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
+    PostString(oPlayer, PORTRAIT_GLYPH_NAME, 14, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
+    PostString(oPlayer, sPortraitString, 29 - (GUI_CalculateStringLength(sPortraitString) / 2), 32, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
 
     PostString(oPlayer, "Options", 2, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
-    PostString(oPlayer, "1. [Select]", 3, 8,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "2. [Next]", 3, 9,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "3. [Previous]", 3, 10, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "4. [" + sRace + "]", 3, 11, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "5. [" + sGender + "]", 3, 12, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
-    PostString(oPlayer, "6. [End]", 3, 13, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, sOptionFont);
 
-    GUI_DrawConversationWindow(oPlayer, nId, 46, 32, 0.0f);
+    int nOptionsX = 3, nOptionsY = 8;
+    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    PostString(oPlayer, "1.Select", nOptionsX, nOptionsY++,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    PostString(oPlayer, "2.Next", nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    PostString(oPlayer, "3.Previous", nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    PostString(oPlayer, "4." + sRace, nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    PostString(oPlayer, "5." + sGender, nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    PostString(oPlayer, "6.End", nOptionsX, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    GUI_DrawConversationWindow(oPlayer, nId, 50, 32, 0.0f);
 }
 
 void Portrait_ChatCommand(object oPlayer, string sParams, int nVolume)
