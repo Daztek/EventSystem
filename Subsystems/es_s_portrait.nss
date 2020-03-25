@@ -31,18 +31,19 @@ void Portrait_Load(string sSubsystemScript)
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END, TRUE);
 
     object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
-    SimpleDialog_AddPage(oConversation, "Portrait Change Menu.", TRUE);
-        SimpleDialog_AddOption(oConversation, "[Select]");
-        SimpleDialog_AddOption(oConversation, "[Next]");
-        SimpleDialog_AddOption(oConversation, "[Previous]");
-        SimpleDialog_AddOption(oConversation, "[Race]");
-        SimpleDialog_AddOption(oConversation, "[Gender]");
-        SimpleDialog_AddOption(oConversation, "[End]");
+
+    SimpleDialog_AddPage(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Portrait Change Menu
+        SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Select
+        SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Next
+        SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Previous
+        SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Race
+        SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Gender
+        SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // End
 
     ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
 
     GUI_RequestSubsystemIDs(sSubsystemScript, PORTRAIT_GUI_NUM_IDS);
-    GUI_PreloadFont(PORTRAIT_FONT_TEXTURE_NAME);
+    GUI_PreloadFontTexture(PORTRAIT_FONT_TEXTURE_NAME);
 }
 
 string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
@@ -71,7 +72,7 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
     string sPortraitString = sRace + ", " + sGender + ": " + IntToString(nPortraitNumber);
     string sPortraitTexture = Portrait_GetPortraitTexture(nPortraitNumber, nRace, nGender) + "h";
 
-    if (FindSubString(sPortraitTexture, "_99_") != -1)
+    if (sPortraitTexture == "po_hu_m_99_h" || sPortraitTexture == "po_hu_f_99_h")
         nPortraitColor = GUI_COLOR_RED;
 
     SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortraitTexture, oPlayer);
@@ -92,14 +93,11 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
     GUI_DrawConversationWindow(oPlayer, nId, 46, 32, 0.0f);
 }
 
-void Portrait_ChatCommand(object oPlayer, string sEmote, int nVolume)
+void Portrait_ChatCommand(object oPlayer, string sParams, int nVolume)
 {
-    int nPortraitNumber = StringToInt(GetSubString(GetPortraitResRef(oPlayer), 8, 2));
+    int nPortraitNumber = 1;
     int nRace = GetRacialType(oPlayer);
     int nGender = GetGender(oPlayer);
-
-    if (nPortraitNumber == 99)
-        nPortraitNumber = 1;
 
     ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", nPortraitNumber);
     ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);

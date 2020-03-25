@@ -25,6 +25,7 @@ const string SIMPLE_DIALOG_SCRIPT_NAME                      = "es_srv_simdialog"
 const string SIMPLE_DIALOG_CONVERSATION                     = "cv_simdialog";
 const int    SIMPLE_DIALOG_NUMBER_OF_OPTIONS                = 13; // If you change this, also add/remove them from the conversation file.
 const int    SIMPLE_DIALOG_LIST_RANGE_SIZE                  = 10;
+const string SIMPLE_DIALOG_BLANK_ENTRY_TEXT                 = "SDBlankEntry";
 
 const string SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION         = "SDPlayerCurrentConversation";
 const string SIMPLE_DIALOG_PLR_CURRENT_PAGE                 = "SDPlayerCurrentPage";
@@ -42,7 +43,7 @@ const string SIMPLE_DIALOG_CONDITIONAL_RESULT               = "SDConditionalResu
 const string SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT        = "SDConditionalOverrideText";
 // ***
 
-// Subscribe sEventHandlerScript to a SIMPLE_DIALOG_EVENT_*
+// Subscribe sSubsystemScript to a SIMPLE_DIALOG_EVENT_*
 //
 // Event Data Tags for SIMPLE_DIALOG_EVENT_ACTION_TAKEN
 //                     SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION:
@@ -176,7 +177,10 @@ int SimpleDialog_HandleStartingConditional()
                     sText = sOverrideText == "" ? sText : sOverrideText;
                 }
 
-                NWNX_Dialog_SetCurrentNodeText(sText);
+                if (sText == SIMPLE_DIALOG_BLANK_ENTRY_TEXT)
+                    NWNX_Dialog_SetCurrentNodeText("");
+                else
+                    NWNX_Dialog_SetCurrentNodeText(sText);
 
                 bReturn = !ES_Util_GetInt(oPlayer, SIMPLE_DIALOG_PLR_END_CONVERSATION);
             }
@@ -207,7 +211,10 @@ int SimpleDialog_HandleStartingConditional()
                     sText = sOverrideText == "" ? sText : sOverrideText;
                 }
 
-                NWNX_Dialog_SetCurrentNodeText(sText);
+                if (sText == SIMPLE_DIALOG_BLANK_ENTRY_TEXT)
+                    NWNX_Dialog_SetCurrentNodeText("");
+                else
+                    NWNX_Dialog_SetCurrentNodeText(sText);
 
                 bReturn = !bConditionalEnabled ? TRUE : ES_Util_GetInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
             }
