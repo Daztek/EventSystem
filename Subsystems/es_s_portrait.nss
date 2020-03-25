@@ -19,7 +19,7 @@ const string PORTRAIT_SCRIPT_NAME           = "es_s_portrait";
 
 const string PORTRAIT_CHATCOMMAND_NAME      = "portrait";
 
-const int PORTRAIT_GUI_NUM_IDS              = 55;
+const int PORTRAIT_GUI_NUM_IDS              = 75;
 
 const string PORTRAIT_FONT_TEXTURE_NAME     = "fnt_portrait";
 const string PORTRAIT_GLYPH_NAME            = "a";
@@ -73,33 +73,38 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
     if (sPortraitTexture == "po_hu_m_99_h" || sPortraitTexture == "po_hu_f_99_h")
         nPortraitColor = GUI_COLOR_RED;
 
-    PostString(oPlayer, "Fancy Portrait Changer", 16, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+    PostString(oPlayer, "Portrait Changer", 21, 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+    nId += GUI_DrawWindow(oPlayer, nId, SCREEN_ANCHOR_TOP_LEFT, 15, 0, 32, 1);
 
-    PostString(oPlayer, PORTRAIT_GLYPH_NAME, 14, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
-    PostString(oPlayer, sPortraitString, 29 - (GUI_CalculateStringLength(sPortraitString) / 2), 32, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
+    PostString(oPlayer, PORTRAIT_GLYPH_NAME, 16, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++, PORTRAIT_FONT_TEXTURE_NAME);
 
-    PostString(oPlayer, "Options", 2, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+    PostString(oPlayer, sPortraitString, 31 - (GUI_CalculateStringLength(sPortraitString) / 2), 33, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nPortraitColor, nPortraitColor, nId++);
+    nId += GUI_DrawWindow(oPlayer, nId, SCREEN_ANCHOR_TOP_LEFT, 15, 32, 32, 1);
 
-    int nOptionsX = 3, nOptionsY = 8;
-    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
+    PostString(oPlayer, "Options", 4, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
+
+    int nOptionsX = 4, nOptionsY = 8;
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 2, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "1.Select", nOptionsX, nOptionsY++,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 2, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "2.Next", nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 2, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "3.Previous", nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 2, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "4." + sRace, nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 2, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "5." + sGender, nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 2, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "6.End", nOptionsX, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    GUI_DrawConversationWindow(oPlayer, nId, 50, 32, 0.0f);
+    nId += GUI_DrawWindow(oPlayer, nId, SCREEN_ANCHOR_TOP_LEFT, 1, 5, 15, 8);
+
+    GUI_DrawConversationWindow(oPlayer, nId, 52, 34, 0.0f);
 
     SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, sPortraitTexture, oPlayer);
 }

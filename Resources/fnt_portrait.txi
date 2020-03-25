@@ -6,7 +6,7 @@ numchars 127
 fontheight 4.000000
 baselineheight 4.000000
 texturewidth 2.560000
-spacingR 0.000000
+spacingR -0.020000
 spacingB 0.000000
 upperleftcoords 127
     0.000000 0.000000 0
