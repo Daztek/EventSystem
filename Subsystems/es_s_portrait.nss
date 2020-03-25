@@ -42,7 +42,7 @@ void Portrait_Load(string sSubsystemScript)
 
     ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
 
-    GUI_RequestSubsystemIDs(sSubsystemScript, PORTRAIT_GUI_NUM_IDS);
+    GUI_ReserveIDs(sSubsystemScript, PORTRAIT_GUI_NUM_IDS);
 }
 
 string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
@@ -61,7 +61,7 @@ string Portrait_GetPortraitTexture(int nPortraitNumber, int nRace, int nGender)
 
 void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, int nGender)
 {
-    int nId = GUI_GetSubsystemStartID(PORTRAIT_SCRIPT_NAME);
+    int nId = GUI_GetStartID(PORTRAIT_SCRIPT_NAME);
     int nTextColor = GUI_COLOR_WHITE;
     int nPortraitColor = GUI_COLOR_WHITE;
     float fLifeTime = 0.0f;
@@ -81,22 +81,22 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
     PostString(oPlayer, "Options", 2, 6,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
     int nOptionsX = 3, nOptionsY = 8;
-    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "1.Select", nOptionsX, nOptionsY++,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "2.Next", nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "3.Previous", nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "4." + sRace, nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "5." + sGender, nOptionsX, nOptionsY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
-    PostString(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY,  SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, GUI_FONT_GLYPH_ARROW, 1, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, nId++, fLifeTime);
     PostString(oPlayer, "6.End", nOptionsX, nOptionsY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nId++);
 
     GUI_DrawConversationWindow(oPlayer, nId, 50, 32, 0.0f);
@@ -196,6 +196,8 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
 
         NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oPlayer);
         NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_CONVERSATION_END, sSubsystemScript, oPlayer);
+
+        SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, "", oPlayer);
 
         DelayCommand(0.1f, GUI_ClearBySubsystem(oPlayer, PORTRAIT_SCRIPT_NAME));
     }

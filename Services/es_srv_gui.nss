@@ -12,7 +12,6 @@
 const string GUI_LOG_TAG                            = "GUI";
 const string GUI_SCRIPT_NAME                        = "es_srv_gui";
 
-const float GUI_PRELOAD_DELAY                       = 1.0f;
 const int GUI_ID_START                              = 1000;
 
 const string GUI_FONT_NAME                          = "fnt_esgui";
@@ -27,20 +26,21 @@ const string GUI_FONT_GLYPH_WINDOW_BOTTOM_RIGHT     = "g";
 const string GUI_FONT_GLYPH_WINDOW_BOTTOM_MIDDLE    = "e";
 const string GUI_FONT_GLYPH_ARROW                   = "j";
 
-const int GUI_COLOR_BLACK                   = 0x000000FF;
-const int GUI_COLOR_WHITE                   = 0xFFFFFFFF;
-const int GUI_COLOR_RED                     = 0xFF0000FF;
-const int GUI_COLOR_GREEN                   = 0x00FF00FF;
-const int GUI_COLOR_BLUE                    = 0x0000FFFF;
+const int GUI_COLOR_TRANSPARENT                     = 0xFFFFFF00;
+const int GUI_COLOR_BLACK                           = 0x000000FF;
+const int GUI_COLOR_WHITE                           = 0xFFFFFFFF;
+const int GUI_COLOR_RED                             = 0xFF0000FF;
+const int GUI_COLOR_GREEN                           = 0x00FF00FF;
+const int GUI_COLOR_BLUE                            = 0x0000FFFF;
 
-// Request nAmount of PostString() IDs for sSubsystemScript
-void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount);
+// Reserve nAmount of PostString() IDs for sSubsystemScript
+void GUI_ReserveIDs(string sSubsystemScript, int nAmount);
 // Return the starting PostString() ID for sSubsystemScript
-int GUI_GetSubsystemStartID(string sSubsystemScript);
+int GUI_GetStartID(string sSubsystemScript);
 // Return the ending PostString() ID for sSubsystemScript
-int GUI_GetSubsystemEndID(string sSubsystemScript);
+int GUI_GetEndID(string sSubsystemScript);
 // Return the amount of PostString() IDs that sSubsystemScript has requested
-int GUI_GetSubsystemIDAmount(string sSubsystemScript);
+int GUI_GetIDAmount(string sSubsystemScript);
 
 // Clear a PostString() string with nID for oPlayer
 void GUI_ClearByID(object oPlayer, int nID);
@@ -53,12 +53,14 @@ void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript);
 // Only really works with fnt_console
 int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console");
 
+// Wrapper around PostString() that draws GUI parts using GUI_FONT_NAME with color GUI_COLOR_WHITE
+void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int nID, float fLifeTime = 0.0f);
 // Draw a window with borders on all sides
 // Returns the amount of IDs used, minimum of 2
-int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 1.0f);
+int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f);
 // Draw a window that covers the conversation window and only has right and bottom borders
 // Returns the amount of IDs used, minimum of 2
-int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 1.0f);
+int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f);
 
 // @Load
 void GUI_Load(string sServiceScript)
@@ -68,7 +70,7 @@ void GUI_Load(string sServiceScript)
     ES_Util_SetInt(oDataObject, "TotalIDs", GUI_ID_START);
 }
 
-void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount)
+void GUI_ReserveIDs(string sSubsystemScript, int nAmount)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
@@ -87,21 +89,21 @@ void GUI_RequestSubsystemIDs(string sSubsystemScript, int nAmount)
     }
 }
 
-int GUI_GetSubsystemStartID(string sSubsystemScript)
+int GUI_GetStartID(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
     return ES_Util_GetInt(oDataObject, sSubsystemScript + "_StartID");
 }
 
-int GUI_GetSubsystemEndID(string sSubsystemScript)
+int GUI_GetEndID(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
     return ES_Util_GetInt(oDataObject, sSubsystemScript + "_EndID");
 }
 
-int GUI_GetSubsystemIDAmount(string sSubsystemScript)
+int GUI_GetIDAmount(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
@@ -110,7 +112,7 @@ int GUI_GetSubsystemIDAmount(string sSubsystemScript)
 
 void GUI_ClearByID(object oPlayer, int nID)
 {
-    PostString(oPlayer, "", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 0.01f, 0xFFFFFF00, 0xFFFFFF00, nID);
+    PostString(oPlayer, "", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 0.1f, GUI_COLOR_TRANSPARENT, GUI_COLOR_TRANSPARENT, nID);
 }
 
 void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID)
@@ -124,8 +126,8 @@ void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID)
 
 void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript)
 {
-    int nStartID = GUI_GetSubsystemStartID(sSubsystemScript);
-    int nEndID = nStartID + GUI_GetSubsystemIDAmount(sSubsystemScript);
+    int nStartID = GUI_GetStartID(sSubsystemScript);
+    int nEndID = nStartID + GUI_GetIDAmount(sSubsystemScript);
 
     GUI_ClearByRange(oPlayer, nStartID, nEndID);
 }
@@ -143,11 +145,13 @@ int GUI_CalculateStringLength(string sMessage, string sFont = "fnt_console")
         return GetStringLength(sMessage);
 }
 
-int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 10.0f)
+void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int nID, float fLifeTime = 0.0f)
 {
-    int nStartColor = 0xFFFFFFFF;
-    int nEndColor   = 0xFFFFFFFF;
+    PostString(oPlayer, sMessage, nX, nY, nAnchor, fLifeTime, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID, GUI_FONT_NAME);
+}
 
+int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f)
+{
     string sTop = GUI_FONT_GLYPH_WINDOW_TOP_LEFT;
     string sMiddle = GUI_FONT_GLYPH_WINDOW_MIDDLE_LEFT;
     string sBottom = GUI_FONT_GLYPH_WINDOW_BOTTOM_LEFT;
@@ -164,22 +168,20 @@ int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, in
     sMiddle += GUI_FONT_GLYPH_WINDOW_MIDDLE_RIGHT;
     sBottom += GUI_FONT_GLYPH_WINDOW_BOTTOM_RIGHT;
 
-    PostString(oPlayer, sTop, nX, nY, nAnchor, fLifetime, nStartColor, nEndColor, nStartID++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, sTop, nX, nY, nAnchor, nStartID++, fLifetime);
     for (i = 0; i < nHeight; i++)
     {
-        PostString(oPlayer, sMiddle, nX, ++nY, nAnchor, fLifetime, nStartColor, nEndColor, nStartID++, GUI_FONT_NAME);
+        GUI_Draw(oPlayer, sMiddle, nX, ++nY, nAnchor, nStartID++, fLifetime);
     }
-    PostString(oPlayer, sBottom, nX, ++nY, nAnchor, fLifetime, nStartColor, nEndColor, nStartID, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, sBottom, nX, ++nY, nAnchor, nStartID, fLifetime);
 
     return nHeight + 2;
 }
 
-int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 10.0f)
+int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f)
 {
     int nX = 0, nY = 0;
     int nAnchor = SCREEN_ANCHOR_TOP_LEFT;
-    int nStartColor = 0xFFFFFFFF;
-    int nEndColor   = 0xFFFFFFFF;
 
     string sTop = GUI_FONT_GLYPH_WINDOW_MIDDLE_BLANK;
     string sMiddle = GUI_FONT_GLYPH_WINDOW_MIDDLE_BLANK;
@@ -197,12 +199,12 @@ int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHe
     sMiddle += GUI_FONT_GLYPH_WINDOW_MIDDLE_RIGHT;
     sBottom += GUI_FONT_GLYPH_WINDOW_BOTTOM_RIGHT;
 
-    PostString(oPlayer, sTop, nX, nY, nAnchor, fLifetime, nStartColor, nEndColor, nStartID++, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, sTop, nX, nY, nAnchor, nStartID++, fLifetime);
     for (i = 0; i < nHeight; i++)
     {
-        PostString(oPlayer, sMiddle, nX, ++nY, nAnchor, fLifetime, nStartColor, nEndColor, nStartID++, GUI_FONT_NAME);
+        GUI_Draw(oPlayer, sMiddle, nX, ++nY, nAnchor, nStartID++, fLifetime);
     }
-    PostString(oPlayer, sBottom, nX, ++nY, nAnchor, fLifetime, nStartColor, nEndColor, nStartID, GUI_FONT_NAME);
+    GUI_Draw(oPlayer, sBottom, nX, ++nY, nAnchor, nStartID, fLifetime);
 
     return nHeight + 2;
 }
