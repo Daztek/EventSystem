@@ -98,6 +98,8 @@ string SimpleDialog_GetOptionText(object oConversation, int nPage, int nOption);
 void SimpleDialog_SetCurrentConversation(object oPlayer, string sConversationTag);
 // Get the player's current conversation, or "" when not set
 string SimpleDialog_GetCurrentConversation(object oPlayer);
+// Returns TRUE if oPlayer is in a conversation with sConversationTag
+int SimpleDialog_IsInConversation(object oPlayer, string sConversationTag);
 // Set the player's current page
 //
 // Should be called during a SIMPLE_DIALOG_EVENT_ACTION_TAKEN event
@@ -339,6 +341,11 @@ void SimpleDialog_SetCurrentConversation(object oPlayer, string sConversationTag
 string SimpleDialog_GetCurrentConversation(object oPlayer)
 {
     return ES_Util_GetString(oPlayer, SIMPLE_DIALOG_PLR_CURRENT_CONVERSATION);
+}
+
+int SimpleDialog_IsInConversation(object oPlayer, string sConversationTag)
+{
+    return IsInConversation(oPlayer) && SimpleDialog_GetCurrentConversation(oPlayer) == sConversationTag;
 }
 
 void SimpleDialog_SetCurrentPage(object oPlayer, int nPage)
