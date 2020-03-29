@@ -14,15 +14,13 @@
 
 #include "nwnx_player"
 
-const string PORTRAIT_LOG_TAG               = "Portrait";
-const string PORTRAIT_SCRIPT_NAME           = "es_s_portrait";
-
-const string PORTRAIT_CHATCOMMAND_NAME      = "portrait";
-
-const int PORTRAIT_GUI_NUM_IDS              = 70;
-
-const string PORTRAIT_FONT_TEXTURE_NAME     = "fnt_es_portrait";
-const string PORTRAIT_GLYPH_NAME            = "a";
+const string PORTRAIT_LOG_TAG                   = "Portrait";
+const string PORTRAIT_SCRIPT_NAME               = "es_s_portrait";
+const string PORTRAIT_CHATCOMMAND_NAME          = "portrait";
+const string PORTRAIT_CHATCOMMAND_DESCRIPTION   = "Change your portrait!";
+const int PORTRAIT_GUI_NUM_IDS                  = 70;
+const string PORTRAIT_FONT_TEXTURE_NAME         = "fnt_es_portrait";
+const string PORTRAIT_GLYPH_NAME                = "a";
 
 // @Load
 void Portrait_Load(string sSubsystemScript)
@@ -31,7 +29,6 @@ void Portrait_Load(string sSubsystemScript)
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END, TRUE);
 
     object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
-
     SimpleDialog_AddPage(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Portrait Change Menu
         SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Select
         SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Next
@@ -40,7 +37,7 @@ void Portrait_Load(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // Gender
         SimpleDialog_AddOption(oConversation, SIMPLE_DIALOG_BLANK_ENTRY_TEXT); // End
 
-    ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", "Change your portrait!");
+    ChatCommand_Register(sSubsystemScript, "Portrait_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + PORTRAIT_CHATCOMMAND_NAME, "", PORTRAIT_CHATCOMMAND_DESCRIPTION);
 
     GUI_ReserveIDs(sSubsystemScript, PORTRAIT_GUI_NUM_IDS);
 }
@@ -121,12 +118,14 @@ void Portrait_DrawPortraitGUI(object oPlayer, int nPortraitNumber, int nRace, in
 void Portrait_ChatCommand(object oPlayer, string sParams, int nVolume)
 {
     if (SimpleDialog_IsInConversation(oPlayer, PORTRAIT_SCRIPT_NAME))
-    {
         SimpleDialog_AbortConversation(oPlayer);
-    }
     else
     {
-        int nPortraitNumber = 1;
+        if (IsInConversation(oPlayer))
+            SimpleDialog_AbortConversation(oPlayer);
+
+        int nParams = StringToInt(sParams);
+        int nPortraitNumber = (nParams != 0 ? nParams : 1);
         int nRace = GetRacialType(oPlayer);
         int nGender = GetGender(oPlayer);
 

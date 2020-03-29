@@ -14,7 +14,7 @@ const string GUI_SCRIPT_NAME                            = "es_srv_gui";
 
 const int GUI_ID_START                                  = 1000;
 
-const string GUI_FONT_TEXT_NAME                         = "fnt_es_console";
+const string GUI_FONT_TEXT_NAME                         = "fnt_es_text";
 
 const string GUI_FONT_GUI_NAME                          = "fnt_es_gui";
 const string GUI_FONT_GUI_GLYPH_WINDOW_TOP_LEFT         = "a";
@@ -27,6 +27,8 @@ const string GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_LEFT      = "h";
 const string GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_RIGHT     = "g";
 const string GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_MIDDLE    = "e";
 const string GUI_FONT_GUI_GLYPH_ARROW                   = "j";
+const string GUI_FONT_GUI_GLYPH_HEALTHBAR_GREEN         = "k";
+const string GUI_FONT_GUI_GLYPH_HEALTHBAR_RED           = "l";
 
 const int GUI_COLOR_TRANSPARENT                         = 0xFFFFFF00;
 const int GUI_COLOR_BLACK                               = 0x000000FF;
@@ -62,6 +64,9 @@ int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, in
 // Draw a window that covers the conversation window and only has right and bottom borders
 // Returns the amount of IDs used, minimum of 2
 int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f);
+// Draws a text notification at the the top left anchor
+// Returns the amount of IDs used, minimum of 4
+int GUI_DrawNotification(object oPlayer, string sMessage, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f);
 
 // @Load
 void GUI_Load(string sServiceScript)
@@ -140,7 +145,7 @@ void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int 
 
 int GUI_CenterStringInWindow(string sString, int nWindowX, int nWindowWidth)
 {
-    return (nWindowX + (nWindowWidth / 2)) - (GetStringLength(sString) / 2);
+    return (nWindowX + (nWindowWidth / 2)) - ((GetStringLength(sString) + 1) / 2);
 }
 
 int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f)
@@ -200,5 +205,16 @@ int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHe
     GUI_Draw(oPlayer, sBottom, nX, ++nY, nAnchor, nStartID, fLifetime);
 
     return nHeight + 2;
+}
+
+int GUI_DrawNotification(object oPlayer, string sMessage, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f)
+{
+    int nMessageLength = GetStringLength(sMessage) + 1;
+
+    PostString(oPlayer, sMessage, nX + 1, nY + 1, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID++, GUI_FONT_TEXT_NAME);
+
+    nID += GUI_DrawWindow(oPlayer, nID, SCREEN_ANCHOR_TOP_LEFT, nX, nY, nMessageLength, 1, fLifeTime);
+
+    return nID;
 }
 

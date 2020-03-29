@@ -33,11 +33,18 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
 
             if (GetStringLeft(sResRef, 5) == "es_s_")
             {
-                object oDataObject = ES_Core_GetSystemDataObject(sResRef, FALSE);
+                object oDataObject = ES_Util_GetDataObject(SUBSYSTEM_MANAGER_SCRIPT_NAME);
+                object oSubsystem = ES_Core_GetSystemDataObject(sResRef, FALSE);
 
-                if (GetIsObjectValid(oDataObject))
+                if (GetIsObjectValid(oSubsystem))
                 {
-                    string sScriptFlags = ES_Util_GetString(oDataObject, "Flags");
+                    if (ES_Util_GetInt(oDataObject, sResRef))
+                        return;
+
+                    ES_Util_SetInt(oDataObject, sResRef, TRUE);
+                    DelayCommand(2.0f, ES_Util_DeleteInt(oDataObject, sResRef));
+
+                    string sScriptFlags = ES_Util_GetString(oSubsystem, "Flags");
 
                     if (FindSubString(sScriptFlags, "HotSwap") != -1)
                     {

@@ -3,11 +3,11 @@ filter 0
 downsamplemax 0
 downsamplemin 0
 numchars 127
-fontheight 4.000000
-baselineheight 4.000000
-texturewidth 2.560000
-spacingR -0.040000
-spacingB 0.000000
+fontheight 0.500000
+baselineheight 0.500000
+texturewidth 0.320000
+spacingR 0.000000
+spacingB 0.030000
 upperleftcoords 127
     0.000000 0.000000 0
     0.000000 0.000000 0
