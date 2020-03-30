@@ -13,6 +13,8 @@
 const string CHATCOMMAND_LOG_TAG                = "ChatCommand";
 const string CHATCOMMAND_SCRIPT_NAME            = "es_srv_chatcom";
 
+const string CHATCOMMAND_PARSE_ERROR            = "[PARSE_ERROR]";
+
 const string CHATCOMMAND_GLOBAL_PREFIX          = "/";
 const string CHATCOMMAND_HELP_COMMAND           = "help";
 
@@ -72,7 +74,7 @@ string ChatCommand_Parse(string sMessage, string sCommand)
     if (GetStringLeft(sMessage, nLength) == sCommand)
         return GetSubString(sMessage, nLength + 1, GetStringLength(sMessage) - nLength - 1);
     else
-        return "[PARSE_ERROR]";
+        return CHATCOMMAND_PARSE_ERROR;
 }
 
 void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
@@ -143,7 +145,7 @@ void ChatCommand_CreateChatEventHandler(string sServiceScript)
         {
             sIncludes += nssInclude(sServiceScript);
             sCommands += nssIfStatement("(sParams = " + nssFunction("ChatCommand_Parse", "sMessage, " +
-                         nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + CHATCOMMAND_HELP_COMMAND), FALSE) + ")", "!=", nssEscapeDoubleQuotes("[PARSE_ERROR]")) +
+                         nssEscapeDoubleQuotes(CHATCOMMAND_GLOBAL_PREFIX + CHATCOMMAND_HELP_COMMAND), FALSE) + ")", "!=", nssEscapeDoubleQuotes(CHATCOMMAND_PARSE_ERROR)) +
                          nssBrackets(nssFunction("ChatCommand_ShowHelp", "oPlayer, sParams, nVolume"));
         }
         else

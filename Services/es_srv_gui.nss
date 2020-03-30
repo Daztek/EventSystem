@@ -27,15 +27,26 @@ const string GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_LEFT      = "h";
 const string GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_RIGHT     = "g";
 const string GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_MIDDLE    = "e";
 const string GUI_FONT_GUI_GLYPH_ARROW                   = "j";
-const string GUI_FONT_GUI_GLYPH_HEALTHBAR_GREEN         = "k";
-const string GUI_FONT_GUI_GLYPH_HEALTHBAR_RED           = "l";
+const string GUI_FONT_GUI_GLYPH_BLANK_WHITE             = "k";
 
 const int GUI_COLOR_TRANSPARENT                         = 0xFFFFFF00;
-const int GUI_COLOR_BLACK                               = 0x000000FF;
 const int GUI_COLOR_WHITE                               = 0xFFFFFFFF;
+const int GUI_COLOR_SILVER                              = 0xC0C0C0FF;
+const int GUI_COLOR_GRAY                                = 0x808080FF;
+const int GUI_COLOR_BLACK                               = 0x000000FF;
 const int GUI_COLOR_RED                                 = 0xFF0000FF;
-const int GUI_COLOR_GREEN                               = 0x00FF00FF;
+const int GUI_COLOR_MAROON                              = 0x800000FF;
+const int GUI_COLOR_ORANGE                              = 0xFFA500FF;
+const int GUI_COLOR_YELLOW                              = 0xFFFF00FF;
+const int GUI_COLOR_OLIVE                               = 0x808000FF;
+const int GUI_COLOR_LIME                                = 0x00FF00FF;
+const int GUI_COLOR_GREEN                               = 0x008000FF;
+const int GUI_COLOR_AQUA                                = 0x00FFFFFF;
+const int GUI_COLOR_TEAL                                = 0x008080FF;
 const int GUI_COLOR_BLUE                                = 0x0000FFFF;
+const int GUI_COLOR_NAVY                                = 0x000080FF;
+const int GUI_COLOR_FUSCHIA                             = 0xFF00FFFF;
+const int GUI_COLOR_PURPLE                              = 0x800080FF;
 
 // Reserve nAmount of PostString() IDs for sSubsystemScript
 void GUI_ReserveIDs(string sSubsystemScript, int nAmount);
