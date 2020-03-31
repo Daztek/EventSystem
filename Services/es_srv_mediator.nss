@@ -20,51 +20,69 @@ const string MEDIATOR_FUNCTION_NAME             = "FunctionName_";
 const string MEDIATOR_FUNCTION_SUBSYSTEM        = "FunctionSubsystem_";
 const string MEDIATOR_FUNCTION_PARAMETERS       = "FunctionParameters_";
 
-const string MEDIATOR_TEMP_SCRIPT_NAME          = "srv_mediator_";
+const string MEDIATOR_FUNCTION_SCRIPT_NAME      = "srv_mediator_";
 const string MEDIATOR_TEMP_VARIABLE             = "MEDIATOR_TEMP_VARIABLE_";
 
+// Register sFunctionName with sParameters from sSubsystemScript with the Mediator
+// so it can be called by other subsystems without the subsystem script needing to be included.
+//
+// - sSubsystemScript: The subsystem the function is from
+// - sFunctionName: The function name without returntype and parameters
+// - sParameters: The first letter of the function's parameters, must match the function's definition
+//                Only supports the following types: (o)bject, (s)tring, (i)nt, (f)loat, (l)ocation
+// Example:
+//  void MySubsystemFunction(int nFoo, object oBar, string sBaz);
+//  Mediator_RegisterFunction("es_s_subsystem", "MySubsystemFunction", "ios");
 void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters);
+// Returns TRUE if sSubsystem has registered sFunctionName, with an optional parameter check.
 int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, string sParameters = "****");
-void Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sArguments, object oTarget = OBJECT_SELF);
+// Execute sFunctionName from sSubsystem with sArguments on oTarget
+//
+// Example:
+//   Mediator_ExecuteFunction("es_s_subsystem", "MySubsystemFunction", Mediator_Object(GetModule()) + Mediator_Int(1337) + Mediator_String("Test"));
+//
+// Returns: TRUE on success
+int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sArguments, object oTarget = OBJECT_SELF);
 
+// Convert an object to a Mediator_ExecuteFunction() argument
 string Mediator_Object(object o);
+// Convert a string to a Mediator_ExecuteFunction() argument
 string Mediator_String(string s);
+// Convert an int to a Mediator_ExecuteFunction() argument
 string Mediator_Int(int n);
+// Convert a float to a Mediator_ExecuteFunction() argument
 string Mediator_Float(float f);
+// Convert a location to a Mediator_ExecuteFunction() argument
 string Mediator_Location(location l);
-
-// *** INTERNAL FUNCTION
-string Mediator_SetFunctionVariables(string sArguments);
-// *** INTERNAL FUNCTION
-string Mediator_ConvertShortType(string sShortType);
 
 // @Post
 void Mediator_Post(string sServiceScript)
 {
     object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
-    int nNumFunctions = ES_Util_GetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS);
+    int nFunctionID, nNumFunctions = ES_Util_GetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS);
 
-    int nID;
-    for (nID = 1; nID <= nNumFunctions; nID++)
+    for (nFunctionID = 1; nFunctionID <= nNumFunctions; nFunctionID++)
     {
-        string sFunctionName = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_NAME + IntToString(nID));
-        string sSubsystem = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_SUBSYSTEM + IntToString(nID));
-        string sParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nID));
-        string sScriptName = MEDIATOR_TEMP_SCRIPT_NAME + IntToString(nID);
-        int nNumParameters = GetStringLength(sParameters);
-
-        ES_Util_Log(MEDIATOR_LOG_TAG, "Compiling '" + sScriptName + "' for function '" + sSubsystem + ":" + sFunctionName + "(" + sParameters + ")'");
-
-        int nParameter;
+        string sFunctionName = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_NAME + IntToString(nFunctionID));
+        string sSubsystem = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_SUBSYSTEM + IntToString(nFunctionID));
+        string sParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
+        string sScriptName = MEDIATOR_FUNCTION_SCRIPT_NAME + IntToString(nFunctionID);
         string sArguments, sVariables = nssObject("oModule", nssFunction("GetModule"));
+        int nParameter, nNumParameters = GetStringLength(sParameters);
+
+        ES_Util_Log(MEDIATOR_LOG_TAG, "Compiling Script '" + sScriptName + "' for Function '" + sSubsystem + ":" + sFunctionName + "(" + sParameters + ")'");
+
         for (nParameter = 0; nParameter < nNumParameters; nParameter++)
         {
             string sParameter = GetSubString(sParameters, nParameter, 1);
             string sVarName = sParameter + "Variable" + IntToString(nParameter);
-            string sType = Mediator_ConvertShortType(sParameter);
+            string sType = nssConvertShortType(sParameter);
 
-            sArguments += sVarName + ",";
-            sVariables += nssVariable(GetStringLowerCase(sType), sVarName, nssFunction("ES_Util_Get" + sType, "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_TEMP_VARIABLE + IntToString(nParameter))));
+            if (sType != "")
+            {
+                sArguments += sVarName + ",";
+                sVariables += nssVariable(GetStringLowerCase(sType), sVarName, nssFunction("ES_Util_Get" + sType, "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_TEMP_VARIABLE + IntToString(nParameter))));
+            }
         }
 
         sArguments = GetSubString(sArguments, 0, GetStringLength(sArguments) - 1);
@@ -84,15 +102,14 @@ void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, st
 
     if (!ES_Util_GetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystemScript + "_" + sFunctionName))
     {
-        int nID = ES_Util_GetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS) + 1;
+        int nFunctionID = ES_Util_GetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS) + 1;
 
-        ES_Util_SetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystemScript + "_" + sFunctionName, nID);
+        ES_Util_SetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS, nFunctionID);
+        ES_Util_SetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystemScript + "_" + sFunctionName, nFunctionID);
 
-        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_NAME + IntToString(nID), sFunctionName);
-        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_SUBSYSTEM + IntToString(nID), sSubsystemScript);
-        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nID), sParameters);
-
-        ES_Util_SetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS, nID);
+        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_NAME + IntToString(nFunctionID), sFunctionName);
+        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_SUBSYSTEM + IntToString(nFunctionID), sSubsystemScript);
+        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID), sParameters);
 
         ES_Util_Log(MEDIATOR_LOG_TAG, "Subsystem '" + sSubsystemScript + "' registered function '" + sFunctionName + "(" + sParameters + ")'");
     }
@@ -101,65 +118,11 @@ void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, st
 int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, string sParameters = "****")
 {
     object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
-
-    int nID = ES_Util_GetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystem + "_" + sFunctionName);
-    int bParametersMatch = sParameters == "****" ? TRUE :
-        sParameters == ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nID));
-
-    return nID && bParametersMatch;
-}
-
-void Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sArguments, object oTarget = OBJECT_SELF)
-{
-    object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
     int nFunctionID = ES_Util_GetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystem + "_" + sFunctionName);
+    int bParametersMatch = sParameters == "****" ? TRUE :
+        sParameters == ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
 
-    if (nFunctionID)
-    {
-        string sExpectedParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
-        string sActualParameters = Mediator_SetFunctionVariables(sArguments);
-
-        if (sExpectedParameters == sActualParameters)
-        {
-            ExecuteScript(MEDIATOR_TEMP_SCRIPT_NAME + IntToString(nFunctionID), oTarget);
-        }
-        else
-        {
-            ES_Util_Log(MEDIATOR_LOG_TAG, "ERROR: (" + NWNX_Util_GetCurrentScriptName() + ") Parameter Mismatch: EXPECTED: '" + sSubsystem + ":" +
-                        sFunctionName + "(" + sExpectedParameters + ")' -> GOT: '" + sSubsystem + ":" + sFunctionName + "(" + sActualParameters + ")'");
-        }
-
-        ES_Util_DeleteVarRegex(GetModule(), MEDIATOR_TEMP_VARIABLE + ".*");
-    }
-    else
-    {
-        ES_Util_Log(MEDIATOR_LOG_TAG, "WARNING: (" + NWNX_Util_GetCurrentScriptName() + ") Function Not Registered: '" + sSubsystem + ":" + sFunctionName + "()'");
-    }
-}
-
-string Mediator_Object(object o)
-{
-    return "o:" + ObjectToString(o) + "~";
-}
-
-string Mediator_String(string s)
-{
-    return "s:" + s + "~";
-}
-
-string Mediator_Int(int i)
-{
-    return "i:" + IntToString(i) + "~";
-}
-
-string Mediator_Float(float f)
-{
-    return "f:" + FloatToString(f, 0) + "~";
-}
-
-string Mediator_Location(location l)
-{
-    return "l:" + ES_Util_LocationToString(l) + "~";
+    return nFunctionID && bParametersMatch;
 }
 
 string Mediator_SetFunctionVariables(string sArguments)
@@ -215,18 +178,59 @@ string Mediator_SetFunctionVariables(string sArguments)
     return sParameters;
 }
 
-string Mediator_ConvertShortType(string sShortType)
+int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sArguments, object oTarget = OBJECT_SELF)
 {
-    if (sShortType == "o") return "Object";
+    object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
+    int bReturn, nFunctionID = ES_Util_GetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystem + "_" + sFunctionName);
+
+    if (nFunctionID)
+    {
+        string sExpectedParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
+        string sActualParameters = Mediator_SetFunctionVariables(sArguments);
+
+        if (sExpectedParameters == sActualParameters)
+        {
+            ExecuteScript(MEDIATOR_FUNCTION_SCRIPT_NAME + IntToString(nFunctionID), oTarget);
+            bReturn = TRUE;
+        }
+        else
+        {
+            ES_Util_Log(MEDIATOR_LOG_TAG, "ERROR: (" + NWNX_Util_GetCurrentScriptName() + ") Parameter Mismatch: EXPECTED: '" + sSubsystem + ":" +
+                        sFunctionName + "(" + sExpectedParameters + ")' -> GOT: '" + sSubsystem + ":" + sFunctionName + "(" + sActualParameters + ")'");
+        }
+
+        ES_Util_DeleteVarRegex(GetModule(), MEDIATOR_TEMP_VARIABLE + ".*");
+    }
     else
-    if (sShortType == "s") return "String";
-    else
-    if (sShortType == "i") return "Int";
-    else
-    if (sShortType == "f") return "Float";
-    else
-    if (sShortType == "l") return "Location";
-    else
-    return "";
+    {
+        ES_Util_Log(MEDIATOR_LOG_TAG, "WARNING: (" + NWNX_Util_GetCurrentScriptName() + ") Function Not Registered: '" + sSubsystem + ":" + sFunctionName + "()'");
+    }
+
+    return bReturn;
+}
+
+string Mediator_Object(object o)
+{
+    return "o:" + ObjectToString(o) + "~";
+}
+
+string Mediator_String(string s)
+{
+    return "s:" + s + "~";
+}
+
+string Mediator_Int(int i)
+{
+    return "i:" + IntToString(i) + "~";
+}
+
+string Mediator_Float(float f)
+{
+    return "f:" + FloatToString(f, 0) + "~";
+}
+
+string Mediator_Location(location l)
+{
+    return "l:" + ES_Util_LocationToString(l) + "~";
 }
 

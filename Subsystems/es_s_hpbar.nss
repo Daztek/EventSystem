@@ -22,7 +22,7 @@ const int HEALTHBAR_GUI_NUM_IDS                 = 15;
 const string HEALTHBAR_PORTRAIT_FONT_NAME       = "fnt_es_hbport";
 const string HEALTHBAR_PORTRAIT_GLYPH           = "a";
 
-const float HEALTHBAR_DEATH_LIFETIME            = 10.0f;
+const float HEALTHBAR_DEATH_LIFETIME            = 5.0f;
 const int HEALTHBAR_DEFAULT_WIDTH               = 30;
 
 struct HealthBar_Data
@@ -100,16 +100,16 @@ void HealthBar_RemovePlayerFromHealthBarList(string sCreatureUUID, string sPlaye
 void HealthBar_AddPlayerToHealthBarList(object oPlayer, object oCreature)
 {
     string sCreatureUUID = GetObjectUUID(oCreature);
-    string sCurrentPlayerHealthBarTarget = ES_Util_GetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+    string sCurrentHealthBarTarget = ES_Util_GetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
-    if (sCreatureUUID == sCurrentPlayerHealthBarTarget)
+    if (sCreatureUUID == sCurrentHealthBarTarget)
         return;
     else
     {
         string sPlayerUUID = GetObjectUUID(oPlayer);
 
-        if (sCurrentPlayerHealthBarTarget != "")
-            HealthBar_RemovePlayerFromHealthBarList(sCurrentPlayerHealthBarTarget, sPlayerUUID);
+        if (sCurrentHealthBarTarget != "")
+            HealthBar_RemovePlayerFromHealthBarList(sCurrentHealthBarTarget, sPlayerUUID);
 
         ES_Util_StringArray_Insert(oCreature, "HealthBarTargets", sPlayerUUID);
 
