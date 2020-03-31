@@ -59,12 +59,15 @@ void CharacterSave_EventHandler(string sSubsystemScript, string sEvent)
 
 void CharacterSave_SaveChatCommand(object oPlayer, string sParams, int nVolume)
 {
-    if (!ES_Util_GetInt(oPlayer, CHARACTERSAVE_SCRIPT_NAME + "_Cooldown"))
+    object oDataObject = ES_Util_GetDataObject(CHARACTERSAVE_SCRIPT_NAME);
+    string sCooldownVariable = CHARACTERSAVE_SCRIPT_NAME + "_Cooldown_" + GetObjectUUID(oPlayer);
+
+    if (!ES_Util_GetInt(oDataObject, sCooldownVariable))
     {
         ExportSingleCharacter(oPlayer);
 
-        ES_Util_SetInt(oPlayer, CHARACTERSAVE_SCRIPT_NAME + "_Cooldown", TRUE);
-        DelayCommand(CHARACTERSAVE_MANUAL_COOLDOWN, ES_Util_DeleteInt(oPlayer, CHARACTERSAVE_SCRIPT_NAME + "_Cooldown"));
+        ES_Util_SetInt(oDataObject, sCooldownVariable, TRUE);
+        DelayCommand(CHARACTERSAVE_MANUAL_COOLDOWN, ES_Util_DeleteInt(oDataObject, sCooldownVariable));
 
         ES_Util_SendServerMessage("Your character has been manually saved.", oPlayer);
     }
