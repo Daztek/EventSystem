@@ -85,7 +85,6 @@ void HealthBar_EnableHealthBar(object oCreature, string sInfo, int nWidth)
     NWNX_Events_AddObjectToDispatchList(sDeathEvent, HEALTHBAR_SCRIPT_NAME, oCreature);
 }
 
-
 void HealthBar_RemovePlayerFromHealthBarList(string sCreatureUUID, string sPlayerUUID)
 {
     object oCreature = GetObjectByUUID(sCreatureUUID);
