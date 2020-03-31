@@ -33,6 +33,7 @@ const int GUI_COLOR_TRANSPARENT                         = 0xFFFFFF00;
 const int GUI_COLOR_WHITE                               = 0xFFFFFFFF;
 const int GUI_COLOR_SILVER                              = 0xC0C0C0FF;
 const int GUI_COLOR_GRAY                                = 0x808080FF;
+const int GUI_COLOR_DARK_GRAY                           = 0x303030FF;
 const int GUI_COLOR_BLACK                               = 0x000000FF;
 const int GUI_COLOR_RED                                 = 0xFF0000FF;
 const int GUI_COLOR_MAROON                              = 0x800000FF;
@@ -156,7 +157,7 @@ void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int 
 
 int GUI_CenterStringInWindow(string sString, int nWindowX, int nWindowWidth)
 {
-    return (nWindowX + (nWindowWidth / 2)) - ((GetStringLength(sString) + 1) / 2);
+    return (nWindowX + (nWindowWidth / 2)) - ((GetStringLength(sString) + 2) / 2);
 }
 
 int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f)

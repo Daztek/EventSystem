@@ -13,8 +13,11 @@
 #include "es_inc_core"
 #include "es_srv_gui"
 #include "es_srv_profiler"
-
+#include "es_srv_mediator"
 #include "nwnx_player"
+#include "nwnx_area"
+#include "nwnx_admin"
+#include "nwnx_object"
 
 const string TESTING_LOG_TAG        = "Testing";
 const string TESTING_SCRIPT_NAME    = "es_s_testing";
@@ -23,51 +26,98 @@ const string TESTING_SCRIPT_NAME    = "es_s_testing";
 void Testing_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT);
+
+    object oPlayer = GetFirstPC();
+    if (GetIsObjectValid(oPlayer))
+    {
+        GUI_ClearByRange(oPlayer, 1, 100);      
+    } 
 }
 
 // @Unload
 void Testing_Unload(string sSubsystemScript)
 {
-    ES_Core_UnsubscribeAllEvents(sSubsystemScript);
+    ES_Core_UnsubscribeAllEvents(sSubsystemScript, TRUE);
 }
 
 void Testing_ShutdownNotification(object oPlayer, int nCountdown)
 {
-    if (!nCountdown) return;
-    
-    string sMessage = "Server shutting down in '" + IntToString(nCountdown) + "' seconds.";
-    int nLength = GUI_CalculateStringLength(sMessage);
-    
-    if (nCountdown <= 5)
-    {       
-        PostString(oPlayer, sMessage, 2 - (nLength / 2), 1, SCREEN_ANCHOR_CENTER, 1.1f, 0xFF0000FF, 0xFF0000FF, 1); 
-        GUI_DrawWindow(oPlayer, 50, SCREEN_ANCHOR_CENTER, 1 - (nLength / 2), 0, nLength, 1, 1.1f);        
+    if (nCountdown)
+    {
+        string sMessage = "Server shutting down in '" + IntToString(nCountdown) + "' second" + (nCountdown == 1 ? "" : "s") + ".";
 
-        NWNX_Player_PlaySound(oPlayer, "as_cv_bell2");     
+        GUI_DrawNotification(oPlayer, sMessage, 1, 0, 1, nCountdown <= 5 ? GUI_COLOR_RED: GUI_COLOR_WHITE, 1.1f);
+
+        DelayCommand(1.0f, Testing_ShutdownNotification(oPlayer, --nCountdown));
     }
     else
     {
-        PostString(oPlayer, sMessage, 2, 1, SCREEN_ANCHOR_TOP_LEFT, 1.1f, 0xFFFFFFFF, 0xFFFFFFFF, 1);
-        GUI_DrawWindow(oPlayer, 50, SCREEN_ANCHOR_TOP_LEFT, 1, 0, nLength, 1, 1.1f);        
-    }    
-    
-    DelayCommand(1.0f, Testing_ShutdownNotification(oPlayer, --nCountdown));
+        NWNX_Administration_ShutdownServer();
+    }
+}
+
+void DoDamage(object oCreature, int nAmount)
+{
+    effect eDamage = EffectDamage(nAmount);
+
+    ApplyEffectToObject(DURATION_TYPE_INSTANT, eDamage, oCreature);
 }
 
 // @EventHandler
 void Testing_EventHandler(string sSubsystemScript, string sEvent)
 {
-    struct ProfilerData pd = Profiler_Start("Testing", FALSE, TRUE);
     if (StringToInt(sEvent) == EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT)
     {
         object oPlayer = GetPCChatSpeaker();
         string sMessage = GetPCChatMessage();
 
-        NWNX_Player_PlaySound(oPlayer, "gui_dm_alert");
-        
-        Testing_ShutdownNotification(oPlayer, 15);
+        if (sMessage == "/shutdown")
+        {
+            NWNX_Player_PlaySound(oPlayer, "gui_dm_alert");
 
-        SetPCChatMessage("");        
+            Testing_ShutdownNotification(oPlayer, 15);
+
+            SetPCChatMessage("");
+        }
+
+        if (sMessage == "/dam")
+        {
+            object oBadger = GetNearestObjectByTag("NW_BADGER", oPlayer);
+
+            int nAmount = Random(5) + 1;
+
+            AssignCommand(oPlayer, DoDamage(oBadger, nAmount));
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_MAGBLUE), oBadger);
+
+            SetPCChatMessage("");
+        }
+        
+        if (sMessage == "/ds")
+        {
+            int nAmount = 1;
+
+            AssignCommand(oPlayer, DoDamage(oPlayer, nAmount));
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_MAGBLUE), oPlayer);
+
+            SetPCChatMessage("");
+        } 
+
+        if (sMessage == "/badger")
+        {
+            object oBadger = CreateObject(OBJECT_TYPE_CREATURE, "nw_badger", GetStartingLocation());
+            NWNX_Object_SetMaxHitPoints(oBadger, 10 + Random(10));            
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectHeal(GetMaxHitPoints(oBadger)), oBadger);            
+
+            struct ProfilerData pd = Profiler_Start("Mediator_ExecuteFunction", FALSE, TRUE);
+            Mediator_ExecuteFunction("es_s_hpbar", "HealthBar_EnableHealthBar", 
+                Mediator_Object(oBadger) + 
+                Mediator_String("Yerple!") + 
+                Mediator_Int(30));
+            Profiler_Stop(pd);
+            
+            SetCommandable(FALSE, oBadger);
+            
+            SetPCChatMessage("");            
+        }
     }
-    Profiler_Stop(pd);
 }

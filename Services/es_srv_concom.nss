@@ -20,9 +20,3 @@ void ConsoleCommand_Load(string sServiceScript)
     object oDataObject = ES_Util_GetDataObject(CONSOLECOMMAND_SCRIPT_NAME);
 }
 
-// @Post
-void ConsoleCommand_Post(string sServiceScript)
-{
-    object oDataObject = ES_Util_GetDataObject(CONSOLECOMMAND_SCRIPT_NAME);
-}
-
