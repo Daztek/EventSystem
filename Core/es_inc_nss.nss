@@ -23,7 +23,7 @@ string nssVector(string sVarName, string sFunction = "", int bIncludeType = TRUE
 string nssLocation(string sVarName, string sFunction = "", int bIncludeType = TRUE);
 string nssFunction(string sFunction, string sArguments = "", int bAddSemicolon = TRUE);
 // Converts o to Object, s to String, etc
-// Only supports the following types: (o)bject, (s)tring, (i)nt, (f)loat, (l)ocation
+// Only supports the following types: (o)bject, (s)tring, (i)nt, (f)loat, (l)ocation, (v)ector
 string nssConvertShortType(string sShortType);
 
 string nssVoidMain(string sContents)
@@ -123,11 +123,14 @@ string nssFunction(string sFunction, string sArguments, int bAddSemicolon = TRUE
 
 string nssConvertShortType(string sShortType)
 {
+    sShortType = GetStringLowerCase(sShortType);
+
     if (sShortType == "o") return "Object";
     if (sShortType == "s") return "String";
     if (sShortType == "i") return "Int";
     if (sShortType == "f") return "Float";
     if (sShortType == "l") return "Location";
+    if (sShortType == "v") return "Vector";
 
     return "";
 }

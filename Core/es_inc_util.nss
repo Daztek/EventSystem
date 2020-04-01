@@ -45,6 +45,11 @@ string ES_Util_LocationToString(location locLocation);
 // Convert a string to a location
 location ES_Util_StringToLocation(string sLocation);
 
+// Convert a vector to a string
+string ES_Util_VectorToString(vector vVector);
+// Convert a string to a vector
+vector ES_Util_StringToVector(string sVector);
+
 // Convenience wrapper for NWNX_Util_AddScript()
 string ES_Util_AddScript(string sFileName, string sInclude, string sScriptChunk);
 // Convenience wrapper for NWNX_Util_AddScript()
@@ -113,6 +118,15 @@ void ES_Util_DeleteLocationRegex(object oObject, string sRegex);
 location ES_Util_GetLocation(object oObject, string sVarName);
 // Set oObject's POS location variable sVarname to locValue
 void ES_Util_SetLocation(object oObject, string sVarName, location locValue, int bPersist = FALSE);
+
+// Delete oObject's POS vector variable sVarName
+void ES_Util_DeleteVector(object oObject, string sVarName);
+// Delete any of oObject's POS vector variables that match sRegex
+void ES_Util_DeleteVectorRegex(object oObject, string sRegex);
+// Get oObject's POS vector variable sVarname
+vector ES_Util_GetVector(object oObject, string sVarName);
+// Set oObject's POS vector variable sVarname to vValue
+void ES_Util_SetVector(object oObject, string sVarName, vector vValue, int bPersist = FALSE);
 
 // Delete oObject's POS object variable sVarName
 void ES_Util_DeleteObject(object oObject, string sVarName);
@@ -251,10 +265,10 @@ string ES_Util_LocationToString(location locLocation)
     float fFacing = GetFacingFromLocation(locLocation);
 
     return "#A#" + sAreaTag +
-           "#X#" + FloatToString(vPosition.x, 0, 2) +
-           "#Y#" + FloatToString(vPosition.y, 0, 2) +
-           "#Z#" + FloatToString(vPosition.z, 0, 2) +
-           "#F#" + FloatToString(fFacing, 0, 2) + "#";
+           "#X#" + FloatToString(vPosition.x, 0, 5) +
+           "#Y#" + FloatToString(vPosition.y, 0, 5) +
+           "#Z#" + FloatToString(vPosition.z, 0, 5) +
+           "#F#" + FloatToString(fFacing, 0, 5) + "#";
 }
 
 location ES_Util_StringToLocation(string sLocation)
@@ -296,6 +310,39 @@ location ES_Util_StringToLocation(string sLocation)
     }
 
     return locLocation;
+}
+
+string ES_Util_VectorToString(vector vVector)
+{
+    return "#X#" + FloatToString(vVector.x, 0, 5) +
+           "#Y#" + FloatToString(vVector.y, 0, 5) +
+           "#Z#" + FloatToString(vVector.z, 0, 5) + "#";
+}
+
+vector ES_Util_StringToVector(string sVector)
+{
+    vector vVector;
+
+    int nLength = GetStringLength(sVector);
+
+    if(nLength > 0)
+    {
+        int nPos, nCount;
+
+        nPos = FindSubString(sVector, "#X#") + 3;
+        nCount = FindSubString(GetSubString(sVector, nPos, nLength - nPos), "#");
+        vVector.x = StringToFloat(GetSubString(sVector, nPos, nCount));
+
+        nPos = FindSubString(sVector, "#Y#") + 3;
+        nCount = FindSubString(GetSubString(sVector, nPos, nLength - nPos), "#");
+        vVector.y = StringToFloat(GetSubString(sVector, nPos, nCount));
+
+        nPos = FindSubString(sVector, "#Z#") + 3;
+        nCount = FindSubString(GetSubString(sVector, nPos, nLength - nPos), "#");
+        vVector.z = StringToFloat(GetSubString(sVector, nPos, nCount));
+    }
+
+    return vVector;
 }
 
 string ES_Util_AddScript(string sFileName, string sInclude, string sScriptChunk)
@@ -504,6 +551,26 @@ location ES_Util_GetLocation(object oObject, string sVarName)
 void ES_Util_SetLocation(object oObject, string sVarName, location locValue, int bPersist = FALSE)
 {
     NWNX_Object_SetString(oObject, "ES!LOC!" + sVarName, ES_Util_LocationToString(locValue), bPersist);
+}
+
+void ES_Util_DeleteVector(object oObject, string sVarName)
+{
+    NWNX_Object_DeleteString(oObject, "ES!VEC!" + sVarName);
+}
+
+void ES_Util_DeleteVectorRegex(object oObject, string sRegex)
+{
+    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!VEC!)" + sRegex);
+}
+
+vector ES_Util_GetVector(object oObject, string sVarName)
+{
+    return ES_Util_StringToVector(NWNX_Object_GetString(oObject, "ES!VEC!" + sVarName));
+}
+
+void ES_Util_SetVector(object oObject, string sVarName, vector vValue, int bPersist = FALSE)
+{
+    NWNX_Object_SetString(oObject, "ES!VEC!" + sVarName, ES_Util_VectorToString(vValue), bPersist);
 }
 
 void ES_Util_DeleteObject(object oObject, string sVarName)
