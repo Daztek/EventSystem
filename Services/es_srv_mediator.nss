@@ -13,7 +13,7 @@
 const string MEDIATOR_LOG_TAG                       = "Mediator";
 const string MEDIATOR_SCRIPT_NAME                   = "es_srv_mediator";
 
-const string MEDIATOR_DELIMITER                     = "~!?^";
+const string MEDIATOR_ARGUMENT_DELIMITER            = "~!?^";
 
 const string MEDIATOR_NUM_FUNCTIONS                 = "NumFunctions";
 
@@ -33,9 +33,9 @@ const string MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE  = "MEDIATOR_RETURN_VALUE";
 // - sSubsystemScript: The subsystem the function is from
 // - sFunctionName: The function name without returntype and parameters
 // - sParameters: The first letter of the function's parameters, must match the function's definition
-//                Only supports the following types: (o)bject, (s)tring, (i)nt, (f)loat, (l)ocation
+//                Only supports the following types: (o)bject, (s)tring, (i)nt, (f)loat, (l)ocation, (v)ector
 // - sReturnType: The return type of the function, must match the function's definition
-//                Only supports the following types: void, object, string, int, float, location
+//                Only supports the following types: void, object, string, int, float, location, vector
 //
 // Example:
 //  string MySubsystemFunction(int nFoo, object oBar, string sBaz);
@@ -64,6 +64,8 @@ string Mediator_Int(int n);
 string Mediator_Float(float f);
 // Convert a location to a Mediator_ExecuteFunction() argument
 string Mediator_Location(location l);
+// Convert a vector to a Mediator_ExecuteFunction() argument
+string Mediator_Vector(vector v);
 
 // @Post
 void Mediator_Post(string sServiceScript)
@@ -129,6 +131,12 @@ void Mediator_Post(string sServiceScript)
                         nssFunction("ES_Util_LocationToString", nssFunction(sFunctionName, sArguments, FALSE), FALSE));
         }
         else
+        if (sReturnType == "vector")
+        {
+            sFunction = nssFunction("ES_Util_SetString", "oDataObject, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+                        nssFunction("ES_Util_VectorToString", nssFunction(sFunctionName, sArguments, FALSE), FALSE));
+        }
+        else
         {// Assume void for everything else
             sFunction = nssFunction(sFunctionName, sArguments);
         }
@@ -145,11 +153,17 @@ void Mediator_Post(string sServiceScript)
 
 void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters, string sReturnType = "void")
 {
+    if (sSubsystemScript == "" || sFunctionName == "")
+        return;
+
     object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
 
     if (!ES_Util_GetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystemScript + "_" + sFunctionName))
     {
         int nFunctionID = ES_Util_GetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS) + 1;
+
+        sParameters = GetStringLowerCase(sParameters);
+        sReturnType = GetStringLowerCase(sReturnType);
 
         ES_Util_SetInt(oDataObject, MEDIATOR_NUM_FUNCTIONS, nFunctionID);
         ES_Util_SetInt(oDataObject, MEDIATOR_FUNCTION_ID + sSubsystemScript + "_" + sFunctionName, nFunctionID);
@@ -176,8 +190,8 @@ int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, st
 string Mediator_SetFunctionVariables(string sArguments)
 {
     object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
-    int nDelimiterLength = GetStringLength(MEDIATOR_DELIMITER);
-    int nCount, nArgumentStart, nArgumentEnd = FindSubString(sArguments, MEDIATOR_DELIMITER, nArgumentStart);
+    int nArgumentDelimiterLength = GetStringLength(MEDIATOR_ARGUMENT_DELIMITER);
+    int nCount, nArgumentStart, nArgumentEnd = FindSubString(sArguments, MEDIATOR_ARGUMENT_DELIMITER, nArgumentStart);
     string sParameters;
 
     while (nArgumentEnd != -1)
@@ -185,6 +199,7 @@ string Mediator_SetFunctionVariables(string sArguments)
         string sArgument = GetSubString(sArguments, nArgumentStart, nArgumentEnd - nArgumentStart);
         string sType = GetSubString(sArgument, 0, 2);
         string sValue = GetSubString(sArgument, 2, GetStringLength(sArgument) - 2);
+
         string sVarName = MEDIATOR_FUNCTION_SCRIPT_VARIABLE + IntToString(nCount);
 
         if (sType == "o:")
@@ -216,10 +231,16 @@ string Mediator_SetFunctionVariables(string sArguments)
             sParameters += "l";
             ES_Util_SetLocation(oDataObject, sVarName, ES_Util_StringToLocation(sValue));
         }
+        else
+        if (sType == "v:")
+        {
+            sParameters += "v";
+            ES_Util_SetVector(oDataObject, sVarName, ES_Util_StringToVector(sValue));
+        }
 
         nCount++;
-        nArgumentStart = nArgumentEnd + nDelimiterLength;
-        nArgumentEnd = FindSubString(sArguments, MEDIATOR_DELIMITER, nArgumentStart);
+        nArgumentStart = nArgumentEnd + nArgumentDelimiterLength;
+        nArgumentEnd = FindSubString(sArguments, MEDIATOR_ARGUMENT_DELIMITER, nArgumentStart);
     }
 
     return sParameters;
@@ -267,26 +288,31 @@ string Mediator_GetLastReturnValue()
 
 string Mediator_Object(object o)
 {
-    return "o:" + ObjectToString(o) + MEDIATOR_DELIMITER;
+    return "o:" + ObjectToString(o) + MEDIATOR_ARGUMENT_DELIMITER;
 }
 
 string Mediator_String(string s)
 {
-    return "s:" + s + MEDIATOR_DELIMITER;
+    return "s:" + s + MEDIATOR_ARGUMENT_DELIMITER;
 }
 
 string Mediator_Int(int i)
 {
-    return "i:" + IntToString(i) + MEDIATOR_DELIMITER;
+    return "i:" + IntToString(i) + MEDIATOR_ARGUMENT_DELIMITER;
 }
 
 string Mediator_Float(float f)
 {
-    return "f:" + FloatToString(f, 0) + MEDIATOR_DELIMITER;
+    return "f:" + FloatToString(f, 0) + MEDIATOR_ARGUMENT_DELIMITER;
 }
 
 string Mediator_Location(location l)
 {
-    return "l:" + ES_Util_LocationToString(l) + MEDIATOR_DELIMITER;
+    return "l:" + ES_Util_LocationToString(l) + MEDIATOR_ARGUMENT_DELIMITER;
+}
+
+string Mediator_Vector(vector v)
+{
+    return "v:" + ES_Util_VectorToString(v) + MEDIATOR_ARGUMENT_DELIMITER;
 }
 
