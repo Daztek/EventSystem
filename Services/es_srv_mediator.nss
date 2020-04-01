@@ -10,18 +10,20 @@
 
 #include "es_inc_core"
 
-const string MEDIATOR_LOG_TAG                   = "Mediator";
-const string MEDIATOR_SCRIPT_NAME               = "es_srv_mediator";
+const string MEDIATOR_LOG_TAG                       = "Mediator";
+const string MEDIATOR_SCRIPT_NAME                   = "es_srv_mediator";
 
-const string MEDIATOR_NUM_FUNCTIONS             = "NumFunctions";
+const string MEDIATOR_NUM_FUNCTIONS                 = "NumFunctions";
 
-const string MEDIATOR_FUNCTION_ID               = "FunctionID_";
-const string MEDIATOR_FUNCTION_NAME             = "FunctionName_";
-const string MEDIATOR_FUNCTION_SUBSYSTEM        = "FunctionSubsystem_";
-const string MEDIATOR_FUNCTION_PARAMETERS       = "FunctionParameters_";
+const string MEDIATOR_FUNCTION_ID                   = "FunctionID_";
+const string MEDIATOR_FUNCTION_NAME                 = "FunctionName_";
+const string MEDIATOR_FUNCTION_SUBSYSTEM            = "FunctionSubsystem_";
+const string MEDIATOR_FUNCTION_RETURN_TYPE          = "FunctionReturnType_";
+const string MEDIATOR_FUNCTION_PARAMETERS           = "FunctionParameters_";
 
-const string MEDIATOR_FUNCTION_SCRIPT_NAME      = "srv_mediator_";
-const string MEDIATOR_TEMP_VARIABLE             = "MEDIATOR_TEMP_VARIABLE_";
+const string MEDIATOR_FUNCTION_SCRIPT_NAME          = "srv_mediator_";
+const string MEDIATOR_FUNCTION_SCRIPT_VARIABLE      = "MEDIATOR_VARIABLE_";
+const string MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE  = "MEDIATOR_RETURN_VALUE";
 
 // Register sFunctionName with sParameters from sSubsystemScript with the Mediator
 // so it can be called by other subsystems without the subsystem script needing to be included.
@@ -30,10 +32,13 @@ const string MEDIATOR_TEMP_VARIABLE             = "MEDIATOR_TEMP_VARIABLE_";
 // - sFunctionName: The function name without returntype and parameters
 // - sParameters: The first letter of the function's parameters, must match the function's definition
 //                Only supports the following types: (o)bject, (s)tring, (i)nt, (f)loat, (l)ocation
+// - sReturnType: The return type of the function, must match the function's definition
+//                Only supports the following types: void, object, string, int, float, location
+//
 // Example:
-//  void MySubsystemFunction(int nFoo, object oBar, string sBaz);
-//  Mediator_RegisterFunction("es_s_subsystem", "MySubsystemFunction", "ios");
-void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters);
+//  string MySubsystemFunction(int nFoo, object oBar, string sBaz);
+//  Mediator_RegisterFunction("es_s_subsystem", "MySubsystemFunction", "ios", "s");
+void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters, string sReturnType = "void");
 // Returns TRUE if sSubsystem has registered sFunctionName, with an optional parameter check.
 int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, string sParameters = "****");
 // Execute sFunctionName from sSubsystem with sArguments on oTarget
@@ -43,6 +48,9 @@ int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, st
 //
 // Returns: TRUE on success
 int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sArguments, object oTarget = OBJECT_SELF);
+// Get the return value as string from the last function executed with Mediator_ExecuteFunction()
+// You'll have to convert it to the right type yourself.
+string Mediator_GetLastReturnValue();
 
 // Convert an object to a Mediator_ExecuteFunction() argument
 string Mediator_Object(object o);
@@ -65,9 +73,10 @@ void Mediator_Post(string sServiceScript)
     {
         string sFunctionName = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_NAME + IntToString(nFunctionID));
         string sSubsystem = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_SUBSYSTEM + IntToString(nFunctionID));
+        string sReturnType = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_RETURN_TYPE + IntToString(nFunctionID));
         string sParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
         string sScriptName = MEDIATOR_FUNCTION_SCRIPT_NAME + IntToString(nFunctionID);
-        string sArguments, sVariables = nssObject("oModule", nssFunction("GetModule"));
+        string sFunction, sArguments, sVariables = nssObject("oModule", nssFunction("GetModule"));
         int nParameter, nNumParameters = GetStringLength(sParameters);
 
         ES_Util_Log(MEDIATOR_LOG_TAG, "Compiling Script '" + sScriptName + "' for Function '" + sSubsystem + ":" + sFunctionName + "(" + sParameters + ")'");
@@ -81,13 +90,47 @@ void Mediator_Post(string sServiceScript)
             if (sType != "")
             {
                 sArguments += sVarName + ",";
-                sVariables += nssVariable(GetStringLowerCase(sType), sVarName, nssFunction("ES_Util_Get" + sType, "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_TEMP_VARIABLE + IntToString(nParameter))));
+                sVariables += nssVariable(GetStringLowerCase(sType), sVarName, nssFunction("ES_Util_Get" + sType, "oModule, " +
+                              nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_VARIABLE + IntToString(nParameter))));
             }
         }
 
         sArguments = GetSubString(sArguments, 0, GetStringLength(sArguments) - 1);
 
-        string sError = ES_Util_AddScript(sScriptName, sSubsystem, sVariables + nssFunction(sFunctionName, sArguments));
+        if (sReturnType == "void")
+            sFunction = nssFunction(sFunctionName, sArguments);
+        else
+        if (sReturnType == "object")
+        {
+            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+                        nssFunction("ObjectToString",nssFunction(sFunctionName, sArguments, FALSE), FALSE));
+        }
+        else
+        if (sReturnType == "string")
+        {
+            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+                        nssFunction(sFunctionName, sArguments, FALSE));
+        }
+        else
+        if (sReturnType == "int")
+        {
+            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+                        nssFunction("IntToString", nssFunction(sFunctionName, sArguments, FALSE), FALSE));
+        }
+        else
+        if (sReturnType == "float")
+        {
+            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+                        nssFunction("FloatToString", "0, " + nssFunction(sFunctionName, sArguments, FALSE), FALSE));
+        }
+        else
+        if (sReturnType == "location")
+        {
+            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+                        nssFunction("ES_Util_LocationToString", nssFunction(sFunctionName, sArguments, FALSE), FALSE));
+        }
+
+        string sError = ES_Util_AddScript(sScriptName, sSubsystem, sVariables + sFunction);
 
         if (sError != "")
         {
@@ -96,7 +139,7 @@ void Mediator_Post(string sServiceScript)
     }
 }
 
-void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters)
+void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters, string sReturnType = "void")
 {
     object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
 
@@ -109,9 +152,10 @@ void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, st
 
         ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_NAME + IntToString(nFunctionID), sFunctionName);
         ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_SUBSYSTEM + IntToString(nFunctionID), sSubsystemScript);
+        ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_RETURN_TYPE + IntToString(nFunctionID), sReturnType);
         ES_Util_SetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID), sParameters);
 
-        ES_Util_Log(MEDIATOR_LOG_TAG, "Subsystem '" + sSubsystemScript + "' registered function '" + sFunctionName + "(" + sParameters + ")'");
+        ES_Util_Log(MEDIATOR_LOG_TAG, "Subsystem '" + sSubsystemScript + "' registered function '" + sReturnType + " " + sFunctionName + "(" + sParameters + ")'");
     }
 }
 
@@ -138,7 +182,7 @@ string Mediator_SetFunctionVariables(string sArguments)
         string sArgument = GetSubString(sArguments, nArgumentStart, nArgumentEnd - nArgumentStart);
         string sType = GetSubString(sArgument, 0, 2);
         string sValue = GetSubString(sArgument, 2, GetStringLength(sArgument) - 2);
-        string sVarName = MEDIATOR_TEMP_VARIABLE + IntToString(nCount);
+        string sVarName = MEDIATOR_FUNCTION_SCRIPT_VARIABLE + IntToString(nCount);
 
         if (sType == "o:")
         {
@@ -185,8 +229,11 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
 
     if (nFunctionID)
     {
+        object oModule = GetModule();
         string sExpectedParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
         string sActualParameters = Mediator_SetFunctionVariables(sArguments);
+
+        ES_Util_DeleteString(oModule, MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE);
 
         if (sExpectedParameters == sActualParameters)
         {
@@ -199,7 +246,7 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
                         sFunctionName + "(" + sExpectedParameters + ")' -> GOT: '" + sSubsystem + ":" + sFunctionName + "(" + sActualParameters + ")'");
         }
 
-        ES_Util_DeleteVarRegex(GetModule(), MEDIATOR_TEMP_VARIABLE + ".*");
+        ES_Util_DeleteVarRegex(oModule, MEDIATOR_FUNCTION_SCRIPT_VARIABLE + ".*");
     }
     else
     {
@@ -207,6 +254,11 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
     }
 
     return bReturn;
+}
+
+string Mediator_GetLastReturnValue()
+{
+    return ES_Util_GetString(GetModule(), MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE);
 }
 
 string Mediator_Object(object o)
