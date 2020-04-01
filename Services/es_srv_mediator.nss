@@ -13,6 +13,8 @@
 const string MEDIATOR_LOG_TAG                       = "Mediator";
 const string MEDIATOR_SCRIPT_NAME                   = "es_srv_mediator";
 
+const string MEDIATOR_DELIMITER                     = "~!?^";
+
 const string MEDIATOR_NUM_FUNCTIONS                 = "NumFunctions";
 
 const string MEDIATOR_FUNCTION_ID                   = "FunctionID_";
@@ -21,7 +23,7 @@ const string MEDIATOR_FUNCTION_SUBSYSTEM            = "FunctionSubsystem_";
 const string MEDIATOR_FUNCTION_RETURN_TYPE          = "FunctionReturnType_";
 const string MEDIATOR_FUNCTION_PARAMETERS           = "FunctionParameters_";
 
-const string MEDIATOR_FUNCTION_SCRIPT_NAME          = "srv_mediator_";
+const string MEDIATOR_FUNCTION_SCRIPT_NAME          = "mediator_";
 const string MEDIATOR_FUNCTION_SCRIPT_VARIABLE      = "MEDIATOR_VARIABLE_";
 const string MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE  = "MEDIATOR_RETURN_VALUE";
 
@@ -37,7 +39,7 @@ const string MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE  = "MEDIATOR_RETURN_VALUE";
 //
 // Example:
 //  string MySubsystemFunction(int nFoo, object oBar, string sBaz);
-//  Mediator_RegisterFunction("es_s_subsystem", "MySubsystemFunction", "ios", "s");
+//  Mediator_RegisterFunction("es_s_subsystem", "MySubsystemFunction", "ios", "string");
 void Mediator_RegisterFunction(string sSubsystemScript, string sFunctionName, string sParameters, string sReturnType = "void");
 // Returns TRUE if sSubsystem has registered sFunctionName, with an optional parameter check.
 int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, string sParameters = "****");
@@ -76,10 +78,10 @@ void Mediator_Post(string sServiceScript)
         string sReturnType = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_RETURN_TYPE + IntToString(nFunctionID));
         string sParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
         string sScriptName = MEDIATOR_FUNCTION_SCRIPT_NAME + IntToString(nFunctionID);
-        string sFunction, sArguments, sVariables = nssObject("oModule", nssFunction("GetModule"));
+        string sFunction, sArguments, sVariables = nssObject("oDataObject", nssFunction("ES_Util_GetDataObject", nssEscapeDoubleQuotes(MEDIATOR_SCRIPT_NAME)));
         int nParameter, nNumParameters = GetStringLength(sParameters);
 
-        ES_Util_Log(MEDIATOR_LOG_TAG, "Compiling Script '" + sScriptName + "' for Function '" + sSubsystem + ":" + sFunctionName + "(" + sParameters + ")'");
+        ES_Util_Log(MEDIATOR_LOG_TAG, "Compiling Script '" + sScriptName + "' for Function '" + sReturnType + " " + sSubsystem + "::" + sFunctionName + "(" + sParameters + ")'");
 
         for (nParameter = 0; nParameter < nNumParameters; nParameter++)
         {
@@ -90,47 +92,49 @@ void Mediator_Post(string sServiceScript)
             if (sType != "")
             {
                 sArguments += sVarName + ",";
-                sVariables += nssVariable(GetStringLowerCase(sType), sVarName, nssFunction("ES_Util_Get" + sType, "oModule, " +
+                sVariables += nssVariable(GetStringLowerCase(sType), sVarName, nssFunction("ES_Util_Get" + sType, "oDataObject, " +
                               nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_VARIABLE + IntToString(nParameter))));
             }
         }
 
         sArguments = GetSubString(sArguments, 0, GetStringLength(sArguments) - 1);
 
-        if (sReturnType == "void")
-            sFunction = nssFunction(sFunctionName, sArguments);
-        else
         if (sReturnType == "object")
         {
-            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+            sFunction = nssFunction("ES_Util_SetString", "oDataObject, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
                         nssFunction("ObjectToString",nssFunction(sFunctionName, sArguments, FALSE), FALSE));
         }
         else
         if (sReturnType == "string")
         {
-            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+            sFunction = nssFunction("ES_Util_SetString", "oDataObject, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
                         nssFunction(sFunctionName, sArguments, FALSE));
         }
         else
         if (sReturnType == "int")
         {
-            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+            sFunction = nssFunction("ES_Util_SetString", "oDataObject, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
                         nssFunction("IntToString", nssFunction(sFunctionName, sArguments, FALSE), FALSE));
         }
         else
         if (sReturnType == "float")
         {
-            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+            sFunction = nssFunction("ES_Util_SetString", "oDataObject, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
                         nssFunction("FloatToString", "0, " + nssFunction(sFunctionName, sArguments, FALSE), FALSE));
         }
         else
         if (sReturnType == "location")
         {
-            sFunction = nssFunction("ES_Util_SetString", "oModule, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
+            sFunction = nssFunction("ES_Util_SetString", "oDataObject, " + nssEscapeDoubleQuotes(MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE) + ", " +
                         nssFunction("ES_Util_LocationToString", nssFunction(sFunctionName, sArguments, FALSE), FALSE));
         }
+        else
+        {// Assume void for everything else
+            sFunction = nssFunction(sFunctionName, sArguments);
+        }
 
-        string sError = ES_Util_AddScript(sScriptName, sSubsystem, sVariables + sFunction);
+        string sScript = sVariables + sFunction;
+        string sError = ES_Util_AddScript(sScriptName, sSubsystem, sScript);
 
         if (sError != "")
         {
@@ -171,11 +175,10 @@ int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, st
 
 string Mediator_SetFunctionVariables(string sArguments)
 {
-    object oModule = GetModule();
+    object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
+    int nDelimiterLength = GetStringLength(MEDIATOR_DELIMITER);
+    int nCount, nArgumentStart, nArgumentEnd = FindSubString(sArguments, MEDIATOR_DELIMITER, nArgumentStart);
     string sParameters;
-    int nArgumentStart = 0;
-    int nArgumentEnd = FindSubString(sArguments, "~", nArgumentStart);
-    int nCount = 0;
 
     while (nArgumentEnd != -1)
     {
@@ -187,36 +190,36 @@ string Mediator_SetFunctionVariables(string sArguments)
         if (sType == "o:")
         {
             sParameters += "o";
-            ES_Util_SetObject(oModule, sVarName, NWNX_Object_StringToObject(sValue));
+            ES_Util_SetObject(oDataObject, sVarName, NWNX_Object_StringToObject(sValue));
         }
         else
         if (sType == "s:")
         {
             sParameters += "s";
-            ES_Util_SetString(oModule, sVarName, sValue);
+            ES_Util_SetString(oDataObject, sVarName, sValue);
         }
         else
         if (sType == "i:")
         {
             sParameters += "i";
-            ES_Util_SetInt(oModule, sVarName, StringToInt(sValue));
+            ES_Util_SetInt(oDataObject, sVarName, StringToInt(sValue));
         }
         else
         if (sType == "f:")
         {
             sParameters += "f";
-            ES_Util_SetFloat(oModule, sVarName, StringToFloat(sValue));
+            ES_Util_SetFloat(oDataObject, sVarName, StringToFloat(sValue));
         }
         else
         if (sType == "l:")
         {
             sParameters += "l";
-            ES_Util_SetLocation(oModule, sVarName, ES_Util_StringToLocation(sValue));
+            ES_Util_SetLocation(oDataObject, sVarName, ES_Util_StringToLocation(sValue));
         }
 
         nCount++;
-        nArgumentStart = nArgumentEnd + 1;
-        nArgumentEnd = FindSubString(sArguments, "~", nArgumentStart);
+        nArgumentStart = nArgumentEnd + nDelimiterLength;
+        nArgumentEnd = FindSubString(sArguments, MEDIATOR_DELIMITER, nArgumentStart);
     }
 
     return sParameters;
@@ -229,11 +232,10 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
 
     if (nFunctionID)
     {
-        object oModule = GetModule();
         string sExpectedParameters = ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
         string sActualParameters = Mediator_SetFunctionVariables(sArguments);
 
-        ES_Util_DeleteString(oModule, MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE);
+        ES_Util_DeleteString(oDataObject, MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE);
 
         if (sExpectedParameters == sActualParameters)
         {
@@ -243,14 +245,14 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
         else
         {
             ES_Util_Log(MEDIATOR_LOG_TAG, "ERROR: (" + NWNX_Util_GetCurrentScriptName() + ") Parameter Mismatch: EXPECTED: '" + sSubsystem + ":" +
-                        sFunctionName + "(" + sExpectedParameters + ")' -> GOT: '" + sSubsystem + ":" + sFunctionName + "(" + sActualParameters + ")'");
+                        sFunctionName + "(" + sExpectedParameters + ")' -> GOT: '" + sSubsystem + "::" + sFunctionName + "(" + sActualParameters + ")'");
         }
 
-        ES_Util_DeleteVarRegex(oModule, MEDIATOR_FUNCTION_SCRIPT_VARIABLE + ".*");
+        ES_Util_DeleteVarRegex(oDataObject, MEDIATOR_FUNCTION_SCRIPT_VARIABLE + ".*");
     }
     else
     {
-        ES_Util_Log(MEDIATOR_LOG_TAG, "WARNING: (" + NWNX_Util_GetCurrentScriptName() + ") Function Not Registered: '" + sSubsystem + ":" + sFunctionName + "()'");
+        ES_Util_Log(MEDIATOR_LOG_TAG, "WARNING: (" + NWNX_Util_GetCurrentScriptName() + ") Function Not Registered: '" + sSubsystem + "::" + sFunctionName + "()'");
     }
 
     return bReturn;
@@ -258,31 +260,33 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
 
 string Mediator_GetLastReturnValue()
 {
-    return ES_Util_GetString(GetModule(), MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE);
+    object oDataObject = ES_Util_GetDataObject(MEDIATOR_SCRIPT_NAME);
+
+    return ES_Util_GetString(oDataObject, MEDIATOR_FUNCTION_SCRIPT_RETURN_VALUE);
 }
 
 string Mediator_Object(object o)
 {
-    return "o:" + ObjectToString(o) + "~";
+    return "o:" + ObjectToString(o) + MEDIATOR_DELIMITER;
 }
 
 string Mediator_String(string s)
 {
-    return "s:" + s + "~";
+    return "s:" + s + MEDIATOR_DELIMITER;
 }
 
 string Mediator_Int(int i)
 {
-    return "i:" + IntToString(i) + "~";
+    return "i:" + IntToString(i) + MEDIATOR_DELIMITER;
 }
 
 string Mediator_Float(float f)
 {
-    return "f:" + FloatToString(f, 0) + "~";
+    return "f:" + FloatToString(f, 0) + MEDIATOR_DELIMITER;
 }
 
 string Mediator_Location(location l)
 {
-    return "l:" + ES_Util_LocationToString(l) + "~";
+    return "l:" + ES_Util_LocationToString(l) + MEDIATOR_DELIMITER;
 }
 
