@@ -2,6 +2,9 @@
     ScriptName: es_s_hpbar.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: A HealthBar Subsystem
 */
 
@@ -22,7 +25,7 @@ const int HEALTHBAR_GUI_NUM_IDS                 = 15;
 const string HEALTHBAR_PORTRAIT_FONT_NAME       = "fnt_es_hbport";
 const string HEALTHBAR_PORTRAIT_GLYPH           = "a";
 
-const float HEALTHBAR_DEATH_LIFETIME            = 5.0f;
+const float HEALTHBAR_TIMEOUT_DELAY             = 2.5f;
 const int HEALTHBAR_DEFAULT_WIDTH               = 30;
 
 struct HealthBar_Data
@@ -51,20 +54,24 @@ struct HealthBar_Data
 };
 
 // Enable a "Boss Type" HealthBar for oCreature
-void HealthBar_EnableHealthBar(object oCreature, string sInfo, int nWidth);
+void HealthBar_EnableHealthBar(object oCreature, string sInfoBlurb);
 
 // @Load
 void HealthBar_Load(string sSubsystemScript)
 {
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
+    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER, TRUE);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER, TRUE);
+    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", TRUE);
+    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", TRUE);
 
     GUI_ReserveIDs(sSubsystemScript, HEALTHBAR_GUI_NUM_IDS);
-    Mediator_RegisterFunction(sSubsystemScript, "HealthBar_EnableHealthBar", "osi");
+    Mediator_RegisterFunction(sSubsystemScript, "HealthBar_EnableHealthBar", "os");
     ChatCommand_Register(sSubsystemScript, "HealthBar_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + HEALTHBAR_CHATCOMMAND_NAME, "", HEALTHBAR_CHATCOMMAND_DESCRIPTION);
 }
 
-void HealthBar_EnableHealthBar(object oCreature, string sInfo, int nWidth)
+void HealthBar_EnableHealthBar(object oCreature, string sInfoBlurb)
 {
     if (GetObjectType(oCreature) != OBJECT_TYPE_CREATURE || GetIsPC(oCreature))
     {
@@ -72,8 +79,9 @@ void HealthBar_EnableHealthBar(object oCreature, string sInfo, int nWidth)
         return;
     }
 
-    SetLocalString(oCreature, "HealthBar_Info", sInfo);
-    SetLocalInt(oCreature, "HealthBar_Width", nWidth);
+    SetLocalString(oCreature, "HealthBar_Info", sInfoBlurb);
+
+    SetLocalInt(oCreature, "HealthBar_Enabled", TRUE);
 
     string sDamagedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER);
     string sDeathEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER);
@@ -225,74 +233,142 @@ void HealthBar_Draw(object oPlayer, struct HealthBar_Data hbd)
 // @EventHandler
 void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
 {
-    switch (StringToInt(sEvent))
+    if (sEvent == "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER")
     {
-        case EVENT_SCRIPT_CREATURE_ON_DAMAGED:
+        object oPlayer = OBJECT_SELF;
+        object oCreature = ES_Util_GetEventData_NWNX_Object("TARGET");
+
+        if (GetLocalInt(oCreature, "HealthBar_Enabled"))
         {
-            object oCreature = OBJECT_SELF;
-            object oDamager = GetLastDamager(oCreature);
+            NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
 
-            if (GetIsPC(oDamager))
-            {
-                HealthBar_AddPlayerToHealthBarList(oDamager, oCreature);
-            }
+            HealthBar_AddPlayerToHealthBarList(oPlayer, oCreature);
 
-            int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
+            string sInfo = GetLocalString(oCreature, "HealthBar_Info");
+            int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
+            int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
 
-            if (nNumTargets)
-            {
-                string sInfo = GetLocalString(oCreature, "HealthBar_Info");
-                int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
-                int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
-
-                struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
-
-                int x;
-                for (x = 0; x < nNumTargets; x++)
-                {
-                    object oPlayer = GetObjectByUUID(ES_Util_StringArray_At(oCreature, "HealthBarTargets", x));
-
-                    if (GetIsObjectValid(oPlayer))
-                    {
-                        HealthBar_Draw(oPlayer, hbd);
-                    }
-                }
-            }
-
-            break;
+            HealthBar_Draw(oPlayer, HealthBar_Update(oCreature, sInfo, nWidth));
         }
+    }
+    if (sEvent == "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER")
+    {
+        object oPlayer = OBJECT_SELF;
 
-        case EVENT_SCRIPT_CREATURE_ON_DEATH:
+        string sCurrentHealthBarTarget = ES_Util_GetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+
+        if (sCurrentHealthBarTarget != "")
         {
-            object oCreature = OBJECT_SELF;
-            string sDamagedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER);
-            string sDeathEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER);
+            NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
 
-            NWNX_Events_RemoveObjectFromDispatchList(sDamagedEvent, sSubsystemScript, oCreature);
-            NWNX_Events_RemoveObjectFromDispatchList(sDeathEvent, sSubsystemScript, oCreature);
+            HealthBar_RemovePlayerFromHealthBarList(sCurrentHealthBarTarget, GetObjectUUID(oPlayer));
 
-            int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
+            object oCreature = GetObjectByUUID(sCurrentHealthBarTarget);
 
-            if (nNumTargets)
+            if (GetIsObjectValid(oCreature))
             {
                 string sInfo = GetLocalString(oCreature, "HealthBar_Info");
                 int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
                 int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
 
                 struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
-                hbd.fLifeTime = HEALTHBAR_DEATH_LIFETIME;
+                hbd.fLifeTime = HEALTHBAR_TIMEOUT_DELAY;
 
-                int x;
-                for (x = 0; x < nNumTargets; x++)
+                HealthBar_Draw(oPlayer, hbd);
+            }
+        }
+    }
+    else
+    {
+        switch (StringToInt(sEvent))
+        {
+            case EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER:
+            {
+                object oPlayer = GetEnteringObject();
+
+                NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", sSubsystemScript, oPlayer);
+
+                break;
+            }
+
+            case EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT:
+            {
+                object oPlayer = GetExitingObject();
+
+                NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", sSubsystemScript, oPlayer);
+
+                break;
+            }
+
+            case EVENT_SCRIPT_CREATURE_ON_DAMAGED:
+            {
+                object oCreature = OBJECT_SELF;
+                object oDamager = GetLastDamager(oCreature);
+
+                if (GetIsPC(oDamager))
                 {
-                    object oPlayer = GetObjectByUUID(ES_Util_StringArray_At(oCreature, "HealthBarTargets", x));
+                    HealthBar_AddPlayerToHealthBarList(oDamager, oCreature);
+                }
 
-                    if (GetIsObjectValid(oPlayer))
+                int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
+
+                if (nNumTargets)
+                {
+                    string sInfo = GetLocalString(oCreature, "HealthBar_Info");
+                    int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
+                    int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+
+                    struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
+
+                    int x;
+                    for (x = 0; x < nNumTargets; x++)
                     {
-                        HealthBar_Draw(oPlayer, hbd);
-                        ES_Util_DeleteString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+                        object oPlayer = GetObjectByUUID(ES_Util_StringArray_At(oCreature, "HealthBarTargets", x));
+
+                        if (GetIsObjectValid(oPlayer))
+                        {
+                            HealthBar_Draw(oPlayer, hbd);
+                        }
                     }
                 }
+
+                break;
+            }
+
+            case EVENT_SCRIPT_CREATURE_ON_DEATH:
+            {
+                object oCreature = OBJECT_SELF;
+                string sDamagedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER);
+                string sDeathEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER);
+
+                NWNX_Events_RemoveObjectFromDispatchList(sDamagedEvent, sSubsystemScript, oCreature);
+                NWNX_Events_RemoveObjectFromDispatchList(sDeathEvent, sSubsystemScript, oCreature);
+
+                int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
+
+                if (nNumTargets)
+                {
+                    string sInfo = GetLocalString(oCreature, "HealthBar_Info");
+                    int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
+                    int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+
+                    struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
+                    hbd.fLifeTime = HEALTHBAR_TIMEOUT_DELAY;
+
+                    int x;
+                    for (x = 0; x < nNumTargets; x++)
+                    {
+                        object oPlayer = GetObjectByUUID(ES_Util_StringArray_At(oCreature, "HealthBarTargets", x));
+
+                        if (GetIsObjectValid(oPlayer))
+                        {
+                            HealthBar_Draw(oPlayer, hbd);
+                            ES_Util_DeleteString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+                        }
+                    }
+                }
+
+                break;
             }
         }
     }
