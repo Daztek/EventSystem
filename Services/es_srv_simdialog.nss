@@ -2,6 +2,9 @@
     ScriptName: es_srv_simdialog.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[Dialog]
+
     Description: An EventSystem Service that allows Subsystems to create
                  conversations through scripting
 */

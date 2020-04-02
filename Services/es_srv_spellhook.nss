@@ -2,6 +2,9 @@
     ScriptName: es_srv_spellhook.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Service that allows subsystems to subscribe to
                  module override spell script events
 */

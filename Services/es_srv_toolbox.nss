@@ -2,6 +2,9 @@
     ScriptName: es_srv_toolbox.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[Area]
+
     Description: An EventSystem Service that allows you to create small items
                  and placeables on the fly.
 */

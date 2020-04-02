@@ -2,6 +2,9 @@
     ScriptName: es_s_iditem.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Subsystem that replaces the skill needed to
                  identify an item with a custom one.
 */

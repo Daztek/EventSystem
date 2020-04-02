@@ -2,6 +2,9 @@
     ScriptName: es_srv_wtimer.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Service that exposes various world timer related events.
 */
 

@@ -38,6 +38,8 @@ void ES_Core_CheckObjectEventScripts(int nStart, int nEnd);
 //  - ES_Core_SubscribeEvent_Object()
 //  - ES_Core_SubscribeEvent_NWNX();
 void ES_Core_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode);
+// INTERNAL FUNCTION
+string ES_Core_GetDisabledNWNXPluginDependencies(string sPlugins);
 /* ****************** */
 
 // Set oObject's nEvent script to the EventSystem's event script
@@ -67,11 +69,21 @@ void ES_Core_UnsubscribeEvent(string sSubsystemScript, string sEvent, int bClear
 // Unsubscribe sSubsystemScript from all its subscribed events
 void ES_Core_UnsubscribeAllEvents(string sSubsystemScript, int bClearDispatchLists = FALSE);
 
-
 void ES_Core_Init()
 {
-    ES_Util_Log(ES_CORE_LOG_TAG, "* Initializing EventSystem");
+    string sCoreRequiredNWNXPlugins = "Events Object Util";
 
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Checking Core NWNX Plugin Dependencies: " + sCoreRequiredNWNXPlugins);
+
+    string sDisabledPlugins = ES_Core_GetDisabledNWNXPluginDependencies(sCoreRequiredNWNXPlugins);
+
+    if (sDisabledPlugins != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "  > ERROR: Unable to initialize EventSystem: Missing Required NWNX Plugins: " + sDisabledPlugins);
+        return;
+    }
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Initializing EventSystem");
 
     ES_Util_Log(ES_CORE_LOG_TAG, "  > Increasing Instruction Limit");
     // We do a lot of stuff, so increase the max instruction limit for the init function and module load scripts.
@@ -166,6 +178,10 @@ void ES_Core_Init()
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Service_Initialize", "sArrayElement"), oModule);
 
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Services: NWNX Plugin Check");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_CheckNWNXPluginDependencies", "sArrayElement"), oModule);
+
     ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Hash Check");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_CheckHash", "sArrayElement"), oModule);
@@ -189,6 +205,10 @@ void ES_Core_Init()
     ES_Util_SetString(oDataObject, "DisabledSubsystems", sDisabledSubsystems);
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Subsystem_Initialize", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: NWNX Plugin Check");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_CheckNWNXPluginDependencies", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Hash Check");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
@@ -306,6 +326,29 @@ int ES_Core_GetFunctionHashChanged(string sFunction)
     return ES_Util_GetInt(ES_Core_GetCoreDataObject(), "FunctionHashChanged_" + sFunction);
 }
 
+string ES_Core_GetDisabledNWNXPluginDependencies(string sPlugins)
+{
+    if (sPlugins != "" && GetStringRight(sPlugins, 1) != " ")
+        sPlugins += " ";
+
+    int nPluginStart, nPluginEnd = FindSubString(sPlugins, " ", nPluginStart);
+    string sDisabledPlugins;
+
+    while (nPluginEnd != -1)
+    {
+        string sPlugin = GetSubString(sPlugins, nPluginStart, nPluginEnd - nPluginStart);
+        int bPluginExists = NWNX_Util_PluginExists("NWNX_" + sPlugin);
+
+        if (!bPluginExists)
+            sDisabledPlugins += sPlugin + " ";
+
+        nPluginStart = nPluginEnd + 1;
+        nPluginEnd = FindSubString(sPlugins, " ", nPluginStart);
+    }
+
+    return sDisabledPlugins;
+}
+
 // *****************************************************************************
 // Shared Service/Subsystem Functions
 void ES_Core_CompileEventHandler(string sScriptName, string sEventHandlerFunction)
@@ -380,6 +423,37 @@ void ES_Core_ExecuteFunction(string sScriptName, string sType)
     }
 }
 
+string ES_Core_GetNWNXPluginDependencies(string sScriptContents)
+{
+    int nNWNXPluginsStart = FindSubString(sScriptContents, "@NWNX[", 0);
+    int nNWNXPluginsEnd = FindSubString(sScriptContents, "]", nNWNXPluginsStart);
+
+    if (nNWNXPluginsStart == -1 || nNWNXPluginsEnd == -1)
+        return "";
+
+    int nNWNXPluginsStartLength = GetStringLength("@NWNX[");
+
+    string sPlugins = GetSubString(sScriptContents, nNWNXPluginsStart + nNWNXPluginsStartLength, nNWNXPluginsEnd - nNWNXPluginsStart - nNWNXPluginsStartLength);
+
+    return sPlugins;
+}
+
+
+void ES_Core_CheckNWNXPluginDependencies(string sScriptName)
+{
+    object oDataObject = ES_Core_GetSystemDataObject(sScriptName);
+    string sNWNXPlugins = ES_Util_GetString(oDataObject, "NWNXPlugins");
+
+    string sDisabledPlugins = ES_Core_GetDisabledNWNXPluginDependencies(sNWNXPlugins);
+
+    if (sDisabledPlugins != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "  > " + sScriptName + " -> Missing Required NWNX Plugins: " + sDisabledPlugins);
+
+        ES_Util_SetInt(oDataObject, "Disabled", TRUE);
+    }
+}
+
 // *****************************************************************************
 // Service Functions
 void ES_Core_Service_Initialize(string sService)
@@ -395,6 +469,10 @@ void ES_Core_Service_Initialize(string sService)
     int nHash = NWNX_Util_Hash(sScriptContents);
     ES_Util_Log(ES_CORE_LOG_TAG, "    > Hash: " + IntToString(nHash));
     ES_Util_SetInt(oDataObject, "Hash", nHash);
+
+    string sNWNXPlugins = ES_Core_GetNWNXPluginDependencies(sScriptContents);
+    ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + (sNWNXPlugins == "" ? "N/A" : sNWNXPlugins));
+    ES_Util_SetString(oDataObject, "NWNXPlugins", sNWNXPlugins);
 
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Load");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "EventHandler");
@@ -459,6 +537,10 @@ void ES_Core_Subsystem_Initialize(string sSubsystem)
     string sServices = ES_Core_Subsystem_GetServices(sSubsystem, sScriptContents);
     ES_Util_Log(ES_CORE_LOG_TAG, "    > Services: " + (sServices == "" ? "N/A" : sServices));
 
+    string sNWNXPlugins = ES_Core_GetNWNXPluginDependencies(sScriptContents);
+    ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + (sNWNXPlugins == "" ? "N/A" : sNWNXPlugins));
+    ES_Util_SetString(oDataObject, "NWNXPlugins", sNWNXPlugins);
+
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Load");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Unload");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "EventHandler");
@@ -502,7 +584,7 @@ void ES_Core_Subsystem_CheckStatus(string sSubsystem)
     object oDataObject = ES_Core_GetSystemDataObject(sSubsystem);
     int nSubsystemDisabled = ES_Util_GetInt(oDataObject, "Disabled");
 
-    ES_Util_Log(ES_CORE_LOG_TAG, "  * Checking: " + sSubsystem);
+    ES_Util_Log(ES_CORE_LOG_TAG, "  > Checking: " + sSubsystem);
 
     if (!nSubsystemDisabled)
     {

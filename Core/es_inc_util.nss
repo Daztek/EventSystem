@@ -240,7 +240,7 @@ void ES_Util_Log(string sSubSystem, string sMessage, int bSuppressible = TRUE)
 {
     if (bSuppressible)
     {
-        if (!ES_Util_GetInt(GetModule(), "ES_SuppressLogs"))
+        if (!GetLocalInt(GetModule(), "ES_SuppressLogs"))
             WriteTimestampedLogEntry("[EventSystem] " + sSubSystem + ": " + sMessage);
     }
     else
@@ -249,7 +249,7 @@ void ES_Util_Log(string sSubSystem, string sMessage, int bSuppressible = TRUE)
 
 void ES_Util_SuppressLog(int bSuppress)
 {
-    ES_Util_SetInt(GetModule(), "ES_SuppressLogs", bSuppress);
+    SetLocalInt(GetModule(), "ES_SuppressLogs", bSuppress);
 }
 
 int ES_Util_GetBooleanEnvVar(string sEnvironmentVariable)

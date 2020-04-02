@@ -2,6 +2,9 @@
     ScriptName: es_srv_chatcom.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Service that allows registering of
                  chat commands by subsystems
 */

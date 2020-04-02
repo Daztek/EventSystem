@@ -2,6 +2,9 @@
     ScriptName: es_s_persisthp.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Subsystem that saves a player's hitpoints to
                  their .bic file when they log out and sets their hitpoints
                  when they log back in.

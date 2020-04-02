@@ -2,6 +2,9 @@
     ScriptName: es_srv_mediator.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Service that allows subsystems to call functions
                  from other subsystems without having to include them.
 */

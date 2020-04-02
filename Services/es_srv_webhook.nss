@@ -2,6 +2,9 @@
     ScriptName: es_srv_webhook.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[WebHook]
+
     Description: An EventSystem Service that allows sending of webhook messages
 */
 

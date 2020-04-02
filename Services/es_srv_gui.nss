@@ -2,6 +2,9 @@
     ScriptName: es_srv_gui.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Service that provides various GUI functionality
 */
 

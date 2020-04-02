@@ -2,6 +2,9 @@
     ScriptName: es_srv_elc.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[ELC]
+
     Description: An EventSystem Service that allows subscribing to ELC events
 */
 

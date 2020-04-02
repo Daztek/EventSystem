@@ -2,6 +2,9 @@
     ScriptName: es_srv_profiler.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[Time]
+
     Description: An EventSystem Service that adds a Script Profiler
 */
 

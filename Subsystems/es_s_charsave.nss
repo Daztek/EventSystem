@@ -2,6 +2,9 @@
     ScriptName: es_s_charsave.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem subsystem that periodically saves all player
                  characters and adds a chat command for players to manually
                  save their character.

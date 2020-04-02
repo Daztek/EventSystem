@@ -2,6 +2,9 @@
     ScriptName: es_s_objsit.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Subsystem that allows players to sit on objects
                  with the following tag: OBJSIT_SINGLE
 */

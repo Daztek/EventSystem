@@ -2,12 +2,15 @@
     ScriptName: es_s_travel.nss
     Created by: Daz
 
-    Description: A subsystem that gives players a movement speed increase when
-                 they're travelling on roads and a movement speed decrease while
-                 in water.
+    Required NWNX Plugins:
+        @NWNX[Player]
 
     Flags:
         @HotSwap
+
+    Description: A subsystem that gives players a movement speed increase when
+                 they're travelling on roads and a movement speed decrease while
+                 in water.
 */
 
 //void main() {}

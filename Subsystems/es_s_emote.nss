@@ -2,6 +2,9 @@
     ScriptName: es_s_emote.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: A subsystem that adds an /emote chat command that allows players to emote
 */
 

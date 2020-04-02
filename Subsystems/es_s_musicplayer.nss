@@ -2,6 +2,9 @@
     ScriptName: es_s_musicplayer.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[Area]
+
     Description: A subsystem that spawns a music player that lets players
                  change the area's music
 

@@ -2,6 +2,9 @@
     ScriptName: es_s_subsysman.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description:
 */
 

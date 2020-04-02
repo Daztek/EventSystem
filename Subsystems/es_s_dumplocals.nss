@@ -2,6 +2,9 @@
     ScriptName: es_s_dumplocals.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Subsystem that replaces the dm_dumplocals
                  console command with a NWScript implementation
 */

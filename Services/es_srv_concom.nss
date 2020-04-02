@@ -2,6 +2,9 @@
     ScriptName: es_srv_concom.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[]
+
     Description: An EventSystem Service that allows registering of
                  server console commands by subsystems
 */
@@ -12,7 +15,6 @@
 
 const string CONSOLECOMMAND_LOG_TAG         = "ConsoleCommand";
 const string CONSOLECOMMAND_SCRIPT_NAME     = "es_srv_concom";
-
 
 // @Load
 void ConsoleCommand_Load(string sServiceScript)

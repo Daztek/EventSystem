@@ -2,6 +2,9 @@
     ScriptName: es_s_persistloc.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[Player]
+
     Description: An EventSystem Subsystem that saves a player's location to
                  their .bic file when they log out and respawns them there
                  when the server is restarted.

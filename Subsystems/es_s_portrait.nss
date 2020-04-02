@@ -2,6 +2,9 @@
     ScriptName: es_s_portrait.nss
     Created by: Daz
 
+    Required NWNX Plugins:
+        @NWNX[Player]
+
     Description: A Portrait Change Subsystem
 */
 

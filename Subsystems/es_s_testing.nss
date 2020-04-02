@@ -2,10 +2,13 @@
     ScriptName: es_s_testing.nss
     Created by: Daz
 
-    Description: A test subsystem
-
+    Required NWNX Plugins:
+        @NWNX[Player Area Administration Object]
+        
     Flags:
-        @HotSwap
+        @HotSwap        
+
+    Description: A test subsystem
 */
 
 //void main() {}
@@ -30,8 +33,8 @@ void Testing_Load(string sSubsystemScript)
     object oPlayer = GetFirstPC();
     if (GetIsObjectValid(oPlayer))
     {
-        GUI_ClearByRange(oPlayer, 1, 100);      
-    } 
+        GUI_ClearByRange(oPlayer, 1, 100);
+    }
 }
 
 // @Unload
@@ -84,11 +87,13 @@ void Testing_EventHandler(string sSubsystemScript, string sEvent)
         {
             object oBadger = GetNearestObjectByTag("NW_BADGER", oPlayer);
 
-            int nAmount = Random(5) + 1;
+            if (!GetIsDead(oBadger))
+            {            
+                int nAmount = Random(5) + 1;
 
-            AssignCommand(oPlayer, DoDamage(oBadger, nAmount));
-            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_MAGBLUE), oBadger);
-
+                AssignCommand(oPlayer, DoDamage(oBadger, nAmount));
+                ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_MAGBLUE), oBadger);
+            }
             SetPCChatMessage("");
         }
         
@@ -105,14 +110,21 @@ void Testing_EventHandler(string sSubsystemScript, string sEvent)
         if (sMessage == "/badger")
         {
             object oBadger = CreateObject(OBJECT_TYPE_CREATURE, "nw_badger", GetStartingLocation());
-            NWNX_Object_SetMaxHitPoints(oBadger, 10 + Random(10));            
+            SetName(oBadger, "Ferocious Badger");
+            NWNX_Object_SetMaxHitPoints(oBadger, 5 + Random(10));            
             ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectHeal(GetMaxHitPoints(oBadger)), oBadger);            
 
             struct ProfilerData pd = Profiler_Start("Mediator_ExecuteFunction", FALSE, TRUE);
-            Mediator_ExecuteFunction("es_s_hpbar", "HealthBar_EnableHealthBar", 
-                Mediator_Object(oBadger) + 
-                Mediator_String("Yerple!") + 
-                Mediator_Int(30));
+            
+            if (Mediator_ExecuteFunction("es_s_hpbar", "HealthBar_EnableHealthBar", Mediator_Object(oBadger) + Mediator_String("Yerple! Grrr!")))
+            {
+                 SendMessageToPC(oPlayer, "HealthBar Functionality Enabled :)");               
+            }
+            else
+            {
+                SendMessageToPC(oPlayer, "No HealthBar Functionality :(");
+            }
+            
             Profiler_Stop(pd);
             
             SetCommandable(FALSE, oBadger);
