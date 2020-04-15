@@ -53,8 +53,10 @@ struct HealthBar_Data
     float fLifeTime;
 };
 
-// Enable a "Boss Type" HealthBar for oCreature
-void HealthBar_EnableHealthBar(object oCreature, string sInfoBlurb);
+// Enable a HealthBar for oCreature
+void HealthBar_EnableHealthBar(object oCreature);
+// Set oCreature's HealthBar infoblurb
+void HealthBar_SetInfoBlurb(object oCreature, string sInfoBlurb);
 
 // @Load
 void HealthBar_Load(string sSubsystemScript)
@@ -63,23 +65,21 @@ void HealthBar_Load(string sSubsystemScript)
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER, TRUE);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER, TRUE);
+
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", TRUE);
+    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_CAST_SPELL_AFTER", TRUE);
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", TRUE);
 
     GUI_ReserveIDs(sSubsystemScript, HEALTHBAR_GUI_NUM_IDS);
-    Mediator_RegisterFunction(sSubsystemScript, "HealthBar_EnableHealthBar", "os");
+    Mediator_RegisterFunction(sSubsystemScript, "HealthBar_EnableHealthBar", "o");
+    Mediator_RegisterFunction(sSubsystemScript, "HealthBar_SetInfoBlurb", "os");
     ChatCommand_Register(sSubsystemScript, "HealthBar_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + HEALTHBAR_CHATCOMMAND_NAME, "", HEALTHBAR_CHATCOMMAND_DESCRIPTION);
 }
 
-void HealthBar_EnableHealthBar(object oCreature, string sInfoBlurb)
+void HealthBar_EnableHealthBar(object oCreature)
 {
     if (GetObjectType(oCreature) != OBJECT_TYPE_CREATURE || GetIsPC(oCreature))
-    {
-        ES_Util_Log(HEALTHBAR_LOG_TAG, "ERROR: Failed to enable HealthBar for object: " + GetName(oCreature) + "(" + GetTag(oCreature) + ")");
         return;
-    }
-
-    SetLocalString(oCreature, "HealthBar_Info", sInfoBlurb);
 
     SetLocalInt(oCreature, "HealthBar_Enabled", TRUE);
 
@@ -93,22 +93,32 @@ void HealthBar_EnableHealthBar(object oCreature, string sInfoBlurb)
     NWNX_Events_AddObjectToDispatchList(sDeathEvent, HEALTHBAR_SCRIPT_NAME, oCreature);
 }
 
-void HealthBar_RemovePlayerFromHealthBarList(string sCreatureUUID, string sPlayerUUID)
+void HealthBar_SetInfoBlurb(object oCreature, string sInfoBlurb)
+{
+    SetLocalString(oCreature, "HealthBar_Info", sInfoBlurb);
+}
+
+int HealthBar_GetWidth(object oCreature)
+{
+    int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
+
+    return nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+}
+
+void HealthBar_RemovePlayerFromHealthBarList(string sPlayerUUID, string sCreatureUUID)
 {
     object oCreature = GetObjectByUUID(sCreatureUUID);
 
     if (GetIsObjectValid(oCreature))
-    {
         ES_Util_StringArray_DeleteByValue(oCreature, "HealthBarTargets", sPlayerUUID);
 
-        ES_Util_DeleteString(GetObjectByUUID(sPlayerUUID), HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
-    }
+    DeleteLocalString(GetObjectByUUID(sPlayerUUID), HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 }
 
 void HealthBar_AddPlayerToHealthBarList(object oPlayer, object oCreature)
 {
     string sCreatureUUID = GetObjectUUID(oCreature);
-    string sCurrentHealthBarTarget = ES_Util_GetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+    string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
     if (sCreatureUUID == sCurrentHealthBarTarget)
         return;
@@ -117,11 +127,11 @@ void HealthBar_AddPlayerToHealthBarList(object oPlayer, object oCreature)
         string sPlayerUUID = GetObjectUUID(oPlayer);
 
         if (sCurrentHealthBarTarget != "")
-            HealthBar_RemovePlayerFromHealthBarList(sCurrentHealthBarTarget, sPlayerUUID);
+            HealthBar_RemovePlayerFromHealthBarList(sPlayerUUID, sCurrentHealthBarTarget);
 
         ES_Util_StringArray_Insert(oCreature, "HealthBarTargets", sPlayerUUID);
 
-        ES_Util_SetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar", sCreatureUUID);
+        SetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar", sCreatureUUID);
     }
 }
 
@@ -233,43 +243,61 @@ void HealthBar_Draw(object oPlayer, struct HealthBar_Data hbd)
 // @EventHandler
 void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
 {
-    if (sEvent == "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER")
+    if (sEvent == "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER" ||
+        sEvent == "NWNX_ON_INPUT_CAST_SPELL_AFTER")
     {
         object oPlayer = OBJECT_SELF;
         object oCreature = ES_Util_GetEventData_NWNX_Object("TARGET");
 
-        if (GetLocalInt(oCreature, "HealthBar_Enabled"))
+        if (!GetIsObjectValid(oCreature) ||
+             GetObjectType(oCreature) != OBJECT_TYPE_CREATURE ||
+            !GetIsEnemy(oCreature, oPlayer) ||
+             GetIsPC(oCreature))
+            return;
+
+        int nHealthBarEnabled = GetLocalInt(oCreature, "HealthBar_Enabled");
+
+        if (!nHealthBarEnabled)
         {
-            NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
+            HealthBar_EnableHealthBar(oCreature);
+            nHealthBarEnabled = TRUE;
+        }
 
-            HealthBar_AddPlayerToHealthBarList(oPlayer, oCreature);
+        if (nHealthBarEnabled)
+        {
+            string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+            string sCreatureUUID = GetObjectUUID(oCreature);
 
-            string sInfo = GetLocalString(oCreature, "HealthBar_Info");
-            int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
-            int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+            if (sCurrentHealthBarTarget != sCreatureUUID)
+            {
+                NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
 
-            HealthBar_Draw(oPlayer, HealthBar_Update(oCreature, sInfo, nWidth));
+                HealthBar_AddPlayerToHealthBarList(oPlayer, oCreature);
+
+                string sInfo = GetLocalString(oCreature, "HealthBar_Info");
+                int nWidth = HealthBar_GetWidth(oCreature);
+
+                HealthBar_Draw(oPlayer, HealthBar_Update(oCreature, sInfo, nWidth));
+            }
         }
     }
     if (sEvent == "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER")
     {
         object oPlayer = OBJECT_SELF;
+        string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
-        string sCurrentHealthBarTarget = ES_Util_GetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+        NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
 
         if (sCurrentHealthBarTarget != "")
         {
-            NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
-
-            HealthBar_RemovePlayerFromHealthBarList(sCurrentHealthBarTarget, GetObjectUUID(oPlayer));
+            HealthBar_RemovePlayerFromHealthBarList(GetObjectUUID(oPlayer), sCurrentHealthBarTarget);
 
             object oCreature = GetObjectByUUID(sCurrentHealthBarTarget);
 
             if (GetIsObjectValid(oCreature))
             {
                 string sInfo = GetLocalString(oCreature, "HealthBar_Info");
-                int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
-                int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+                int nWidth = HealthBar_GetWidth(oCreature);
 
                 struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
                 hbd.fLifeTime = HEALTHBAR_TIMEOUT_DELAY;
@@ -287,6 +315,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                 object oPlayer = GetEnteringObject();
 
                 NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", sSubsystemScript, oPlayer);
+                NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_CAST_SPELL_AFTER", sSubsystemScript, oPlayer);
 
                 break;
             }
@@ -294,8 +323,16 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
             case EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT:
             {
                 object oPlayer = GetExitingObject();
+                string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
                 NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", sSubsystemScript, oPlayer);
+                NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_CAST_SPELL_AFTER", sSubsystemScript, oPlayer);
+                NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
+
+                if (sCurrentHealthBarTarget != "")
+                {
+                    HealthBar_RemovePlayerFromHealthBarList(GetObjectUUID(oPlayer), sCurrentHealthBarTarget);
+                }
 
                 break;
             }
@@ -303,11 +340,11 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
             case EVENT_SCRIPT_CREATURE_ON_DAMAGED:
             {
                 object oCreature = OBJECT_SELF;
-                object oDamager = GetLastDamager(oCreature);
+                object oLastDamager = GetLastDamager(oCreature);
 
-                if (GetIsPC(oDamager))
+                if (GetIsPC(oLastDamager))
                 {
-                    HealthBar_AddPlayerToHealthBarList(oDamager, oCreature);
+                    HealthBar_AddPlayerToHealthBarList(oLastDamager, oCreature);
                 }
 
                 int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
@@ -315,8 +352,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                 if (nNumTargets)
                 {
                     string sInfo = GetLocalString(oCreature, "HealthBar_Info");
-                    int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
-                    int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+                    int nWidth = HealthBar_GetWidth(oCreature);
 
                     struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
 
@@ -349,8 +385,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                 if (nNumTargets)
                 {
                     string sInfo = GetLocalString(oCreature, "HealthBar_Info");
-                    int nOverrideWidth = GetLocalInt(oCreature, "HealthBar_Width");
-                    int nWidth = nOverrideWidth ? nOverrideWidth : HEALTHBAR_DEFAULT_WIDTH;
+                    int nWidth = HealthBar_GetWidth(oCreature);
 
                     struct HealthBar_Data hbd = HealthBar_Update(oCreature, sInfo, nWidth);
                     hbd.fLifeTime = HEALTHBAR_TIMEOUT_DELAY;
@@ -363,7 +398,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                         if (GetIsObjectValid(oPlayer))
                         {
                             HealthBar_Draw(oPlayer, hbd);
-                            ES_Util_DeleteString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+                            DeleteLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
                         }
                     }
                 }
@@ -425,10 +460,10 @@ void HealthBar_ChatCommand(object oPlayer, string sOption, int nVolume)
 
         GUI_ClearBySubsystem(oPlayer, HEALTHBAR_SCRIPT_NAME);
 
-        string sCurrentHealthBarTarget = ES_Util_GetString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
+        string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
         if (sCurrentHealthBarTarget != "")
-            HealthBar_RemovePlayerFromHealthBarList(sCurrentHealthBarTarget, GetObjectUUID(oPlayer));
+            HealthBar_RemovePlayerFromHealthBarList(GetObjectUUID(oPlayer), sCurrentHealthBarTarget);
     }
     else
     if ((sParams = ChatCommand_Parse(sOption, "reset")) != CHATCOMMAND_PARSE_ERROR)
