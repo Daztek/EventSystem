@@ -37,14 +37,14 @@ struct ProfilerStats
     int nAvg;
 };
 
-struct ProfilerData Profiler_Start(string sName, int bSkipLog = FALSE, int bEnableStats = FALSE);
+struct ProfilerData Profiler_Start(string sName, int bSkipLog = FALSE, int bEnableStats = TRUE);
 int Profiler_Stop(struct ProfilerData startData);
 int Profiler_GetOverheadCompensation();
 void Profiler_SetOverheadCompensation(int nOverhead);
 int Profiler_Calibrate(int nIterations);
 struct ProfilerStats Profiler_GetStats(string sName);
 void Profiler_DeleteStats(string sName);
-string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = FALSE);
+string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = TRUE);
 
 // @Load
 void Profiler_Load(string sServiceScript)
@@ -55,7 +55,7 @@ void Profiler_Load(string sServiceScript)
     Profiler_SetOverheadCompensation(nOverhead);
 }
 
-struct ProfilerData Profiler_Start(string sName, int bSkipLog = FALSE, int bEnableStats = FALSE)
+struct ProfilerData Profiler_Start(string sName, int bSkipLog = FALSE, int bEnableStats = TRUE)
 {
     struct ProfilerData pd;
     pd.sName = sName;
@@ -85,36 +85,36 @@ int Profiler_Stop(struct ProfilerData startData)
     if (startData.bEnableStats)
     {
         object oDataObject = ES_Util_GetDataObject(PROFILER_SCRIPT_NAME + "!" + startData.sName);
-        int nMin, nMax, nCount = ES_Util_GetInt(oDataObject, "PROFILER_COUNT") + 1;
-        ES_Util_SetInt(oDataObject, "PROFILER_COUNT", nCount);
+        int nMin, nMax, nCount = GetLocalInt(oDataObject, "PROFILER_COUNT") + 1;
+        SetLocalInt(oDataObject, "PROFILER_COUNT", nCount);
 
         if (nCount == 1)
         {
             nMin = nTotalMicroSeconds;
             nMax = nTotalMicroSeconds;
 
-            ES_Util_SetInt(oDataObject, "PROFILER_MIN", nTotalMicroSeconds);
-            ES_Util_SetInt(oDataObject, "PROFILER_MAX", nTotalMicroSeconds);
+            SetLocalInt(oDataObject, "PROFILER_MIN", nTotalMicroSeconds);
+            SetLocalInt(oDataObject, "PROFILER_MAX", nTotalMicroSeconds);
         }
         else
         {
-            nMin = ES_Util_GetInt(oDataObject, "PROFILER_MIN");
+            nMin = GetLocalInt(oDataObject, "PROFILER_MIN");
             if (nTotalMicroSeconds < nMin)
             {
                 nMin = nTotalMicroSeconds;
-                ES_Util_SetInt(oDataObject, "PROFILER_MIN", nTotalMicroSeconds);
+                SetLocalInt(oDataObject, "PROFILER_MIN", nTotalMicroSeconds);
             }
 
-            nMax = ES_Util_GetInt(oDataObject, "PROFILER_MAX");
+            nMax = GetLocalInt(oDataObject, "PROFILER_MAX");
             if (nTotalMicroSeconds > nMax)
             {
                 nMax = nTotalMicroSeconds;
-                ES_Util_SetInt(oDataObject, "PROFILER_MAX", nTotalMicroSeconds);
+                SetLocalInt(oDataObject, "PROFILER_MAX", nTotalMicroSeconds);
             }
         }
 
-        int nSum = ES_Util_GetInt(oDataObject, "PROFILER_SUM") + nTotalMicroSeconds;
-        ES_Util_SetInt(oDataObject, "PROFILER_SUM", nSum);
+        int nSum = GetLocalInt(oDataObject, "PROFILER_SUM") + nTotalMicroSeconds;
+        SetLocalInt(oDataObject, "PROFILER_SUM", nSum);
 
         sStats = " (MIN: " + IntToString(nMin) + "us, MAX: " + IntToString(nMax) + "us, AVG: " + IntToString((nSum / nCount)) + "us)";
     }
@@ -138,12 +138,12 @@ int Profiler_Stop(struct ProfilerData startData)
 
 int Profiler_GetOverheadCompensation()
 {
-    return ES_Util_GetInt(ES_Util_GetDataObject(PROFILER_SCRIPT_NAME), "OVERHEAD_COMPENSATION");
+    return GetLocalInt(ES_Util_GetDataObject(PROFILER_SCRIPT_NAME), "OVERHEAD_COMPENSATION");
 }
 
 void Profiler_SetOverheadCompensation(int nOverhead)
 {
-    ES_Util_SetInt(ES_Util_GetDataObject(PROFILER_SCRIPT_NAME), "OVERHEAD_COMPENSATION", nOverhead);
+    SetLocalInt(ES_Util_GetDataObject(PROFILER_SCRIPT_NAME), "OVERHEAD_COMPENSATION", nOverhead);
 }
 
 int Profiler_Calibrate(int nIterations)
@@ -167,10 +167,10 @@ struct ProfilerStats Profiler_GetStats(string sName)
 
     if (GetIsObjectValid(oDataObject))
     {
-        ps.nSum = ES_Util_GetInt(oDataObject, "PROFILER_SUM");
-        ps.nCount = ES_Util_GetInt(oDataObject, "PROFILER_COUNT");
-        ps.nMin = ES_Util_GetInt(oDataObject, "PROFILER_MIN");
-        ps.nMax = ES_Util_GetInt(oDataObject, "PROFILER_MAX");
+        ps.nSum = GetLocalInt(oDataObject, "PROFILER_SUM");
+        ps.nCount = GetLocalInt(oDataObject, "PROFILER_COUNT");
+        ps.nMin = GetLocalInt(oDataObject, "PROFILER_MIN");
+        ps.nMax = GetLocalInt(oDataObject, "PROFILER_MAX");
         ps.nAvg = ps.nCount == 0 ? 0 : ps.nSum / ps.nCount;
     }
 
@@ -184,7 +184,7 @@ void Profiler_DeleteStats(string sName)
     ES_Util_Log(PROFILER_LOG_TAG, "Deleted stats for: '" + sName + "'");
 }
 
-string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = FALSE)
+string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = TRUE)
 {
     return "struct ProfilerData pd = " + nssFunction("Profiler_Start",
         nssEscapeDoubleQuotes(sName) + ", " + IntToString(bSkipLog) + ", " +

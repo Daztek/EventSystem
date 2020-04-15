@@ -90,6 +90,9 @@ int floor(float f);
 int ceil(float f);
 int round(float f);
 
+// Calculate vCenter's angle to face vPoint
+float ES_Util_CalculateFacing(vector vCenter, vector vPoint);
+
 // Delete oObject's POS float variable sVarName
 void ES_Util_DeleteFloat(object oObject, string sVarName);
 // Delete any of oObject's POS float variables that match sRegex
@@ -199,6 +202,13 @@ void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID,
 // Returns TRUE if there is at least 1 player or DM online
 int ES_Util_GetPlayersOnline();
 
+// Delete oObject's local vector variable sVarName
+void DeleteLocalVector(object oObject, string sVarName);
+// Get oObject's local vector variable sVarname
+vector GetLocalVector(object oObject, string sVarName);
+// Set oObject's local vector variable sVarname to vValue
+void SetLocalVector(object oObject, string sVarName, vector vValue);
+
 
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
 {
@@ -212,7 +222,7 @@ object ES_Util_CreateDataObject(string sTag, int bDestroyExisting = TRUE)
 
     object oDataObject = ES_Util_CreateWaypoint(GetStartingLocation(), "ESDataObject_" + sTag);
 
-    ES_Util_SetObject(GetModule(), "ESDataObject_" + sTag, oDataObject);
+    SetLocalObject(GetModule(), "ESDataObject_" + sTag, oDataObject);
 
     return oDataObject;
 }
@@ -220,18 +230,18 @@ object ES_Util_CreateDataObject(string sTag, int bDestroyExisting = TRUE)
 void ES_Util_DestroyDataObject(string sTag)
 {
     object oModule = GetModule();
-    object oDataObject = ES_Util_GetObject(oModule, "ESDataObject_" + sTag);
+    object oDataObject = GetLocalObject(oModule, "ESDataObject_" + sTag);
 
     if (GetIsObjectValid(oDataObject))
     {
-        ES_Util_DeleteObject(oModule, "ESDataObject_" + sTag);
+        DeleteLocalObject(oModule, "ESDataObject_" + sTag);
         DestroyObject(oDataObject);
     }
 }
 
 object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE)
 {
-    object oDataObject = ES_Util_GetObject(GetModule(), "ESDataObject_" + sTag);
+    object oDataObject = GetLocalObject(GetModule(), "ESDataObject_" + sTag);
 
     return GetIsObjectValid(oDataObject) ? oDataObject : bCreateIfNotExists ? ES_Util_CreateDataObject(sTag) : OBJECT_INVALID;
 }
@@ -427,10 +437,10 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
 {
     object oModule = GetModule();
     string sObjectSelf = sObjectSelfVarName != "" ? nssObject(sObjectSelfVarName, "OBJECT_SELF") : "";
-    string sScript = nssInclude("es_inc_util") + nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssString("sReturn", sScriptChunk) +
-        nssFunction("ES_Util_SetString", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", sReturn"));
+    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssString("sReturn", sScriptChunk) +
+        nssFunction("SetLocalString", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", sReturn"));
 
-    ES_Util_DeleteString(oModule, "ES_TEMP_VAR");
+    DeleteLocalString(oModule, "ES_TEMP_VAR");
     ExecuteScriptChunk(sScript, oObject, FALSE);
 
     string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
@@ -438,23 +448,23 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
     if (sResult != "")
         ES_Util_Log("ERROR", "ExecuteScriptChunkAndReturnString() failed with error: " + sResult);
 
-    return ES_Util_GetString(oModule, "ES_TEMP_VAR");
+    return GetLocalString(oModule, "ES_TEMP_VAR");
 }
 
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "")
 {
     object oModule = GetModule();
     string sObjectSelf = sObjectSelfVarName != "" ? nssObject(sObjectSelfVarName, "OBJECT_SELF") : "";
-    string sScript = nssInclude("es_inc_util") + nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssInt("nReturn", sScriptChunk) +
-        nssFunction("ES_Util_SetInt", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", nReturn"));
+    string sScript = nssInclude(sInclude) + nssVoidMain(sObjectSelf + nssInt("nReturn", sScriptChunk) +
+        nssFunction("SetLocalInt", nssFunction("GetModule", "", FALSE) + ", " + nssEscapeDoubleQuotes("ES_TEMP_VAR") + ", nReturn"));
 
-    ES_Util_DeleteInt(oModule, "ES_TEMP_VAR");
+    DeleteLocalInt(oModule, "ES_TEMP_VAR");
     string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
 
     if (sResult != "")
         ES_Util_Log("ERROR", "ExecuteScriptChunkAndReturnInt() failed with error: " + sResult);
 
-    return ES_Util_GetInt(oModule, "ES_TEMP_VAR");
+    return GetLocalInt(oModule, "ES_TEMP_VAR");
 }
 
 void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject)
@@ -491,6 +501,25 @@ int ceil(float f)
 int round(float f)
 {
     return FloatToInt(f + 0.5f);
+}
+
+float ES_Util_CalculateFacing(vector vCenter, vector vPoint)
+{
+    float fAngle;
+    float fAtan = atan((fabs(fabs(vCenter.y) - fabs(vPoint.y))) / (fabs(fabs(vCenter.x) - fabs(vPoint.x))));
+
+    if (vCenter.x >= vPoint.x && vCenter.y <= vPoint.y)
+        fAngle = 90 - fAtan;
+    else if (vCenter.x >= vPoint.x && vCenter.y >= vPoint.y)
+        fAngle = 90 + fAtan;
+    else if (vCenter.x <= vPoint.x && vCenter.y >= vPoint.y)
+        fAngle =  270 - fAtan;
+    else if (vCenter.x <= vPoint.x && vCenter.y <= vPoint.y)
+    {
+        float f = 270 + fAtan;
+        fAngle = (f == 360.0f ? 0.0f : f);
+    }
+    return fAngle - 270;
 }
 
 void ES_Util_DeleteFloat(object oObject, string sVarName)
@@ -621,8 +650,8 @@ void ES_Util_DeleteVarRegex(object oObject, string sRegex)
 void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue)
 {
     int nSize = ES_Util_StringArray_Size(oObject, sArrayName);
-    ES_Util_SetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize), sValue);
-    ES_Util_SetInt(oObject, "SA!NUM!" + sArrayName, ++nSize);
+    SetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize), sValue);
+    SetLocalInt(oObject, "SA!NUM!" + sArrayName, ++nSize);
 }
 
 void ES_Util_StringArray_Set(object oObject, string sArrayName, int nIndex, string sValue)
@@ -630,22 +659,34 @@ void ES_Util_StringArray_Set(object oObject, string sArrayName, int nIndex, stri
     int nSize = ES_Util_StringArray_Size(oObject, sArrayName);
 
     if (nIndex < nSize)
-        ES_Util_SetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), sValue);
+        SetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), sValue);
 }
 
 int ES_Util_StringArray_Size(object oObject, string sArrayName)
 {
-    return ES_Util_GetInt(oObject, "SA!NUM!" + sArrayName);
+    return GetLocalInt(oObject, "SA!NUM!" + sArrayName);
 }
 
 string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex)
 {
-    return ES_Util_GetString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+    return GetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
 }
 
 void ES_Util_StringArray_Clear(object oObject, string sArrayName)
 {
-    ES_Util_DeleteVarRegex(oObject, "(?:SA!)((?:ELEMENT!)|(?:NUM!))(?:" + sArrayName + ")!?\d*");
+    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
+
+    if (nSize)
+    {
+        for (nIndex = 0; nIndex < nSize; nIndex++)
+        {
+            string sElement = ES_Util_StringArray_At(oObject, sArrayName, nIndex);
+
+            DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+        }
+    }
+
+    DeleteLocalInt(oObject, "SA!NUM!" + sArrayName);
 }
 
 int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue)
@@ -678,8 +719,8 @@ void ES_Util_StringArray_Delete(object oObject, string sArrayName, int nIndex)
             ES_Util_StringArray_Set(oObject, sArrayName, nIndexNew, ES_Util_StringArray_At(oObject, sArrayName, nIndexNew + 1));
         }
 
-        ES_Util_DeleteString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize - 1));
-        ES_Util_SetInt(oObject, "SA!NUM!" + sArrayName, nSize - 1);
+        DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize - 1));
+        SetLocalInt(oObject, "SA!NUM!" + sArrayName, nSize - 1);
     }
 }
 
@@ -760,5 +801,20 @@ void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID,
 int ES_Util_GetPlayersOnline()
 {
     return GetFirstPC() != OBJECT_INVALID;
+}
+
+void DeleteLocalVector(object oObject, string sVarName)
+{
+    DeleteLocalLocation(oObject, "VEC:" + sVarName);
+}
+
+vector GetLocalVector(object oObject, string sVarName)
+{
+    return GetPositionFromLocation(GetLocalLocation(oObject, "VEC:" + sVarName));
+}
+
+void SetLocalVector(object oObject, string sVarName, vector vValue)
+{
+    SetLocalLocation(oObject, "VEC:" + sVarName, Location(GetAreaFromLocation(GetStartingLocation()), vValue, 0.0f));
 }
 

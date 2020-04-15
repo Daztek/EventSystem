@@ -57,6 +57,8 @@ struct Toolbox_PlaceableData
     int bPlot;
     int bUseable;
 
+    float fFacingAdjustment;
+
     int scriptOnClick;
     int scriptOnClose;
     int scriptOnDamaged;
@@ -103,10 +105,10 @@ void Toolbox_Load(string sServiceScript)
         SetDescription(oSmallItem, "Item Template, Small");
 
         string sSmallItem = NWNX_Object_Serialize(oSmallItem);
-        ES_Util_SetString(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, sSmallItem);
+        SetLocalString(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, sSmallItem);
 
         object oTemplateSmallItem = NWNX_Object_Deserialize(sSmallItem);
-        ES_Util_SetObject(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, oTemplateSmallItem);
+        SetLocalObject(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG, oTemplateSmallItem);
 
         DestroyObject(oSmallItem);
 
@@ -116,13 +118,13 @@ void Toolbox_Load(string sServiceScript)
         SetName(oNormalPlaceable, "Placeable Template, Normal");
         NWNX_Object_SetPlaceableIsStatic(oNormalPlaceable, FALSE);
         string sNormalPlaceable = NWNX_Object_Serialize(oNormalPlaceable);
-        ES_Util_SetString(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG, sNormalPlaceable);
+        SetLocalString(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG, sNormalPlaceable);
 
         object oInventoryPlaceable = CreateObject(OBJECT_TYPE_PLACEABLE, "x1_hen_inv", GetStartingLocation(), FALSE, TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG);
         SetName(oInventoryPlaceable, "Placeable Template, Inventory");
         SetEventScript(oInventoryPlaceable, EVENT_SCRIPT_PLACEABLE_ON_CLOSED, "");
         string sInventoryPlaceable = NWNX_Object_Serialize(oInventoryPlaceable);
-        ES_Util_SetString(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG, sInventoryPlaceable);
+        SetLocalString(ES_Util_GetDataObject(sServiceScript), TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG, sInventoryPlaceable);
 
         DestroyObject(oNormalPlaceable);
         DestroyObject(oInventoryPlaceable);
@@ -130,7 +132,7 @@ void Toolbox_Load(string sServiceScript)
 
 object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid)
 {
-    object oTemplateItem = ES_Util_GetObject(ES_Util_GetDataObject(TOOLBOX_SCRIPT_NAME), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG);
+    object oTemplateItem = GetLocalObject(ES_Util_GetDataObject(TOOLBOX_SCRIPT_NAME), TOOLBOX_TEMPLATE_SMALL_ITEM_TAG);
     object oSmallItem = CopyItemAndModify(oTemplateItem, ITEM_APPR_TYPE_SIMPLE_MODEL, 0, sid.nIcon, TRUE);
 
     SetName(oSmallItem, sid.sName);
@@ -151,7 +153,7 @@ object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid)
 
 string Toolbox_GeneratePlaceable(struct Toolbox_PlaceableData pd)
 {
-    object oPlaceable = NWNX_Object_Deserialize(ES_Util_GetString(
+    object oPlaceable = NWNX_Object_Deserialize(GetLocalString(
         ES_Util_GetDataObject(TOOLBOX_SCRIPT_NAME), pd.bHasInventory ? TOOLBOX_TEMPLATE_PLACEABLE_INVENTORY_TAG : TOOLBOX_TEMPLATE_PLACEABLE_NORMAL_TAG));
 
     NWNX_Object_SetAppearance(oPlaceable, pd.nModel);
@@ -163,6 +165,8 @@ string Toolbox_GeneratePlaceable(struct Toolbox_PlaceableData pd)
     SetName(oPlaceable, pd.sName);
     SetDescription(oPlaceable, pd.sDescription);
     SetTag(oPlaceable, pd.sTag);
+
+    SetLocalFloat(oPlaceable, "ToolboxFacingAdjustment", pd.fFacingAdjustment);
 
     if (pd.bPlot)       SetPlotFlag(oPlaceable, pd.bPlot);
     if (pd.bUseable)    SetUseableFlag(oPlaceable, pd.bUseable);
@@ -196,9 +200,13 @@ object Toolbox_CreatePlaceable(string sPlaceable, location locLocation, string s
     if (sNewTag != "")
         SetTag(oPlaceable, sNewTag);
 
-    AssignCommand(oPlaceable, SetFacing(GetFacingFromLocation(locLocation)));
-
     NWNX_Object_AddToArea(oPlaceable, GetAreaFromLocation(locLocation), GetPositionFromLocation(locLocation));
+
+    float fFacingAdjustment = GetLocalFloat(oPlaceable, "ToolboxFacingAdjustment");
+    float fFacing = GetFacingFromLocation(locLocation) + fFacingAdjustment;
+
+    NWNX_Object_SetFacing(oPlaceable, fFacing);
+    DeleteLocalFloat(oPlaceable, "ToolboxFacingAdjustment");
 
     return oPlaceable;
 }

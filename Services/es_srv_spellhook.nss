@@ -34,7 +34,7 @@ void Spellhook_SignalEvent()
 {
     string sSpellEvent = SPELLHOOK_EVENT_PREFIX + IntToString(GetSpellId());
 
-    if (ES_Util_GetInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), sSpellEvent))
+    if (GetLocalInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), sSpellEvent))
         NWNX_Events_SignalEvent(sSpellEvent, OBJECT_SELF);
 }
 
@@ -42,7 +42,7 @@ void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpell)
 {
     SetModuleOverrideSpellscript(SPELLHOOK_SCRIPT_NAME);
 
-    ES_Util_SetInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), TRUE);
+    SetLocalInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), TRUE);
 
     ES_Core_SubscribeEvent(sSubsystemScript, SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), FALSE);
 }

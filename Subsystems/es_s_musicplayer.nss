@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[Area]
+        @NWNX[]
 
     Description: A subsystem that spawns a music player that lets players
                  change the area's music
@@ -17,8 +17,6 @@
 #include "es_inc_core"
 #include "es_srv_toolbox"
 #include "es_srv_simdialog"
-
-#include "nwnx_area"
 
 const string MUSICPLAYER_LOG_TAG                = "MusicPlayer";
 const string MUSICPLAYER_SCRIPT_NAME            = "es_s_musicplayer";
@@ -46,8 +44,6 @@ void MusicPlayer_ApplyDisabledEffects(object oMusicPlayer);
 // @Load
 void MusicPlayer_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD);
-
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
@@ -58,6 +54,7 @@ void MusicPlayer_Load(string sSubsystemScript)
 
     MusicPlayer_LoadMusicTracks();
     MusicPlayer_CreateConversation();
+    MusicPlayer_SpawnPlaceables(sSubsystemScript);
 }
 
 // @EventHandler
@@ -123,7 +120,7 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
 
                     MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_picklockopen");
 
-                    ES_Util_SetInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, nTrack);
+                    SetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, nTrack);
 
                     MusicBackgroundChangeNight(oArea, nTrack);
                     MusicBackgroundChangeDay(oArea, nTrack);
@@ -166,8 +163,8 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
         int nPage = ES_Util_GetEventData_NWNX_Int("PAGE");
 
         object oDataObject = ES_Util_GetDataObject(MUSICPLAYER_SCRIPT_NAME);
-        int nCurrentTrack = ES_Util_GetInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK);
-        string sCurrentTrackName = ES_Util_GetString(oDataObject, MUSICPLAYER_TRACK + IntToString(nCurrentTrack));
+        int nCurrentTrack = GetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK);
+        string sCurrentTrackName = GetLocalString(oDataObject, MUSICPLAYER_TRACK + IntToString(nCurrentTrack));
 
         if (nPage == 1)
         {
@@ -179,7 +176,7 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
         else
         if (nPage == 2)
         {
-            int nNumTracks = ES_Util_GetInt(oDataObject, MUSICPLAYER_NUM_TRACKS);
+            int nNumTracks = GetLocalInt(oDataObject, MUSICPLAYER_NUM_TRACKS);
             int nEnd = SimpleDialog_GetNextListRange(oPlayer);
             int nStart = nEnd - 9;
             nEnd = nEnd > nNumTracks ? nNumTracks : nEnd;
@@ -225,7 +222,7 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
                 case 10:
                 {
                     int nTrack = SimpleDialog_GetListSelection(oPlayer, nOption);
-                    string sTrack = ES_Util_GetString(oDataObject, MUSICPLAYER_TRACK + IntToString(nTrack));
+                    string sTrack = GetLocalString(oDataObject, MUSICPLAYER_TRACK + IntToString(nTrack));
 
                     if (sTrack != "")
                     {
@@ -237,7 +234,7 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
 
                 case 11:
                 {
-                    int nMaxTrackRange = ES_Util_GetInt(oDataObject, MUSICPLAYER_MAX_TRACK_RANGE);
+                    int nMaxTrackRange = GetLocalInt(oDataObject, MUSICPLAYER_MAX_TRACK_RANGE);
                     SimpleDialog_SetResult(SimpleDialog_GetNextListRange(oPlayer) < nMaxTrackRange);
                     break;
                 }
@@ -257,10 +254,6 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
     {
         switch (StringToInt(sEvent))
         {
-            case EVENT_SCRIPT_MODULE_ON_MODULE_LOAD:
-                MusicPlayer_SpawnPlaceables(sSubsystemScript);
-                break;
-
             case EVENT_SCRIPT_PLACEABLE_ON_USED:
                 SimpleDialog_StartConversation(GetLastUsedBy(), OBJECT_SELF, MUSICPLAYER_SCRIPT_NAME, MusicPlayer_GetIsDisabled() ? 3 : 1);
                 break;
@@ -278,12 +271,12 @@ void MusicPlayer_LoadMusicTracks()
     object oDataObject = ES_Util_GetDataObject(MUSICPLAYER_SCRIPT_NAME);
     int nTrack, nNumTracks = NWNX_Util_Get2DARowCount("ambientmusic") - 1;
 
-    ES_Util_SetInt(oDataObject, MUSICPLAYER_NUM_TRACKS, nNumTracks);
-    ES_Util_SetInt(oDataObject, MUSICPLAYER_MAX_TRACK_RANGE, SimpleDialog_CalculateMaxRange(nNumTracks));
+    SetLocalInt(oDataObject, MUSICPLAYER_NUM_TRACKS, nNumTracks);
+    SetLocalInt(oDataObject, MUSICPLAYER_MAX_TRACK_RANGE, SimpleDialog_CalculateMaxRange(nNumTracks));
 
     for (nTrack = 1; nTrack <= nNumTracks; nTrack++)
     {
-        ES_Util_SetString(oDataObject, MUSICPLAYER_TRACK + IntToString(nTrack),
+        SetLocalString(oDataObject, MUSICPLAYER_TRACK + IntToString(nTrack),
             GetStringByStrRef(StringToInt(Get2DAString("ambientmusic", "Description", nTrack))));
     }
 
@@ -354,7 +347,7 @@ void MusicPlayer_SpawnPlaceables(string sSubsystemScript)
         NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oMusicPlayer);
         NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, sSubsystemScript, oMusicPlayer);
 
-        ES_Util_SetInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, MusicBackgroundGetDayTrack(GetArea(oMusicPlayer)));
+        SetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, MusicBackgroundGetDayTrack(GetArea(oMusicPlayer)));
 
         DestroyObject(oSpawnPoint);
 
@@ -370,7 +363,7 @@ void MusicPlayer_PlaySoundAndApplySparks(object oMusicPlayer, string sSound)
 
 int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF)
 {
-    return ES_Util_GetInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED);
+    return GetLocalInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED);
 }
 
 void MusicPlayer_DisableMusicPlayer()
@@ -379,7 +372,7 @@ void MusicPlayer_DisableMusicPlayer()
 
     if (!MusicPlayer_GetIsDisabled(oMusicPlayer))
     {
-        ES_Util_SetInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED, TRUE);
+        SetLocalInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED, TRUE);
 
         SimpleDialog_AbortConversation(oMusicPlayer);
 
@@ -390,7 +383,7 @@ void MusicPlayer_DisableMusicPlayer()
 
         DelayCommand(2.5f, MusicPlayer_ApplyDisabledEffects(oMusicPlayer));
 
-        DelayCommand(MUSICPLAYER_DISABLED_DURATION, ES_Util_DeleteInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED));
+        DelayCommand(MUSICPLAYER_DISABLED_DURATION, DeleteLocalInt(oMusicPlayer, MUSICPLAYER_IS_DISABLED));
     }
 }
 

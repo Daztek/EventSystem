@@ -68,10 +68,14 @@ void GUI_ClearByRange(object oPlayer, int nStartID, int nEndID);
 // Clear all PostString() strings of sSubsystemScript for oPlayer
 void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript);
 
+int GUI_GetIsPlayerInputLocked(object oPlayer);
+void GUI_LockPlayerInput(object oPlayer);
+void GUI_UnlockPlayerInput(object oPlayer);
+
 // Badly center a string in a window
 int GUI_CenterStringInWindow(string sString, int nWindowX, int nWindowWidth);
 
-// Wrapper around PostString() that draws GUI parts using GUI_FONT_NAME with color GUI_COLOR_WHITE
+// Wrapper around PostString() that draws GUI parts using GUI_FONT_GUI_NAME with color GUI_COLOR_WHITE
 void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int nID, float fLifeTime = 0.0f);
 // Draw a window with borders on all sides
 // Returns the amount of IDs used, minimum of 2
@@ -88,23 +92,23 @@ void GUI_Load(string sServiceScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    ES_Util_SetInt(oDataObject, "TotalIDs", GUI_ID_START);
+    SetLocalInt(oDataObject, "TotalIDs", GUI_ID_START);
 }
 
 void GUI_ReserveIDs(string sSubsystemScript, int nAmount)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    if (!ES_Util_GetInt(oDataObject, sSubsystemScript + "_Amount"))
+    if (!GetLocalInt(oDataObject, sSubsystemScript + "_Amount"))
     {
-        int nTotal = ES_Util_GetInt(oDataObject, "TotalIDs");
+        int nTotal = GetLocalInt(oDataObject, "TotalIDs");
         int nStart = nTotal;
         int nEnd = nTotal + nAmount - 1;
 
-        ES_Util_SetInt(oDataObject, "TotalIDs", nTotal + nAmount);
-        ES_Util_SetInt(oDataObject, sSubsystemScript + "_Amount", nAmount);
-        ES_Util_SetInt(oDataObject, sSubsystemScript + "_StartID", nStart);
-        ES_Util_SetInt(oDataObject, sSubsystemScript + "_EndID", nEnd);
+        SetLocalInt(oDataObject, "TotalIDs", nTotal + nAmount);
+        SetLocalInt(oDataObject, sSubsystemScript + "_Amount", nAmount);
+        SetLocalInt(oDataObject, sSubsystemScript + "_StartID", nStart);
+        SetLocalInt(oDataObject, sSubsystemScript + "_EndID", nEnd);
 
         ES_Util_Log(GUI_LOG_TAG, "Subsystem '" + sSubsystemScript + "' requested '" + IntToString(nAmount) + "' IDs -> " + IntToString(nStart) + " - " + IntToString(nEnd));
     }
@@ -114,21 +118,21 @@ int GUI_GetStartID(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    return ES_Util_GetInt(oDataObject, sSubsystemScript + "_StartID");
+    return GetLocalInt(oDataObject, sSubsystemScript + "_StartID");
 }
 
 int GUI_GetEndID(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    return ES_Util_GetInt(oDataObject, sSubsystemScript + "_EndID");
+    return GetLocalInt(oDataObject, sSubsystemScript + "_EndID");
 }
 
 int GUI_GetIDAmount(string sSubsystemScript)
 {
     object oDataObject = ES_Util_GetDataObject(GUI_SCRIPT_NAME);
 
-    return ES_Util_GetInt(oDataObject, sSubsystemScript + "_Amount");
+    return GetLocalInt(oDataObject, sSubsystemScript + "_Amount");
 }
 
 void GUI_ClearByID(object oPlayer, int nID)
@@ -151,6 +155,36 @@ void GUI_ClearBySubsystem(object oPlayer, string sSubsystemScript)
     int nEndID = nStartID + GUI_GetIDAmount(sSubsystemScript);
 
     GUI_ClearByRange(oPlayer, nStartID, nEndID);
+}
+
+int GUI_GetIsPlayerInputLocked(object oPlayer)
+{
+    return GetIsObjectValid(GetLocalObject(oPlayer, GUI_SCRIPT_NAME + "_InputLock"));
+}
+
+void GUI_LockPlayerInput(object oPlayer)
+{
+    GUI_UnlockPlayerInput(oPlayer);
+
+    location locPlayer = GetLocation(oPlayer);
+    object oLock = CreateObject(OBJECT_TYPE_PLACEABLE, "plc_boulder", locPlayer, FALSE, GUI_SCRIPT_NAME + "_InputLock");
+
+    SetPlotFlag(oLock, TRUE);
+    NWNX_Object_SetPosition(oPlayer, GetPositionFromLocation(locPlayer));
+    ApplyEffectToObject(DURATION_TYPE_PERMANENT, ExtraordinaryEffect(EffectVisualEffect(VFX_DUR_CUTSCENE_INVISIBILITY)), oLock);
+
+    SetLocalObject(oPlayer, GUI_SCRIPT_NAME + "_InputLock", oLock);
+}
+
+void GUI_UnlockPlayerInput(object oPlayer)
+{
+    object oLock = GetLocalObject(oPlayer, GUI_SCRIPT_NAME + "_InputLock");
+
+    if (GetIsObjectValid(oLock))
+    {
+        DestroyObject(oLock);
+        DeleteLocalObject(oPlayer, GUI_SCRIPT_NAME + "_InputLock");
+    }
 }
 
 void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int nID, float fLifeTime = 0.0f)

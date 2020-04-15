@@ -64,7 +64,7 @@ int Webhook_CheckAPIUrl(string sChannel)
     string sWebhookUrl = NWNX_Util_GetEnvironmentVariable(sChannel);
 
     if (sWebhookUrl != "")
-        ES_Util_SetString(oDataObject, sChannel, sWebhookUrl);
+        SetLocalString(oDataObject, sChannel, sWebhookUrl);
     else
         ES_Util_Log(WEBHOOK_LOG_TAG, "WARNING: API URL for '" + sChannel + "' is not set");
 
@@ -73,7 +73,7 @@ int Webhook_CheckAPIUrl(string sChannel)
 
 void Webhook_SendMessage(string sChannel, string sMessage, string sUserName = "")
 {
-    string sWebhookUrl = ES_Util_GetString(ES_Util_GetDataObject(WEBHOOK_SCRIPT_NAME), sChannel);
+    string sWebhookUrl = GetLocalString(ES_Util_GetDataObject(WEBHOOK_SCRIPT_NAME), sChannel);
 
     if (sWebhookUrl != "")
         NWNX_WebHook_SendWebHookHTTPS("discordapp.com", sWebhookUrl, sMessage, sUserName);

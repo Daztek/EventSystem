@@ -132,9 +132,9 @@ void Portrait_ChatCommand(object oPlayer, string sParams, int nVolume)
         int nRace = GetRacialType(oPlayer);
         int nGender = GetGender(oPlayer);
 
-        ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", nPortraitNumber);
-        ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
-        ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
+        SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", nPortraitNumber);
+        SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
+        SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
 
         NWNX_Player_PlaySound(oPlayer, "gui_select");
 
@@ -157,9 +157,9 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
         object oPlayer = OBJECT_SELF;
         int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
 
-        int nPortraitNumber = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber");
-        int nRace = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
-        int nGender = ES_Util_GetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
+        int nPortraitNumber = GetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber");
+        int nRace = GetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
+        int nGender = GetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
 
         NWNX_Player_PlaySound(oPlayer, "gui_select");
 
@@ -174,14 +174,14 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
 
             case 2: // Next
             {
-                ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", ++nPortraitNumber);
+                SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", ++nPortraitNumber);
                 break;
             }
 
             case 3: // Previous
             {
                 if (nPortraitNumber > 1)
-                    ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", --nPortraitNumber);
+                    SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber", --nPortraitNumber);
                 break;
             }
 
@@ -190,14 +190,14 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
                 if (++nRace > 6)
                     nRace = 0;
 
-                ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
+                SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race", nRace);
                 break;
             }
 
             case 5: // Gender
             {
                 nGender = !nGender;
-                ES_Util_SetInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
+                SetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender", nGender);
                 break;
             }
 
@@ -215,7 +215,9 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
     {
         object oPlayer = OBJECT_SELF;
 
-        ES_Util_DeleteIntRegex(oPlayer, ".*" + PORTRAIT_SCRIPT_NAME + ".*");
+        DeleteLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber");
+        DeleteLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
+        DeleteLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
 
         NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oPlayer);
         NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_CONVERSATION_END, sSubsystemScript, oPlayer);

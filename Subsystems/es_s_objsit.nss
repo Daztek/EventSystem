@@ -13,40 +13,29 @@
 
 #include "es_inc_core"
 #include "es_srv_simdialog"
+#include "es_srv_toolbox"
 
-const string OBJSIT_LOG_TAG             = "ObjectSit";
-const string OBJSIT_SCRIPT_NAME         = "es_s_objsit";
+const string OBJSIT_LOG_TAG                 = "ObjectSit";
+const string OBJSIT_SCRIPT_NAME             = "es_s_objsit";
 
-const string OBJSIT_SINGLE_SEAT_TAG     = "OBJSIT_SINGLE";
+const string OBJSIT_SINGLE_SPAWN_TAG        = "OBJSIT_SINGLE";
+
+void ObjectSit_SpawnSittingObjects(string sSubsystemScript);
 
 // @Load
 void ObjectSit_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
-
-    int nNth = 0;
-    object oSittingObject;
-    string sPlaceableOnUsedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
-
-    while ((oSittingObject = GetObjectByTag(OBJSIT_SINGLE_SEAT_TAG, nNth++)) != OBJECT_INVALID)
-    {
-        ES_Core_SetObjectEventScript(oSittingObject, EVENT_SCRIPT_PLACEABLE_ON_USED, FALSE);
-
-        NWNX_Events_AddObjectToDispatchList(sPlaceableOnUsedEvent, sSubsystemScript, oSittingObject);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oSittingObject);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oSittingObject);
-    }
-
-    ES_Util_Log(OBJSIT_LOG_TAG, "* Found '" + IntToString(--nNth) + "' Sitting Objects");
 
     object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
     SimpleDialog_AddPage(oConversation, "Sitting Action Menu.", TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Rotate clockwise]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Rotate counter-clockwise]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Do nothing]"));
+
+    ObjectSit_SpawnSittingObjects(sSubsystemScript);
 }
 
 // @EventHandler
@@ -73,7 +62,7 @@ void ObjectSit_EventHandler(string sSubsystemScript, string sEvent)
         {
             case 1:
             case 2:
-                AssignCommand(oSittingObject, SetFacing(GetFacing(oSittingObject) + (nOption == 1 ? - 20.0f : 20.0f)));
+                NWNX_Object_SetFacing(oSittingObject, GetFacing(oSittingObject) + (nOption == 1 ? -20.0f : 20.0f));
                 break;
 
             case 3:
@@ -100,5 +89,34 @@ void ObjectSit_EventHandler(string sSubsystemScript, string sEvent)
             }
         }
     }
+}
+
+void ObjectSit_SpawnSittingObjects(string sSubsystemScript)
+{
+    struct Toolbox_PlaceableData pd;
+    pd.nModel = 179;
+    pd.sTag = "OBJSIT_SINGLE_CHAIR";
+    pd.sName = "Chair";
+    pd.sDescription = "It is a simple chair but the grace of its lines speaks to the quality of its craftmanship.";
+    pd.bPlot = TRUE;
+    pd.bUseable = TRUE;
+    pd.scriptOnUsed = TRUE;
+    pd.fFacingAdjustment = 180.0f;
+
+    string sSerializedChair = Toolbox_GeneratePlaceable(pd);
+    string sPlaceableOnUsed = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
+
+    int nNth = 0;
+    object oSpawnpoint;
+    while ((oSpawnpoint = GetObjectByTag(OBJSIT_SINGLE_SPAWN_TAG, nNth++)) != OBJECT_INVALID)
+    {
+        object oSittingObject = Toolbox_CreatePlaceable(sSerializedChair, GetLocation(oSpawnpoint));
+
+        NWNX_Events_AddObjectToDispatchList(sPlaceableOnUsed, sSubsystemScript, oSittingObject);
+        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oSittingObject);
+        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oSittingObject);
+    }
+
+    ES_Util_Log(OBJSIT_LOG_TAG, "* Created '" + IntToString(--nNth) + "' Sitting Objects");
 }
 

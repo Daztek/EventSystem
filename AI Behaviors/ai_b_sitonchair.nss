@@ -26,7 +26,7 @@ void SitOnChair_Init()
     {
         object oArea = GetArea(oWaypoint);
 
-        if (!ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT))
+        if (!GetLocalInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT))
         {
             int nNthSeat = 1;
             object oSeat = GetNearestObjectByTag("OBJSIT_SINGLE", oWaypoint, nNthSeat);
@@ -35,8 +35,8 @@ void SitOnChair_Init()
             {
                 int nAmount = ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
 
-                ES_Util_SetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT, ++nAmount);
-                ES_Util_SetObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(nAmount), oSeat);
+                SetLocalInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT, ++nAmount);
+                SetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(nAmount), oSeat);
 
                 oSeat = GetNearestObjectByTag("OBJSIT_SINGLE", oWaypoint, ++nNthSeat);
             }
@@ -129,10 +129,10 @@ void SitOnChair_Conversation()
 object SitOnChair_FindSeat()
 {
     object oArea = GetArea(OBJECT_SELF);
-    int nSeats = ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
+    int nSeats = GetLocalInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
     int nNumTries = 0, nMaxTries = nSeats / 2;
 
-    object oSeat = ES_Util_GetObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
+    object oSeat = GetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
 
     while (GetIsObjectValid(oSeat) && nNumTries < nMaxTries)
     {
@@ -141,7 +141,7 @@ object SitOnChair_FindSeat()
         if (!GetIsObjectValid(GetSittingCreature(oSeat)))
             return oSeat;
         else
-            oSeat = ES_Util_GetObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
+            oSeat = GetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
     }
 
     return OBJECT_INVALID;
