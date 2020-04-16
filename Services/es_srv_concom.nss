@@ -99,12 +99,11 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
     if (sSubsystemScript == CONSOLECOMMAND_BASE_COMMAND && sFunction == CONSOLECOMMAND_BASE_COMMAND)
     {
         SetLocalInt(oDataObject, CONSOLECOMMAND_REGISTERED_COMMAND + sCommand, nCommandID);
+        SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
 
         SetLocalString(oDataObject, CONSOLECOMMAND_COMMAND + sCommandID, sCommand);
         SetLocalString(oDataObject, CONSOLECOMMAND_PARAMS + sCommandID, sHelpParams);
         SetLocalString(oDataObject, CONSOLECOMMAND_DESCRIPTION + sCommandID, sHelpDescription);
-
-        SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
 
         bReturn = TRUE;
     }
@@ -141,13 +140,14 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
         }
         else
         {
+            SetLocalInt(oDataObject, CONSOLECOMMAND_REGISTERED_COMMAND + sCommand, nCommandID);
+            SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
+
             SetLocalString(oDataObject, CONSOLECOMMAND_COMMAND + sCommandID, sCommand);
             SetLocalString(oDataObject, CONSOLECOMMAND_PARAMS + sCommandID, sHelpParams);
             SetLocalString(oDataObject, CONSOLECOMMAND_DESCRIPTION + sCommandID, sHelpDescription);
             SetLocalString(oDataObject, CONSOLECOMMAND_SUBSYSTEM + sCommandID, sSubsystemScript);
             SetLocalString(oDataObject, CONSOLECOMMAND_FUNCTION + sCommandID, sFunction);
-
-            SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
 
             bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
 
