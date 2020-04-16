@@ -32,6 +32,7 @@ void CharacterSave_Load(string sSubsystemScript)
     {
         int nId = ChatCommand_Register(sSubsystemScript, "CharacterSave_SaveChatCommand",
             CHATCOMMAND_GLOBAL_PREFIX + CHARACTERSAVE_CHAT_COMMAND, "", "Manually save your character.");
+
         ChatCommand_SetPermission(nId, "", "!GetIsDM(oPlayer)", "", "");
     }
 }

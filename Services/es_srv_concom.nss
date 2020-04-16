@@ -76,7 +76,7 @@ void ConsoleCommand_Load(string sServiceScript)
     ConsoleCommand_RegisterBaseCommand("ilr",               "[1|0]",            "0 = don't enforce item level restrictions, 1 = do enforce item level restrictions.");
     ConsoleCommand_RegisterBaseCommand("oneparty",          "[1|0]",            "0 = allow only one party, 1 = allow multiple parties.");
     ConsoleCommand_RegisterBaseCommand("difficulty",        "[Level]",          "1 = easy, 2 = normal, 3 = D&D hardcore, 4 = very difficult.");
-    ConsoleCommand_RegisterBaseCommand("autosaveinterval",  "[Time]",           "Set how frequently (in minutes) to autosave, 0 disables autosave.");
+    ConsoleCommand_RegisterBaseCommand("autosaveinterval",  "[Minutes]",        "Set how frequently (in minutes) to autosave, 0 disables autosave.");
     ConsoleCommand_RegisterBaseCommand("playerpassword",    "[Password]",       "Change the player password, leave empty to remove.");
     ConsoleCommand_RegisterBaseCommand("dmpassword",        "[Password]",       "Change the DM password, leave empty to remove.");
     ConsoleCommand_RegisterBaseCommand("servername",        "[Name]",           "Set the server name.");
@@ -107,8 +107,6 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
         SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
 
         bReturn = TRUE;
-
-        ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Registering Base Game Console Command -> '" + sCommand + "'");
     }
     else
     {
@@ -126,13 +124,13 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
                 SetLocalString(oDataObject, CONSOLECOMMAND_SUBSYSTEM + sRegisteredCommandID, sSubsystemScript);
                 SetLocalString(oDataObject, CONSOLECOMMAND_FUNCTION + sRegisteredCommandID, sFunction);
 
-                bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"));
+                bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
 
                 if (bReturn)
                     ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Overriding Base Game Console Command -> '" + sCommand + "' by Subsystem '" +
                         sSubsystemScript + "' with Function: " + sFunction + "()");
                 else
-                    ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to override Console Command -> '" + sCommand + "' for Subsystem '" +
+                    ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to override Console Command -> '" + sCommand + "' by Subsystem '" +
                         sSubsystemScript + "' with Function: " + sFunction + "()");
             }
             else
@@ -151,7 +149,7 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
 
             SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
 
-            bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"));
+            bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
 
             if (bReturn)
                 ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Registering Console Command -> '" + sCommand + "' for Subsystem '" +

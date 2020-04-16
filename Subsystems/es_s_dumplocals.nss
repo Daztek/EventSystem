@@ -12,11 +12,24 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_srv_mediator"
+
+const string DUMPLOCALS_LOG_TAG         = "DumpLocals";
+const string DUMPLOCALS_SCRIPT_NAME     = "es_s_dumplocals";
+
+const int DUMPLOCALS_TYPE_OBJECT        = 0;
+const int DUMPLOCALS_TYPE_AREA          = 1;
+const int DUMPLOCALS_TYPE_MODULE        = 2;
+
+// Dump the locals of oTarget, depending on nType
+void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_INVALID);
 
 // @Load
 void DumpLocals_Load(string sSubsystemScript)
 {
     ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_DUMP_LOCALS_BEFORE");
+
+    Mediator_RegisterFunction(sSubsystemScript, "DumpLocals_DumpLocals", "oio");
 }
 
 // @EventHandler
@@ -25,24 +38,30 @@ void DumpLocals_EventHandler(string sSubsystemScript, string sEvent)
     object oDM = OBJECT_SELF;
     object oTarget = ES_Util_GetEventData_NWNX_Object("TARGET");
     int nType = ES_Util_GetEventData_NWNX_Int("TYPE");
-    string sMessage;
 
     NWNX_Events_SkipEvent();
 
+    DumpLocals_DumpLocals(oDM, nType, oTarget);
+}
+
+void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_INVALID)
+{
+    string sMessage;
+
     switch (nType)
     {
-        case 0: // dm_dumplocals
+        case DUMPLOCALS_TYPE_OBJECT: // dm_dumplocals
         {
             sMessage = "*** Variable Dump *** [Object] Tag: " + GetTag(oTarget);
             break;
         }
-        case 1: // dm_dumparealocals
+        case DUMPLOCALS_TYPE_AREA: // dm_dumparealocals
         {
             oTarget = GetArea(oTarget);
             sMessage = "*** Variable Dump *** [Area] Tag: " + GetTag(oTarget);
             break;
         }
-        case 2: // dm_dumpmodulelocals
+        case DUMPLOCALS_TYPE_MODULE: // dm_dumpmodulelocals
         {
             oTarget = GetModule();
             sMessage = "*** Variable Dump *** [Module]";
@@ -96,6 +115,6 @@ void DumpLocals_EventHandler(string sSubsystemScript, string sEvent)
         }
     }
 
-    SendMessageToPC(oDM, sMessage);
+    SendMessageToPC(oPlayer, sMessage);
 }
 

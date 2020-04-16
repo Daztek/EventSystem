@@ -294,15 +294,17 @@ int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sAr
 
     if (nFunctionID)
     {
-        string sReturnType = GetLocalString(oDataObject, MEDIATOR_FUNCTION_RETURN_TYPE + IntToString(nFunctionID));
         string sExpectedParameters = GetLocalString(oDataObject, MEDIATOR_FUNCTION_PARAMETERS + IntToString(nFunctionID));
         string sActualParameters = Mediator_SetFunctionVariables(sArguments);
 
         if (sExpectedParameters == sActualParameters)
         {
-            Mediator_ClearReturnValue(oDataObject, sReturnType);
+            string sReturnType = GetLocalString(oDataObject, MEDIATOR_FUNCTION_RETURN_TYPE + IntToString(nFunctionID));
+            if (sReturnType != "")
+                Mediator_ClearReturnValue(oDataObject, sReturnType);
 
             ExecuteScript(MEDIATOR_FUNCTION_SCRIPT_NAME + IntToString(nFunctionID), oTarget);
+
             bReturn = TRUE;
         }
         else

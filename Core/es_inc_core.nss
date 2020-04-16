@@ -123,6 +123,11 @@ void ES_Core_Init()
 
     // *** CHECK EVENT SCRIPTS
     ES_Util_Log(ES_CORE_LOG_TAG, "  > Checking Object Event Scripts");
+
+    // Check if the module shutdown script is set to es_obj_e_3018
+    if (NWNX_Util_GetEnvironmentVariable("NWNX_CORE_SHUTDOWN_SCRIPT") != "es_obj_e_3018")
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > WARNING: NWNX environment variable 'NWNX_CORE_SHUTDOWN_SCRIPT' is not set to the following: es_obj_e_3018");
+
     // Check if ES_Core_SignalEvent's function hash has changed
     if (ES_Core_GetFunctionHashChanged("ES_Core_SignalEvent"))
         ES_Util_Log(ES_CORE_LOG_TAG, "    > Recompiling Object Event Scripts");
@@ -165,15 +170,20 @@ void ES_Core_Init()
     // *** SERVICES
     ES_Util_Log(ES_CORE_LOG_TAG, "");
 
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Init");
+
     // Get an array of all the services
     string sServicesArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_srv_.+", FALSE);
     SetLocalString(oDataObject, "Services", sServicesArray);
 
-    ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Init");
     // Check if the user has disabled any services through the ES_DISABLE_SERVICES environment variable
     string sDisabledServices = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_SERVICES");
-    ES_Util_Log(ES_CORE_LOG_TAG, "  * Manually Disabled Services: " + (sDisabledServices == "" ? "N/A" : sDisabledServices));
-    SetLocalString(oDataObject, "DisabledServices", sDisabledServices);
+    if (sDisabledServices != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "  * Manually Disabled Services: " + sDisabledServices);
+        SetLocalString(oDataObject, "DisabledServices", sDisabledServices);
+    }
+
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Service_Initialize", "sArrayElement"), oModule);
 
@@ -182,6 +192,8 @@ void ES_Core_Init()
         nssFunction("ES_Core_CheckNWNXPluginDependencies", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Hash Check");
+    if (ES_Core_GetCoreHashChanged())
+        ES_Util_Log(ES_CORE_LOG_TAG, "   > Core Hash Changed");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_CheckHash", "sArrayElement"), oModule);
 
@@ -193,15 +205,20 @@ void ES_Core_Init()
     // *** SUBSYSTEMS
     ES_Util_Log(ES_CORE_LOG_TAG, "");
 
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Init");
+
     // Get an array of all the subsystems
     string sSubsystemArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_s_.+", FALSE);
     SetLocalString(oDataObject, "Subsystems", sSubsystemArray);
 
-    ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Init");
     // Check if the user has disabled any subsystems through the ES_DISABLE_SUBSYSTEMS environment variable
     string sDisabledSubsystems = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_SUBSYSTEMS");
-    ES_Util_Log(ES_CORE_LOG_TAG, "  * Manually Disabled Subsystems: " + (sDisabledSubsystems == "" ? "N/A" : sDisabledSubsystems));
-    SetLocalString(oDataObject, "DisabledSubsystems", sDisabledSubsystems);
+    if (sDisabledSubsystems != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "  * Manually Disabled Subsystems: " + sDisabledSubsystems);
+        SetLocalString(oDataObject, "DisabledSubsystems", sDisabledSubsystems);
+    }
+
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Subsystem_Initialize", "sArrayElement"), oModule);
 
@@ -210,6 +227,8 @@ void ES_Core_Init()
         nssFunction("ES_Core_CheckNWNXPluginDependencies", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Hash Check");
+    if (ES_Core_GetCoreHashChanged())
+        ES_Util_Log(ES_CORE_LOG_TAG, "   > Core Hash Changed");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_CheckHash", "sArrayElement"), oModule);
 
@@ -364,8 +383,12 @@ void ES_Core_CompileEventHandler(string sScriptName, string sEventHandlerFunctio
 void ES_Core_GetFunctionByType(object oDataObject, string sScriptContents, string sType)
 {
     string sFunction = ES_Util_GetFunctionName(sScriptContents, sType);
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > " + sType + " Function: " + (sFunction == "" ? "N/A" : sFunction + "()"));
-    SetLocalString(oDataObject, sType + "Function", sFunction);
+
+    if (sFunction != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > " + sType + " Function: " + sFunction + "()");
+        SetLocalString(oDataObject, sType + "Function", sFunction);
+    }
 }
 
 void ES_Core_CheckHash(string sScriptName)
@@ -470,8 +493,11 @@ void ES_Core_Service_Initialize(string sService)
     SetLocalInt(oDataObject, "Hash", nHash);
 
     string sNWNXPlugins = ES_Core_GetNWNXPluginDependencies(sScriptContents);
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + (sNWNXPlugins == "" ? "N/A" : sNWNXPlugins));
-    SetLocalString(oDataObject, "NWNXPlugins", sNWNXPlugins);
+    if (sNWNXPlugins != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + sNWNXPlugins);
+        SetLocalString(oDataObject, "NWNXPlugins", sNWNXPlugins);
+    }
 
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Load");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "EventHandler");
@@ -530,15 +556,22 @@ void ES_Core_Subsystem_Initialize(string sSubsystem)
     SetLocalInt(oDataObject, "Hash", nHash);
 
     string sFlags = ES_Core_GetScriptFlags(sScriptContents);
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > Flags: " + (sFlags == "" ? "N/A" : sFlags));
-    SetLocalString(oDataObject, "Flags", sFlags);
+    if (sFlags != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Flags: " + sFlags);
+        SetLocalString(oDataObject, "Flags", sFlags);
+    }
 
     string sServices = ES_Core_Subsystem_GetServices(sSubsystem, sScriptContents);
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > Services: " + (sServices == "" ? "N/A" : sServices));
+    if (sServices != "")
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Services: " + sServices);
 
     string sNWNXPlugins = ES_Core_GetNWNXPluginDependencies(sScriptContents);
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + (sNWNXPlugins == "" ? "N/A" : sNWNXPlugins));
-    SetLocalString(oDataObject, "NWNXPlugins", sNWNXPlugins);
+    if (sNWNXPlugins != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + sNWNXPlugins);
+        SetLocalString(oDataObject, "NWNXPlugins", sNWNXPlugins);
+    }
 
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Load");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Unload");
@@ -582,8 +615,7 @@ void ES_Core_Subsystem_CheckStatus(string sSubsystem)
 {
     object oDataObject = ES_Core_GetSystemDataObject(sSubsystem);
     int nSubsystemDisabled = GetLocalInt(oDataObject, "Disabled");
-
-    ES_Util_Log(ES_CORE_LOG_TAG, "  > Checking: " + sSubsystem);
+    string sDisabledServices, sMissingServices;
 
     if (!nSubsystemDisabled)
     {
@@ -592,7 +624,6 @@ void ES_Core_Subsystem_CheckStatus(string sSubsystem)
         if (nNumServices)
         {
             int nServiceIndex;
-            string sDisabledServices, sMissingServices;
 
             for (nServiceIndex = 0; nServiceIndex < nNumServices; nServiceIndex++)
             {
@@ -614,19 +645,29 @@ void ES_Core_Subsystem_CheckStatus(string sSubsystem)
             {
                 nSubsystemDisabled = TRUE;
                 SetLocalInt(oDataObject, "Disabled", nSubsystemDisabled);
-                ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Services: " + sDisabledServices);
             }
 
             if (sMissingServices != "")
             {
                 nSubsystemDisabled = TRUE;
                 SetLocalInt(oDataObject, "Disabled", nSubsystemDisabled);
-                ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing Services: " + sMissingServices);
             }
         }
     }
 
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > Status: " + (nSubsystemDisabled ? "Disabled" : "Enabled"));
+    if (nSubsystemDisabled)
+    {
+        if (sDisabledServices == "" && sMissingServices == "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "  > Subsystem '" + sSubsystem + "' -> Manually Disabled");
+        else
+            ES_Util_Log(ES_CORE_LOG_TAG, "  > Subsystem '" + sSubsystem + "' -> Disabled");
+
+        if (sDisabledServices != "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Services: " + sDisabledServices);
+
+        if (sMissingServices != "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing Services: " + sMissingServices);
+    }
 }
 
 // *****************************************************************************
