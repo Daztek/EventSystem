@@ -63,6 +63,7 @@ void ConsoleCommand_Load(string sServiceScript)
     ConsoleCommand_RegisterBaseCommand("save",              "[Slot#] [Name]",   "Save the current running game as [Name] to [Slot#].");
     ConsoleCommand_RegisterBaseCommand("forcesave",         "[Slot#] [Name]",   "Save the current running game as [Name], overwriting [Slot#].");
     ConsoleCommand_RegisterBaseCommand("exit",              "",                 "Shut down the server.");
+    ConsoleCommand_RegisterBaseCommand("quit",              "",                 "Shut down the server.");
     ConsoleCommand_RegisterBaseCommand("saveandexit",       "[Slot#] [Name]",   "Save the current running game as [Name] to [Slot#] and shut down the server.");
     ConsoleCommand_RegisterBaseCommand("module",            "[ModuleName]",     "Load the specified module.");
     ConsoleCommand_RegisterBaseCommand("load",              "[Slot#]",          "Load the specified saved game.");
@@ -80,6 +81,7 @@ void ConsoleCommand_Load(string sServiceScript)
     ConsoleCommand_RegisterBaseCommand("playerpassword",    "[Password]",       "Change the player password, leave empty to remove.");
     ConsoleCommand_RegisterBaseCommand("dmpassword",        "[Password]",       "Change the DM password, leave empty to remove.");
     ConsoleCommand_RegisterBaseCommand("servername",        "[Name]",           "Set the server name.");
+    ConsoleCommand_RegisterBaseCommand("help",              "",                 "Display all commands.");
 
     // Override the help command with our own
     ConsoleCommand_Register(sServiceScript, "ConsoleCommand_ShowHelp", "help", "", "Display all commands.");

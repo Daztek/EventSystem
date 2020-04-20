@@ -35,6 +35,8 @@ const string CHATCOMMAND_PERMISSION_FUNCTION    = "PermissionFunction_";
 const string CHATCOMMAND_PERMISSION_VALUE       = "PermissionValue_";
 const string CHATCOMMAND_PERMISSION_COMPARISON  = "PermissionComparison_";
 
+const string CHATCOMMAND_ALIAS                  = "Alias_";
+
 const string CHATCOMMAND_HELP_TEXT              = "HelpText_";
 
 // Register a chat command
@@ -71,9 +73,11 @@ void ChatCommand_Post(string sServiceScript)
     ES_Util_ExecuteScriptChunk(sServiceScript, nssFunction("ChatCommand_CreateChatEventHandler", nssEscapeDoubleQuotes(sServiceScript)), GetModule());
 }
 
+
 string ChatCommand_Parse(string sMessage, string sCommand)
 {
     int nLength = GetStringLength(sCommand);
+
     if (GetStringLeft(sMessage, nLength) == sCommand)
         return GetSubString(sMessage, nLength + 1, GetStringLength(sMessage) - nLength - 1);
     else

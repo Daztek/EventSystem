@@ -13,6 +13,8 @@
 #include "es_inc_core"
 #include "es_srv_chatcom"
 
+const float EMOTE_DURATION_LOOPING = 86400.0f;
+
 // @Load
 void Emote_Load(string sSubsystemScript)
 {
@@ -70,52 +72,52 @@ void Emote_HandleEmoteChatCommand(object oPlayer, string sEmote, int nVolume)
         Emote_DoEmote(oPlayer, ANIMATION_FIREFORGET_VICTORY3);
     else
     if (sEmote == "cast1")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE1, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE1, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "cast2")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE2, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_CONJURE2, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "deadback")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_DEAD_BACK, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_DEAD_BACK, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "deadfront")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_DEAD_FRONT, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_DEAD_FRONT, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "low")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_GET_LOW, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_GET_LOW, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "mid")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_GET_MID, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_GET_MID, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "meditate")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_MEDITATE, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_MEDITATE, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "drunk")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_PAUSE_DRUNK, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_PAUSE_DRUNK, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "tired")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_PAUSE_TIRED, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_PAUSE_TIRED, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "sit")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_SIT_CROSS, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_SIT_CROSS, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "spasm")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_SPASM, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_SPASM, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "forceful")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_FORCEFUL, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_FORCEFUL, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "laugh")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_LAUGHING, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_LAUGHING, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "talk")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_NORMAL, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_NORMAL, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "plead")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_PLEADING, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_TALK_PLEADING, EMOTE_DURATION_LOOPING);
     else
     if (sEmote == "worship")
-        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_WORSHIP, 3600.0f);
+        Emote_DoEmote(oPlayer, ANIMATION_LOOPING_WORSHIP, EMOTE_DURATION_LOOPING);
     else
     {
         SendMessageToPC(oPlayer, "Available Emotes: bow, duck, dodge, drink, greet, bored, scratch, " +

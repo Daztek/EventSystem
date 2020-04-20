@@ -152,7 +152,7 @@ int Profiler_Calibrate(int nIterations)
 
     for (i = 0; i < nIterations; i++)
     {
-        nSum += Profiler_Stop(Profiler_Start("Calibration", TRUE));
+        nSum += Profiler_Stop(Profiler_Start("Calibration", TRUE, FALSE));
     }
 
     return nIterations == 0 ? 0 : nSum / nIterations;

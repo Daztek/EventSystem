@@ -80,7 +80,7 @@ void Spellbook_DrawSpellbookGUI(object oPlayer, int nSpellID)
     int nID = GUI_GetStartID(SPELLBOOK_SCRIPT_NAME);
     int nTextColor = GUI_COLOR_WHITE;
     string sTextFont = "fnt_dialog_big16";
-    int nMaxLength = 45;
+    int nMaxLength = 47;
     float fLifeTime = 0.0f;
 
     string sSpellName = GetStringByStrRef(StringToInt(Get2DAString("spells", "Name", nSpellID)));
@@ -119,7 +119,7 @@ void Spellbook_DrawSpellbookGUI(object oPlayer, int nSpellID)
     // Spell Description
     int nDX = 42, nDY = 6;
     string sDescription = GetLocalString(oDataObject, SPELLBOOK_SPELL_DESCRIPTION + IntToString(nSpellID));
-    int nLines = GUI_DrawSplitMessage(oPlayer, sDescription, nMaxLength, nDX, nDY, nID++, nTextColor, fLifeTime, sTextFont);
+    int nLines = GUI_DrawSplitText(oPlayer, sDescription, nMaxLength, nDX, nDY, nID++, nTextColor, fLifeTime, sTextFont);
     nID += nLines;
 
     // Spell Data
@@ -132,7 +132,7 @@ void Spellbook_DrawSpellbookGUI(object oPlayer, int nSpellID)
     {
         string sSpellData = ES_Util_StringArray_At(oDataObject, sArrayName, nSpellDataIndex);
 
-        nLines = GUI_DrawSplitMessage(oPlayer, sSpellData, nMaxLength, nDX, nDY, nID++, nTextColor, fLifeTime, sTextFont);
+        nLines = GUI_DrawSplitText(oPlayer, sSpellData, nMaxLength, nDX, nDY, nID++, nTextColor, fLifeTime, sTextFont);
         nID += nLines;
         nDY += nLines;
     }
@@ -200,19 +200,26 @@ void Spellbook_EventHandler(string sSubsystemScript, string sEvent)
 
         string sKey = ES_Util_GetEventData_NWNX_String("KEY");
 
+        int bRedraw = FALSE;
         int nCurrentSpellLevel = GetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellLevel");
         int nCurrentSpellIndex = GetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellIndex");
 
         if (sKey == "W")
         {
             if (nCurrentSpellIndex > 0)
+            {
                 nCurrentSpellIndex--;
+                bRedraw = TRUE;
+            }
         }
         else
         if (sKey == "S")
         {
             if (nCurrentSpellIndex < ES_Util_StringArray_Size(oPlayer, SPELLBOOK_SCRIPT_NAME + "Spells_"+ IntToString(nCurrentSpellLevel)) - 1)
+            {
                 nCurrentSpellIndex++;
+                bRedraw = TRUE;
+            }
         }
         else
         if (sKey == "E")
@@ -221,6 +228,7 @@ void Spellbook_EventHandler(string sSubsystemScript, string sEvent)
             {
                 nCurrentSpellLevel++;
                 nCurrentSpellIndex = 0;
+                bRedraw = TRUE;
             }
         }
         else
@@ -230,19 +238,23 @@ void Spellbook_EventHandler(string sSubsystemScript, string sEvent)
             {
                 nCurrentSpellLevel--;
                 nCurrentSpellIndex = 0;
+                bRedraw = TRUE;
             }
         }
 
         SetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellLevel", nCurrentSpellLevel);
         SetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellIndex", nCurrentSpellIndex);
 
-        SpellBook_ExtractKnownSpells(oPlayer, nCurrentSpellLevel);
+        if (bRedraw)
+        {
+            SpellBook_ExtractKnownSpells(oPlayer, nCurrentSpellLevel);
 
-        int nCurrentSpell = StringToInt(ES_Util_StringArray_At(oPlayer, SPELLBOOK_SCRIPT_NAME + "Spells_" + IntToString(nCurrentSpellLevel), nCurrentSpellIndex));
+            int nCurrentSpell = StringToInt(ES_Util_StringArray_At(oPlayer, SPELLBOOK_SCRIPT_NAME + "Spells_" + IntToString(nCurrentSpellLevel), nCurrentSpellIndex));
 
-        GUI_ClearBySubsystem(oPlayer, SPELLBOOK_SCRIPT_NAME);
-        Spellbook_ExtractSpellData(nCurrentSpell);
-        Spellbook_DrawSpellbookGUI(oPlayer, nCurrentSpell);
+            GUI_ClearBySubsystem(oPlayer, SPELLBOOK_SCRIPT_NAME);
+            Spellbook_ExtractSpellData(nCurrentSpell);
+            Spellbook_DrawSpellbookGUI(oPlayer, nCurrentSpell);
+        }
     }
 }
 

@@ -86,8 +86,8 @@ int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHe
 // Draws a text notification at the the top left anchor
 // Returns the amount of IDs used, minimum of 4
 int GUI_DrawNotification(object oPlayer, string sMessage, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f);
-//
-int GUI_DrawSplitMessage(object oPlayer, string sMessage, int nMaxLength, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f, string sFont = GUI_FONT_TEXT_NAME);
+// Draw sText over multiple lines of nMaxLength
+int GUI_DrawSplitText(object oPlayer, string sText, int nMaxLength, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f, string sFont = GUI_FONT_TEXT_NAME);
 
 // @Load
 void GUI_Load(string sServiceScript)
@@ -269,40 +269,46 @@ int GUI_DrawNotification(object oPlayer, string sMessage, int nX, int nY, int nI
     return nID;
 }
 
-int GUI_DrawSplitMessage(object oPlayer, string sMessage, int nMaxLength, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f, string sFont = GUI_FONT_TEXT_NAME)
+int GUI_DrawSplitText(object oPlayer, string sText, int nMaxLength, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f, string sFont = GUI_FONT_TEXT_NAME)
 {
-    if (!GetStringLength(sMessage))
+    if (sText == "")
         return 0;
 
-    if (GetStringRight(sMessage, 1) != " ")
-        sMessage += " ";
+    if (GetStringLength(sText) <= nMaxLength)
+    {
+        PostString(oPlayer, sText, nX, nY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID, sFont);
+        return 1;
+    }
 
-    string sSplit;
-    int nLines, nStart = 0, nEnd = FindSubString(sMessage, " ", nStart);
+    if (GetStringRight(sText, 1) != " ")
+        sText += " ";
+
+    string sLine;
+    int nNumLines, nStart = 0, nEnd = FindSubString(sText, " ", nStart);
 
     while (nEnd != -1)
     {
-        string sWord = GetSubString(sMessage, nStart, nEnd - nStart + 1);
+        string sWord = GetSubString(sText, nStart, nEnd - nStart + 1);
 
-        if (GetStringLength(sSplit) + GetStringLength(sWord) > nMaxLength)
+        if (GetStringLength(sLine) + GetStringLength(sWord) > nMaxLength)
         {
-            nLines++;
-            PostString(oPlayer, sSplit, nX, nY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID++, sFont);
-            sSplit = sWord;
+            nNumLines++;
+            PostString(oPlayer, sLine, nX, nY++, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID++, sFont);
+            sLine = sWord;
         }
         else
-            sSplit += sWord;
+            sLine += sWord;
 
         nStart = nEnd + 1;
-        nEnd = FindSubString(sMessage, " ", nStart);
+        nEnd = FindSubString(sText, " ", nStart);
     }
 
-    if (GetStringLength(sSplit))
+    if (GetStringLength(sLine))
     {
-        nLines++;
-        PostString(oPlayer, sSplit, nX, nY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID++, sFont);
+        nNumLines++;
+        PostString(oPlayer, sLine, nX, nY, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID++, sFont);
     }
 
-    return nLines;
+    return nNumLines;
 }
 

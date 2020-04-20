@@ -42,45 +42,46 @@ void WorldTimer_Load(string sServiceScript)
 // @EventHandler
 void WorldTimer_EventHandler(string sServiceScript, string sEvent)
 {
+    object oModule = OBJECT_SELF;
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME);
     int nModuleMinutesPerHour = GetLocalInt(oDataObject, "WORLD_TIMER_MINUTES_PER_HOUR");
     int nHeartbeatCount = GetLocalInt(oDataObject, "WORLD_TIMER_HEARTBEAT_COUNT");
 
     // Every 1 minute
     if (!(nHeartbeatCount % 10) && GetLocalInt(oDataObject, WORLD_TIMER_EVENT_1_MINUTE))
-        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_1_MINUTE, OBJECT_SELF);
+        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_1_MINUTE, oModule);
     // Every 5 minutes
     if (!(nHeartbeatCount % (10 * 5)) && GetLocalInt(oDataObject, WORLD_TIMER_EVENT_5_MINUTES))
-        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_5_MINUTES, OBJECT_SELF);
+        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_5_MINUTES, oModule);
     // Every 10 minutes
     if (!(nHeartbeatCount % (10 * 10)) && GetLocalInt(oDataObject, WORLD_TIMER_EVENT_10_MINUTES))
-        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_10_MINUTES, OBJECT_SELF);
+        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_10_MINUTES, oModule);
     // Every 15 minutes
     if (!(nHeartbeatCount % (10 * 15)) && GetLocalInt(oDataObject, WORLD_TIMER_EVENT_15_MINUTES))
-        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_15_MINUTES, OBJECT_SELF);
+        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_15_MINUTES, oModule);
     // Every 30 minutes
     if (!(nHeartbeatCount % (10 * 30)) && GetLocalInt(oDataObject, WORLD_TIMER_EVENT_30_MINUTES))
-        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_30_MINUTES, OBJECT_SELF);
+        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_30_MINUTES, oModule);
     // Every 60 minutes
     if (!(nHeartbeatCount % (10 * 60)) && GetLocalInt(oDataObject, WORLD_TIMER_EVENT_60_MINUTES))
-        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_60_MINUTES, OBJECT_SELF);
+        NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_60_MINUTES, oModule);
 
     // Every ingame hour
     if (!(nHeartbeatCount % (10 * nModuleMinutesPerHour)))
     {
         if (GetLocalInt(oDataObject, WORLD_TIMER_EVENT_IN_GAME_HOUR))
-            NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_IN_GAME_HOUR, OBJECT_SELF);
+            NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_IN_GAME_HOUR, oModule);
 
         if (GetIsDawn())
         {
             if (GetLocalInt(oDataObject, WORLD_TIMER_EVENT_DAWN))
-                NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_DAWN, OBJECT_SELF);
+                NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_DAWN, oModule);
         }
 
         if (GetIsDusk())
         {
             if (GetLocalInt(oDataObject, WORLD_TIMER_EVENT_DUSK))
-                NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_DUSK, OBJECT_SELF);
+                NWNX_Events_SignalEvent(WORLD_TIMER_EVENT_DUSK, oModule);
         }
     }
 

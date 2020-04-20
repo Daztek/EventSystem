@@ -16,6 +16,8 @@
 const string SUBSYSTEM_MANAGER_LOG_TAG      = "SubsystemManager";
 const string SUBSYSTEM_MANAGER_SCRIPT_NAME  = "es_s_subsysman";
 
+const float SUBSYSTEM_MANAGER_IGNORE_TIME   = 2.5f;
+
 // @Load
 void SubsystemManager_Load(string sSubsystemScript)
 {
@@ -34,8 +36,6 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
         {
             string sResRef = ES_Util_GetEventData_NWNX_String("RESREF");
 
-            ES_Util_Log(SUBSYSTEM_MANAGER_LOG_TAG, "Subsystem '" + sResRef + "'", FALSE);
-
             if (GetStringLeft(sResRef, 5) == "es_s_")
             {
                 object oDataObject = ES_Util_GetDataObject(SUBSYSTEM_MANAGER_SCRIPT_NAME);
@@ -47,25 +47,23 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
                         return;
 
                     SetLocalInt(oDataObject, sResRef, TRUE);
-                    DelayCommand(2.0f, DeleteLocalInt(oDataObject, sResRef));
+                    DelayCommand(SUBSYSTEM_MANAGER_IGNORE_TIME, DeleteLocalInt(oDataObject, sResRef));
 
                     string sScriptFlags = GetLocalString(oSubsystem, "Flags");
 
                     if (FindSubString(sScriptFlags, "HotSwap") != -1)
                     {
-                        ES_Util_SuppressLog(TRUE);
-
                         ES_Util_Log(SUBSYSTEM_MANAGER_LOG_TAG, "Detected changes for Subsystem '" + sResRef + "', recompiling EventHandler", FALSE);
 
                         ES_Core_ExecuteFunction(sResRef, "Unload");
 
+                        ES_Util_SuppressLog(TRUE);
                         ES_Core_Subsystem_Initialize(sResRef);
-
                         ES_Core_CheckHash(sResRef);
+                        ES_Util_SuppressLog(FALSE);
 
                         ES_Core_ExecuteFunction(sResRef, "Load");
 
-                        ES_Util_SuppressLog(FALSE);
                     }
                 }
             }

@@ -7,7 +7,7 @@ fontheight 0.320000
 baselineheight 0.320000
 texturewidth 0.320000
 spacingR 0.000000
-spacingB 0.030000
+spacingB 0.000000
 upperleftcoords 127
     0.000000 0.000000 0
     0.000000 0.000000 0
