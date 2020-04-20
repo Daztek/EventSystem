@@ -7,6 +7,7 @@
     Environment Variables:
         ES_SKIP_CORE_HASH_CHECK
         ES_SKIP_NWNX_HASH_CHECK
+        ES_DISABLE_PROVIDERS
         ES_DISABLE_SERVICES
         ES_DISABLE_SUBSYSTEMS
 */
@@ -90,9 +91,11 @@ void ES_Core_Init()
     NWNX_Util_SetInstructionLimit(524288 * 64);
 
     // We reset the instruction limit in the OnModuleLoad AFTER event
-    ES_Util_AddScript(ES_CORE_SCRIPT_NAME, ES_CORE_SCRIPT_NAME, nssFunction("NWNX_Util_SetInstructionLimit", "-1") +
+    ES_Util_AddScript(ES_CORE_SCRIPT_NAME, ES_CORE_SCRIPT_NAME,
+        nssFunction("NWNX_Util_SetInstructionLimit", "-1") +
         nssFunction("ES_Util_Log", "ES_CORE_LOG_TAG, " + nssEscapeDoubleQuotes("* Instruction Limit Reset")) +
-        nssFunction("NWNX_Util_RemoveNWNXResourceFile", "ES_CORE_SCRIPT_NAME, NWNX_UTIL_RESREF_TYPE_NCS"));
+        nssFunction("NWNX_Util_RemoveNWNXResourceFile", "ES_CORE_SCRIPT_NAME, NWNX_UTIL_RESREF_TYPE_NCS") +
+        nssFunction("ES_Core_UnsubscribeAllEvents", "ES_CORE_SCRIPT_NAME"));
     ES_Core_SubscribeEvent_Object(ES_CORE_SCRIPT_NAME, EVENT_SCRIPT_MODULE_ON_MODULE_LOAD, ES_CORE_EVENT_FLAG_AFTER);
 
 
@@ -167,6 +170,41 @@ void ES_Core_Init()
     }
 
 
+    // *** PROVIDERS
+    ES_Util_Log(ES_CORE_LOG_TAG, "");
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Providers: Init");
+
+    // Get an array of all the providers
+    string sProvidersArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_prv_.+", FALSE);
+    SetLocalString(oDataObject, "Providers", sProvidersArray);
+
+    // Check if the user has disabled any providers through the ES_DISABLE_PROVIDERS environment variable
+    string sDisabledProviders = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_PROVIDERS");
+    if (sDisabledProviders != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "  * Manually Disabled Providers: " + sDisabledProviders);
+        SetLocalString(oDataObject, "DisabledProviders", sDisabledProviders);
+    }
+
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sProvidersArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_Provider_Initialize", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Providers: NWNX Plugin Check");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sProvidersArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_CheckNWNXPluginDependencies", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Providers: Hash Check");
+    if (ES_Core_GetCoreHashChanged())
+        ES_Util_Log(ES_CORE_LOG_TAG, "   > Core Hash Changed");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sProvidersArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_CheckHash", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Providers: Load");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sProvidersArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Load")), oModule);
+
+
     // *** SERVICES
     ES_Util_Log(ES_CORE_LOG_TAG, "");
 
@@ -196,6 +234,14 @@ void ES_Core_Init()
         ES_Util_Log(ES_CORE_LOG_TAG, "   > Core Hash Changed");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_CheckHash", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Providers Check");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_CheckProviders", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Status Check");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
+    nssFunction("ES_Core_Service_CheckStatus", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Load");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
@@ -231,6 +277,10 @@ void ES_Core_Init()
         ES_Util_Log(ES_CORE_LOG_TAG, "   > Core Hash Changed");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_CheckHash", "sArrayElement"), oModule);
+
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Providers Check");
+    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_CheckProviders", "sArrayElement"), oModule);
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Services Check");
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sSubsystemArray, ES_CORE_SCRIPT_NAME,
@@ -316,7 +366,7 @@ void ES_Core_CheckIncludeHash(string sInclude)
 void ES_Core_CheckCoreHashes()
 {
     object oDataObject = ES_Core_GetCoreDataObject(), oModule = GetModule();
-    string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.+", FALSE);
+    string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.*", FALSE);
 
     ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
     ES_Util_StringArray_Clear(oDataObject, sIncludeArray);
@@ -368,16 +418,14 @@ string ES_Core_GetDisabledNWNXPlugins(string sPlugins)
 }
 
 // *****************************************************************************
-// Shared Service/Subsystem Functions
+// Shared Provider/Service/Subsystem Functions
 void ES_Core_CompileEventHandler(string sScriptName, string sEventHandlerFunction)
 {
     string sEventHandlerScriptChunk = nssFunction(sEventHandlerFunction, nssEscapeDoubleQuotes(sScriptName) + ", " + nssFunction("NWNX_Events_GetCurrentEvent", "", FALSE));
     string sResult = ES_Util_AddScript(sScriptName, sScriptName, sEventHandlerScriptChunk);
 
     if (sResult != "")
-    {
         ES_Util_Log(ES_CORE_LOG_TAG, "    > ERROR: Failed to compile Event Handler for '" + sScriptName + "' with error: " + sResult, FALSE);
-    }
 }
 
 void ES_Core_GetFunctionByType(object oDataObject, string sScriptContents, string sType)
@@ -476,6 +524,90 @@ void ES_Core_CheckNWNXPluginDependencies(string sScriptName)
     }
 }
 
+string ES_Core_GetProviders(string sSystem, string sScriptContents)
+{
+    string sProviders;
+    object oDataObject = ES_Core_GetSystemDataObject(sSystem);
+    int nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", 0), nIncludeEnd;
+
+    while (nIncludeStart != -1)
+    {
+        nIncludeEnd = FindSubString(sScriptContents, "\"", nIncludeStart + 10);
+
+        string sProvider = GetSubString(sScriptContents, nIncludeStart + 10, nIncludeEnd - nIncludeStart - 10);
+
+        if (GetStringLeft(sProvider, 7) == "es_prv_")
+        {
+            ES_Util_StringArray_Insert(oDataObject, "Providers", sProvider);
+
+            sProviders += sProvider + " ";
+        }
+
+        nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", nIncludeEnd);
+    }
+
+    return sProviders;
+}
+
+void ES_Core_CheckProviders(string sSystem)
+{
+    object oDataObject = ES_Core_GetSystemDataObject(sSystem);
+    int bHasEventHandler = GetLocalInt(oDataObject, "HasEventHandler");
+    int bDidNotExist = GetLocalInt(oDataObject, "DidNotExist");
+    int bHasBeenCompiled = GetLocalInt(oDataObject, "HasBeenCompiled");
+
+    if (bHasEventHandler && !bDidNotExist && !bHasBeenCompiled)
+    {
+        int nNumProviders = ES_Util_StringArray_Size(oDataObject, "Providers"), nProviderIndex;
+
+        if (nNumProviders)
+        {
+            for (nProviderIndex = 0; nProviderIndex < nNumProviders; nProviderIndex++)
+            {
+                string sProvider = ES_Util_StringArray_At(oDataObject, "Providers", nProviderIndex);
+                object oProviderDataObject = ES_Core_GetSystemDataObject(sProvider);
+
+                if (GetLocalInt(oProviderDataObject, "HashChanged"))
+                {
+                    ES_Util_Log(ES_CORE_LOG_TAG, "  > Providers for '" + sSystem + "' have changed, recompiling Event Handler");
+
+                    string sEventHandlerFunction = GetLocalString(oDataObject, "EventHandlerFunction");
+
+                    ES_Core_CompileEventHandler(sSystem, sEventHandlerFunction);
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// *****************************************************************************
+// Provider Functions
+void ES_Core_Provider_Initialize(string sProvider)
+{
+    ES_Util_Log(ES_CORE_LOG_TAG, "  > Initializing Provider: " + sProvider);
+
+    object oDataObject = ES_Core_GetSystemDataObject(sProvider);
+    string sScriptContents = NWNX_Util_GetNSSContents(sProvider);
+
+    int bDisabled = FindSubString(GetLocalString(ES_Core_GetCoreDataObject(), "DisabledProviders"), sProvider) != -1;
+    SetLocalInt(oDataObject, "Disabled", bDisabled);
+
+    int nHash = NWNX_Util_Hash(sScriptContents);
+    ES_Util_Log(ES_CORE_LOG_TAG, "    > Hash: " + IntToString(nHash));
+    SetLocalInt(oDataObject, "Hash", nHash);
+
+    string sNWNXPlugins = ES_Core_GetNWNXPluginDependencies(sScriptContents);
+    if (sNWNXPlugins != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > NWNX Plugins: " + sNWNXPlugins);
+        SetLocalString(oDataObject, "NWNXPlugins", sNWNXPlugins);
+    }
+
+    ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Load");
+}
+
 // *****************************************************************************
 // Service Functions
 void ES_Core_Service_Initialize(string sService)
@@ -492,6 +624,10 @@ void ES_Core_Service_Initialize(string sService)
     ES_Util_Log(ES_CORE_LOG_TAG, "    > Hash: " + IntToString(nHash));
     SetLocalInt(oDataObject, "Hash", nHash);
 
+    string sProviders = ES_Core_GetProviders(sService, sScriptContents);
+    if (sProviders != "")
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Providers: " + sProviders);
+
     string sNWNXPlugins = ES_Core_GetNWNXPluginDependencies(sScriptContents);
     if (sNWNXPlugins != "")
     {
@@ -502,6 +638,65 @@ void ES_Core_Service_Initialize(string sService)
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Load");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "EventHandler");
     ES_Core_GetFunctionByType(oDataObject, sScriptContents, "Post");
+}
+
+void ES_Core_Service_CheckStatus(string sService)
+{
+    object oDataObject = ES_Core_GetSystemDataObject(sService);
+    int nServiceDisabled = GetLocalInt(oDataObject, "Disabled");
+    string sDisabledProviders, sMissingProviders;
+
+    if (!nServiceDisabled)
+    {
+        int nNumProviders = ES_Util_StringArray_Size(oDataObject, "Providers");
+
+        if (nNumProviders)
+        {
+            int nProviderIndex;
+
+            for (nProviderIndex = 0; nProviderIndex < nNumProviders; nProviderIndex++)
+            {
+                string sProvider = ES_Util_StringArray_At(oDataObject, "Providers", nProviderIndex);
+                object oProviderDataObject = ES_Core_GetSystemDataObject(sProvider);
+
+                if (GetLocalInt(oProviderDataObject, "Disabled"))
+                {
+                    sDisabledProviders += sProvider + " ";
+                }
+
+                if (!NWNX_Util_IsValidResRef(sProvider, NWNX_UTIL_RESREF_TYPE_NSS))
+                {
+                    sMissingProviders += sProvider + " ";
+                }
+            }
+
+            if (sDisabledProviders != "")
+            {
+                nServiceDisabled = TRUE;
+                SetLocalInt(oDataObject, "Disabled", nServiceDisabled);
+            }
+
+            if (sMissingProviders != "")
+            {
+                nServiceDisabled = TRUE;
+                SetLocalInt(oDataObject, "Disabled", nServiceDisabled);
+            }
+        }
+    }
+
+    if (nServiceDisabled)
+    {
+        if (sDisabledProviders == "" && sMissingProviders == "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "  > Service '" + sService + "' -> Manually Disabled");
+        else
+            ES_Util_Log(ES_CORE_LOG_TAG, "  > Service '" + sService + "' -> Disabled");
+
+        if (sDisabledProviders != "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Providers: " + sDisabledProviders);
+
+        if (sMissingProviders != "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing Providers: " + sMissingProviders);
+    }
 }
 
 // *****************************************************************************
@@ -562,6 +757,10 @@ void ES_Core_Subsystem_Initialize(string sSubsystem)
         SetLocalString(oDataObject, "Flags", sFlags);
     }
 
+    string sProviders = ES_Core_GetProviders(sSubsystem, sScriptContents);
+    if (sProviders != "")
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Providers: " + sProviders);
+
     string sServices = ES_Core_Subsystem_GetServices(sSubsystem, sScriptContents);
     if (sServices != "")
         ES_Util_Log(ES_CORE_LOG_TAG, "    > Services: " + sServices);
@@ -598,7 +797,7 @@ void ES_Core_Subsystem_CheckServices(string sSubsystem)
 
                 if (GetLocalInt(oServiceDataObject, "HashChanged"))
                 {
-                    ES_Util_Log(ES_CORE_LOG_TAG, "  > Services for Subsystem '" + sSubsystem + "' have changed, recompiling Event Handler");
+                    ES_Util_Log(ES_CORE_LOG_TAG, "  > Services for '" + sSubsystem + "' have changed, recompiling Event Handler");
 
                     string sEventHandlerFunction = GetLocalString(oDataObject, "EventHandlerFunction");
 
@@ -616,6 +815,7 @@ void ES_Core_Subsystem_CheckStatus(string sSubsystem)
     object oDataObject = ES_Core_GetSystemDataObject(sSubsystem);
     int nSubsystemDisabled = GetLocalInt(oDataObject, "Disabled");
     string sDisabledServices, sMissingServices;
+    string sDisabledProviders, sMissingProviders;
 
     if (!nSubsystemDisabled)
     {
@@ -653,14 +853,55 @@ void ES_Core_Subsystem_CheckStatus(string sSubsystem)
                 SetLocalInt(oDataObject, "Disabled", nSubsystemDisabled);
             }
         }
+
+        int nNumProviders = ES_Util_StringArray_Size(oDataObject, "Providers");
+
+        if (nNumProviders)
+        {
+            int nProviderIndex;
+
+            for (nProviderIndex = 0; nProviderIndex < nNumProviders; nProviderIndex++)
+            {
+                string sProvider = ES_Util_StringArray_At(oDataObject, "Providers", nProviderIndex);
+                object oProviderDataObject = ES_Core_GetSystemDataObject(sProvider);
+
+                if (GetLocalInt(oProviderDataObject, "Disabled"))
+                {
+                    sDisabledProviders += sProvider + " ";
+                }
+
+                if (!NWNX_Util_IsValidResRef(sProvider, NWNX_UTIL_RESREF_TYPE_NSS))
+                {
+                    sMissingProviders += sProvider + " ";
+                }
+            }
+
+            if (sDisabledProviders != "")
+            {
+                nSubsystemDisabled = TRUE;
+                SetLocalInt(oDataObject, "Disabled", nSubsystemDisabled);
+            }
+
+            if (sMissingProviders != "")
+            {
+                nSubsystemDisabled = TRUE;
+                SetLocalInt(oDataObject, "Disabled", nSubsystemDisabled);
+            }
+        }
     }
 
     if (nSubsystemDisabled)
     {
-        if (sDisabledServices == "" && sMissingServices == "")
+        if (sDisabledServices == "" && sMissingServices == "" && sDisabledProviders == "" && sMissingProviders == "")
             ES_Util_Log(ES_CORE_LOG_TAG, "  > Subsystem '" + sSubsystem + "' -> Manually Disabled");
         else
             ES_Util_Log(ES_CORE_LOG_TAG, "  > Subsystem '" + sSubsystem + "' -> Disabled");
+
+        if (sDisabledProviders != "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Providers: " + sDisabledProviders);
+
+        if (sMissingProviders != "")
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing Providers: " + sMissingProviders);
 
         if (sDisabledServices != "")
             ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Services: " + sDisabledServices);
