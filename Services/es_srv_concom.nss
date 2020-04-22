@@ -128,10 +128,10 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
                 bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
 
                 if (bReturn)
-                    ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Overriding Base Game Console Command -> '" + sCommand + "' by Subsystem '" +
+                    ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Overriding Base Game Console Command -> '" + sCommand + "' by '" +
                         sSubsystemScript + "' with Function: " + sFunction + "()");
                 else
-                    ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to override Console Command -> '" + sCommand + "' by Subsystem '" +
+                    ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to override Console Command -> '" + sCommand + "' by '" +
                         sSubsystemScript + "' with Function: " + sFunction + "()");
             }
             else
@@ -154,10 +154,10 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
             bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
 
             if (bReturn)
-                ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Registering Console Command -> '" + sCommand + "' for Subsystem '" +
+                ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Registering Console Command -> '" + sCommand + "' for '" +
                     sSubsystemScript + "' with Function: " + sFunction + "()");
             else
-                ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to register Console Command -> '" + sCommand + "' for Subsystem '" +
+                ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to register Console Command -> '" + sCommand + "' for '" +
                     sSubsystemScript + "' with Function: " + sFunction + "()");
         }
     }

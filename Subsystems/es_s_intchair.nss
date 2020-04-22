@@ -13,7 +13,6 @@
 #include "es_inc_core"
 #include "es_srv_toolbox"
 #include "es_srv_simdialog"
-#include "es_srv_profiler"
 
 const string INTCHAIR_LOG_TAG           = "InteractiveChair";
 const string INTCHAIRT_SCRIPT_NAME      = "es_s_intchair";
@@ -41,8 +40,6 @@ void InteractiveChair_Load(string sSubsystemScript)
 // @EventHandler
 void InteractiveChair_EventHandler(string sSubsystemScript, string sEvent)
 {
-    struct ProfilerData pd = Profiler_Start(sSubsystemScript + ":" + sEvent, FALSE, TRUE);
-
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
         int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
@@ -99,8 +96,6 @@ void InteractiveChair_EventHandler(string sSubsystemScript, string sEvent)
             break;
         }
     }
-
-    Profiler_Stop(pd);
 }
 
 void InteractiveChair_SpawnChairs(string sSubsystemScript)

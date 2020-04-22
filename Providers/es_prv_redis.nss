@@ -9,6 +9,7 @@
 */
 
 #include "es_inc_core"
+
 #include "nwnx_redis_short"
 
 const string REDIS_LOG_TAG      = "Redis";

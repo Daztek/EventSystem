@@ -9,6 +9,7 @@
 */
 
 #include "es_inc_core"
+
 #include "nwnx_sql"
 
 const string SQL_LOG_TAG                = "SQL";
@@ -36,7 +37,7 @@ void SQL_Load(string sProviderScript)
     }
     else
     {
-        SetLocalInt(ES_Core_GetSystemDataObject(sProviderScript), "Disabled", TRUE);
+        ES_Core_DisableComponent(sProviderScript);
 
         ES_Util_Log(SQL_LOG_TAG, "* ERROR: Unsupported Database Type: '" + sDatabaseType + "', disabling...");
     }
@@ -44,9 +45,7 @@ void SQL_Load(string sProviderScript)
 
 int SQL_GetTableExists(string sTable)
 {
-    int bReturn = FALSE;
     string sDatabaseType = NWNX_SQL_GetDatabaseType(), sQuery;
-
     if (sDatabaseType == SQL_DATABASE_TYPE_MYSQL)
         sQuery = "SELECT * FROM information_schema WHERE TABLE_NAME=?;";
     else
@@ -56,29 +55,30 @@ int SQL_GetTableExists(string sTable)
     NWNX_SQL_PreparedString(0, sTable);
     NWNX_SQL_ExecutePreparedQuery();
 
-    bReturn = NWNX_SQL_ReadyToReadNextRow();
+    int bTableExists = NWNX_SQL_ReadyToReadNextRow();
 
-    return bReturn;
+    return bTableExists;
 }
 
 int SQL_GetLastInsertId()
 {
     int nInsertId = -1;
-    string sDatabaseType = NWNX_SQL_GetDatabaseType(), sQuery;
 
+    string sDatabaseType = NWNX_SQL_GetDatabaseType(), sQuery;
     if (sDatabaseType == SQL_DATABASE_TYPE_MYSQL)
         sQuery = "SELECT LAST_INSERT_ID();";
     else
     if (sDatabaseType == SQL_DATABASE_TYPE_SQLITE)
         sQuery = "SELECT last_insert_rowid();";
 
-    NWNX_SQL_ExecuteQuery(sQuery);
-
-    if (NWNX_SQL_ReadyToReadNextRow())
+    if (NWNX_SQL_ExecuteQuery(sQuery))
     {
-        NWNX_SQL_ReadNextRow();
+        if (NWNX_SQL_ReadyToReadNextRow())
+        {
+            NWNX_SQL_ReadNextRow();
 
-        nInsertId = StringToInt(NWNX_SQL_ReadDataInActiveRow(0));
+            nInsertId = StringToInt(NWNX_SQL_ReadDataInActiveRow(0));
+        }
     }
 
     return nInsertId;

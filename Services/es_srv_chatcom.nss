@@ -35,8 +35,6 @@ const string CHATCOMMAND_PERMISSION_FUNCTION    = "PermissionFunction_";
 const string CHATCOMMAND_PERMISSION_VALUE       = "PermissionValue_";
 const string CHATCOMMAND_PERMISSION_COMPARISON  = "PermissionComparison_";
 
-const string CHATCOMMAND_ALIAS                  = "Alias_";
-
 const string CHATCOMMAND_HELP_TEXT              = "HelpText_";
 
 // Register a chat command
