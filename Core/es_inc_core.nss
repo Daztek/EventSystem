@@ -30,7 +30,7 @@ const int ES_CORE_COMPONENT_TYPE_SUBSYSTEM  = 3;
 /* Internal Functions */
 // INTERNAL FUNCTION: Returns the dataobject for the Core
 object ES_Core_GetCoreDataObject();
-// INTERNAL FUNCTION: Returns the dataobject for a service or subsystem
+// INTERNAL FUNCTION: Returns the dataobject for a component
 object ES_Core_GetComponentDataObject(string sComponent, int bCreateIfNotExists = TRUE);
 // INTERNAL FUNCTION
 int ES_Core_GetCoreHashChanged();
@@ -46,7 +46,7 @@ void ES_Core_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode
 // INTERNAL FUNCTION
 string ES_Core_Component_GetDisabledNWNXPlugins(string sPlugins);
 // INTERNAL FUNCTION
-string ES_Core_Component_GetNameFromType(int nType, int bPlural);
+string ES_Core_Component_GetTypeNameFromType(int nType, int bPlural);
 // INTERNAL FUNCTION
 string ES_Core_Component_GetScriptPrefixFromType(int nType);
 /* ****************** */
@@ -135,9 +135,10 @@ void ES_Core_Init()
     // *** CHECK EVENT SCRIPTS
     ES_Util_Log(ES_CORE_LOG_TAG, "  > Checking Object Event Scripts");
 
-    // Check if the module shutdown script is set to es_obj_e_3018
-    if (NWNX_Util_GetEnvironmentVariable("NWNX_CORE_SHUTDOWN_SCRIPT") != "es_obj_e_3018")
-        ES_Util_Log(ES_CORE_LOG_TAG, "    > WARNING: NWNX environment variable 'NWNX_CORE_SHUTDOWN_SCRIPT' is not set to the following: es_obj_e_3018");
+    // Check if the module shutdown script is set to sShutdownScriptName
+    string sShutdownScriptName = "es_obj_e_3018";
+    if (NWNX_Util_GetEnvironmentVariable("NWNX_CORE_SHUTDOWN_SCRIPT") != sShutdownScriptName)
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > WARNING: NWNX environment variable 'NWNX_CORE_SHUTDOWN_SCRIPT' is not set to: " + sShutdownScriptName);
 
     // Check if ES_Core_SignalEvent's function hash has changed
     if (ES_Core_GetFunctionHashChanged("ES_Core_SignalEvent"))
@@ -177,11 +178,12 @@ void ES_Core_Init()
         oArea = GetNextArea();
     }
 
-    string sServicesArray;
+
+    // *** INITIALIZE COMPONENTS
     int nComponentType;
     for (nComponentType = ES_CORE_COMPONENT_TYPE_PROVIDER; nComponentType <= ES_CORE_COMPONENT_TYPE_SUBSYSTEM; nComponentType++)
     {
-        string sComponentTypeNamePlural = ES_Core_Component_GetNameFromType(nComponentType, TRUE);
+        string sComponentTypeNamePlural = ES_Core_Component_GetTypeNameFromType(nComponentType, TRUE);
         string sComponentScriptPrefix = ES_Core_Component_GetScriptPrefixFromType(nComponentType);
 
         ES_Util_Log(ES_CORE_LOG_TAG, "");
@@ -190,10 +192,6 @@ void ES_Core_Init()
         // Get an array of all the components of nComponentType
         string sComponentsArray = ES_Util_GetResRefArray(oCoreDataObject, NWNX_UTIL_RESREF_TYPE_NSS, sComponentScriptPrefix + ".+", FALSE);
         SetLocalString(oCoreDataObject, sComponentTypeNamePlural, sComponentsArray);
-
-        // If we're checking services, save the arrayname for the POST function
-        if (nComponentType == ES_CORE_COMPONENT_TYPE_SERVICE)
-            sServicesArray = sComponentsArray;
 
         // Check if any components have been manually disabled
         string sDisabledComponents = NWNX_Util_GetEnvironmentVariable("ES_DISABLE_" + GetStringUpperCase(sComponentTypeNamePlural));
@@ -233,7 +231,7 @@ void ES_Core_Init()
                     nssFunction("ES_Core_Component_CheckComponentDependenciesByType", "sArrayElement, ES_CORE_COMPONENT_TYPE_SERVICE"), oModule);
             }
 
-            // Check the status of all component
+            // Check the status of all components
             ES_Util_Log(ES_CORE_LOG_TAG, "* " + sComponentTypeNamePlural + ": Status Check");
             ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
                 nssFunction("ES_Core_Component_CheckStatus", "sArrayElement, " + IntToString(nComponentType)), oModule);
@@ -246,9 +244,10 @@ void ES_Core_Init()
     }
 
 
-    // *** POST
+    // *** SERVICES POST
     ES_Util_Log(ES_CORE_LOG_TAG, "");
     ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Post");
+    string sServicesArray = GetLocalString(oCoreDataObject, "Services");
     ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Component_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Post")), oModule);
 
@@ -265,12 +264,12 @@ void ES_Core_Init()
 // Data Object Functions
 object ES_Core_GetCoreDataObject()
 {
-    return ES_Util_GetDataObject(ES_CORE_SCRIPT_NAME);
+    return ES_Util_GetDataObject("ES!Core!" + ES_CORE_SCRIPT_NAME);
 }
 
 object ES_Core_GetComponentDataObject(string sComponent, int bCreateIfNotExists = TRUE)
 {
-    return ES_Util_GetDataObject("ESCore!" + ES_CORE_SCRIPT_NAME + "!" + sComponent, bCreateIfNotExists);
+    return ES_Util_GetDataObject("ES!Core!Component!" + sComponent, bCreateIfNotExists);
 }
 
 // *****************************************************************************
@@ -316,23 +315,23 @@ void ES_Core_CheckIncludeHash(string sInclude)
 
 void ES_Core_CheckCoreHashes()
 {
-    object oDataObject = ES_Core_GetCoreDataObject(), oModule = GetModule();
-    string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.+", FALSE);
+    object oCoreDataObject = ES_Core_GetCoreDataObject(), oModule = GetModule();
+    string sIncludeArray = ES_Util_GetResRefArray(oCoreDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.+", FALSE);
 
-    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
-    ES_Util_StringArray_Clear(oDataObject, sIncludeArray);
+    ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
+    ES_Util_StringArray_Clear(oCoreDataObject, sIncludeArray);
 }
 
 void ES_Core_CheckNWNXHashes()
 {
-    object oDataObject = ES_Core_GetCoreDataObject(), oModule = GetModule();
-    string sIncludeArray = ES_Util_GetResRefArray(oDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "nwnx_.+", FALSE);
+    object oCoreDataObject = ES_Core_GetCoreDataObject(), oModule = GetModule();
+    string sIncludeArray = ES_Util_GetResRefArray(oCoreDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "(?!nwnx_.+_t*)nwnx_.+", FALSE);
 
     // Manually insert nwnx.nss
-    ES_Util_StringArray_Insert(oDataObject, sIncludeArray, "nwnx");
+    ES_Util_StringArray_Insert(oCoreDataObject, sIncludeArray, "nwnx");
 
-    ES_Util_ExecuteScriptChunkForArrayElements(oDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
-    ES_Util_StringArray_Clear(oDataObject, sIncludeArray);
+    ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
+    ES_Util_StringArray_Clear(oCoreDataObject, sIncludeArray);
 }
 
 int ES_Core_GetCoreHashChanged()
@@ -343,29 +342,6 @@ int ES_Core_GetCoreHashChanged()
 int ES_Core_GetFunctionHashChanged(string sFunction)
 {
     return GetLocalInt(ES_Core_GetCoreDataObject(), "FunctionHashChanged_" + sFunction);
-}
-
-string ES_Core_Component_GetDisabledNWNXPlugins(string sPlugins)
-{
-    if (sPlugins != "" && GetStringRight(sPlugins, 1) != " ")
-        sPlugins += " ";
-
-    int nPluginStart, nPluginEnd = FindSubString(sPlugins, " ", nPluginStart);
-    string sDisabledPlugins;
-
-    while (nPluginEnd != -1)
-    {
-        string sPlugin = GetSubString(sPlugins, nPluginStart, nPluginEnd - nPluginStart);
-        int bPluginExists = NWNX_Util_PluginExists("NWNX_" + sPlugin);
-
-        if (!bPluginExists)
-            sDisabledPlugins += sPlugin + " ";
-
-        nPluginStart = nPluginEnd + 1;
-        nPluginEnd = FindSubString(sPlugins, " ", nPluginStart);
-    }
-
-    return sDisabledPlugins;
 }
 
 // *****************************************************************************
@@ -385,7 +361,7 @@ string ES_Core_Component_GetScriptFlags(string sScriptContents)
     return sFlags;
 }
 
-string ES_Core_Component_GetNameFromType(int nType, int bPlural)
+string ES_Core_Component_GetTypeNameFromType(int nType, int bPlural)
 {
     string sComponentTypeName;
 
@@ -432,6 +408,29 @@ void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType)
     }
 }
 
+string ES_Core_Component_GetDisabledNWNXPlugins(string sPlugins)
+{
+    if (sPlugins != "" && GetStringRight(sPlugins, 1) != " ")
+        sPlugins += " ";
+
+    int nPluginStart, nPluginEnd = FindSubString(sPlugins, " ", nPluginStart);
+    string sDisabledPlugins;
+
+    while (nPluginEnd != -1)
+    {
+        string sPlugin = GetSubString(sPlugins, nPluginStart, nPluginEnd - nPluginStart);
+        int bPluginExists = NWNX_Util_PluginExists("NWNX_" + sPlugin);
+
+        if (!bPluginExists)
+            sDisabledPlugins += sPlugin + " ";
+
+        nPluginStart = nPluginEnd + 1;
+        nPluginEnd = FindSubString(sPlugins, " ", nPluginStart);
+    }
+
+    return sDisabledPlugins;
+}
+
 string ES_Core_Component_GetNWNXPluginDependencies(string sScriptContents)
 {
     int nNWNXPluginsStart = FindSubString(sScriptContents, "@NWNX[", 0);
@@ -465,9 +464,9 @@ void ES_Core_Component_CheckNWNXPluginDependencies(string sComponent)
 string ES_Core_Component_GetDependenciesByType(string sComponent, string sScriptContents, int nType)
 {
     object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
-
-    string sComponentDependencyTypeNamePlural = ES_Core_Component_GetNameFromType(nType, TRUE);
+    string sComponentDependencyTypeNamePlural = ES_Core_Component_GetTypeNameFromType(nType, TRUE);
     string sComponentDependencyScriptPrefix = ES_Core_Component_GetScriptPrefixFromType(nType);
+    int nComponentDependencyScriptPrefixLength = GetStringLength(sComponentDependencyScriptPrefix);
     string sComponentDependencies;
 
     int nIncludeStart = FindSubString(sScriptContents, "#" + "include \"", 0), nIncludeEnd;
@@ -478,7 +477,7 @@ string ES_Core_Component_GetDependenciesByType(string sComponent, string sScript
 
         string sComponentDependency = GetSubString(sScriptContents, nIncludeStart + 10, nIncludeEnd - nIncludeStart - 10);
 
-        if (GetStringLeft(sComponentDependency, GetStringLength(sComponentDependencyScriptPrefix)) == sComponentDependencyScriptPrefix)
+        if (GetStringLeft(sComponentDependency, nComponentDependencyScriptPrefixLength) == sComponentDependencyScriptPrefix)
         {
             ES_Util_StringArray_Insert(oComponentDataObject, sComponentDependencyTypeNamePlural, sComponentDependency);
 
@@ -513,8 +512,8 @@ void ES_Core_Component_GetFunctionByType(object oComponentDataObject, string sSc
 
 void ES_Core_Component_Initialize(string sComponent, int nType)
 {
-    string sComponentTypeName = ES_Core_Component_GetNameFromType(nType, FALSE);
-    string sComponentTypeNamePlural = ES_Core_Component_GetNameFromType(nType, TRUE);
+    string sComponentTypeName = ES_Core_Component_GetTypeNameFromType(nType, FALSE);
+    string sComponentTypeNamePlural = ES_Core_Component_GetTypeNameFromType(nType, TRUE);
     object oCoreDataObject = ES_Core_GetCoreDataObject();
     object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
     string sScriptContents = NWNX_Util_GetNSSContents(sComponent);
@@ -546,7 +545,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
         SetLocalString(oComponentDataObject, "NWNXPlugins", sNWNXPlugins);
     }
 
-    // Get Providers for Services and Subsystems
+    // Get Provider Dependencies for Services and Subsystems
     if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
     {
         string sProviders = ES_Core_Component_GetDependenciesByType(sComponent, sScriptContents, ES_CORE_COMPONENT_TYPE_PROVIDER);
@@ -554,7 +553,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
             ES_Util_Log(ES_CORE_LOG_TAG, "    > Providers: " + sProviders);
     }
 
-    // Get Services for Subsystems
+    // Get Service Dependencies for Subsystems
     if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
     {
         string sServices = ES_Core_Component_GetDependenciesByType(sComponent, sScriptContents, ES_CORE_COMPONENT_TYPE_SERVICE);
@@ -570,6 +569,11 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
         ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
     }
 
+    if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
+    {
+        ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Unload");
+    }
+
     if (nType == ES_CORE_COMPONENT_TYPE_SERVICE)
     {
         ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Post");
@@ -579,7 +583,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
 void ES_Core_Component_CheckStatus(string sComponent, int nType)
 {
     object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
-    string sComponentTypeName = ES_Core_Component_GetNameFromType(nType, FALSE);
+    string sComponentTypeName = ES_Core_Component_GetTypeNameFromType(nType, FALSE);
 
     int nComponentDisabled = GetLocalInt(oComponentDataObject, "Disabled");
 
@@ -683,7 +687,7 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
 void ES_Core_Component_CheckComponentDependenciesByType(string sComponent, int nType)
 {
     object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
-    string sComponentDependencyTypeNamePlural = ES_Core_Component_GetNameFromType(nType, TRUE);
+    string sComponentDependencyTypeNamePlural = ES_Core_Component_GetTypeNameFromType(nType, TRUE);
     int bHasEventHandler = GetLocalInt(oComponentDataObject, "HasEventHandler");
     int bDidNotExist = GetLocalInt(oComponentDataObject, "DidNotExist");
     int bHasBeenCompiled = GetLocalInt(oComponentDataObject, "HasBeenCompiled");
@@ -789,7 +793,7 @@ void ES_Core_SignalEvent(int nEvent, object oTarget = OBJECT_SELF)
         NWNX_Events_SignalEvent(sEvent + IntToString(ES_CORE_EVENT_FLAG_BEFORE), oTarget);
 
     // Run any old stored event scripts
-    string sScript = GetLocalString(oTarget, "ES_Core_OldEventScript_" + IntToString(nEvent));
+    string sScript = GetLocalString(oTarget, "ES!Core!OldEventScript!" + IntToString(nEvent));
     if (sScript != "") ExecuteScript(sScript, oTarget);
 
     if (nEventFlags & ES_CORE_EVENT_FLAG_DEFAULT)
@@ -823,7 +827,7 @@ void ES_Core_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent
     int bSet = SetEventScript(oObject, nEvent, sNewScript);
 
     if (bSet && bStoreOldEvent && sOldScript != "" && sOldScript != sNewScript)
-        SetLocalString(oObject, "ES_Core_OldEventScript_" + sEvent, sOldScript);
+        SetLocalString(oObject, "ES!Core!OldEventScript!" + sEvent, sOldScript);
 }
 
 int ES_Core_GetEventFlagFromEvent(string sEvent)

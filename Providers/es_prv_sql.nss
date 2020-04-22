@@ -9,13 +9,11 @@
 */
 
 #include "es_inc_core"
-
 #include "nwnx_sql"
 
 const string SQL_LOG_TAG                = "SQL";
 const string SQL_SCRIPT_NAME            = "es_prv_sql";
 
-const string SQL_DATABASE_TYPE          = "DatabaseType";
 const string SQL_DATABASE_TYPE_MYSQL    = "MYSQL";
 const string SQL_DATABASE_TYPE_SQLITE   = "SQLITE";
 
@@ -31,8 +29,6 @@ void SQL_Load(string sProviderScript)
     if (sDatabaseType == SQL_DATABASE_TYPE_MYSQL ||
         sDatabaseType == SQL_DATABASE_TYPE_SQLITE)
     {
-        SetLocalString(oDataObject, SQL_DATABASE_TYPE, sDatabaseType);
-
         ES_Util_Log(SQL_LOG_TAG, "* Using Database Type: '" + sDatabaseType + "'");
     }
     else
