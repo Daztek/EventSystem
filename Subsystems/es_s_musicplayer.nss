@@ -332,20 +332,12 @@ void MusicPlayer_SpawnPlaceables(string sSubsystemScript)
 
     int nNth = 0;
     object oSpawnPoint = GetObjectByTag(MUSICPLAYER_WAYPOINT_TAG, nNth);
-    string sOnUsedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
-    string sOnMeleeEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED);
-    string sOnSpellEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT);
 
     while (GetIsObjectValid(oSpawnPoint))
     {
         object oMusicPlayer = Toolbox_CreatePlaceable(sPlaceableData, GetLocation(oSpawnPoint));
 
-        NWNX_Events_AddObjectToDispatchList(sOnUsedEvent, sSubsystemScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(sOnMeleeEvent, sSubsystemScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(sOnSpellEvent, sSubsystemScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oMusicPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, sSubsystemScript, oMusicPlayer);
+        ES_Core_AddObjectToAllDispatchLists(sSubsystemScript, oMusicPlayer);
 
         SetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, MusicBackgroundGetDayTrack(GetArea(oMusicPlayer)));
 

@@ -36,12 +36,12 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
         {
             string sResRef = ES_Util_GetEventData_NWNX_String("RESREF");
 
-            if (GetStringLeft(sResRef, 5) == "es_s_")
+            if (ES_Core_Component_GetTypeFromScriptName(sResRef) == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
             {
                 object oDataObject = ES_Util_GetDataObject(SUBSYSTEM_MANAGER_SCRIPT_NAME);
-                object oSubsystem = ES_Core_GetComponentDataObject(sResRef, FALSE);
+                object oComponent = ES_Core_GetComponentDataObject(sResRef, FALSE);
 
-                if (GetIsObjectValid(oSubsystem))
+                if (GetIsObjectValid(oComponent))
                 {
                     if (GetLocalInt(oDataObject, sResRef))
                         return;
@@ -49,11 +49,11 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
                     SetLocalInt(oDataObject, sResRef, TRUE);
                     DelayCommand(SUBSYSTEM_MANAGER_IGNORE_TIME, DeleteLocalInt(oDataObject, sResRef));
 
-                    string sScriptFlags = GetLocalString(oSubsystem, "Flags");
+                    string sScriptFlags = GetLocalString(oComponent, "Flags");
 
                     if (FindSubString(sScriptFlags, "HotSwap") != -1)
                     {
-                        ES_Util_Log(SUBSYSTEM_MANAGER_LOG_TAG, "Detected changes for Subsystem '" + sResRef + "', recompiling EventHandler", FALSE);
+                        ES_Util_Log(SUBSYSTEM_MANAGER_LOG_TAG, "Detected changes for '" + sResRef + "', recompiling EventHandler", FALSE);
 
                         ES_Core_Component_ExecuteFunction(sResRef, "Unload");
 

@@ -104,7 +104,6 @@ void ObjectSit_SpawnSittingObjects(string sSubsystemScript)
     pd.fFacingAdjustment = 180.0f;
 
     string sSerializedChair = Toolbox_GeneratePlaceable(pd);
-    string sPlaceableOnUsed = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
 
     int nNth = 0;
     object oSpawnpoint;
@@ -112,9 +111,7 @@ void ObjectSit_SpawnSittingObjects(string sSubsystemScript)
     {
         object oSittingObject = Toolbox_CreatePlaceable(sSerializedChair, GetLocation(oSpawnpoint));
 
-        NWNX_Events_AddObjectToDispatchList(sPlaceableOnUsed, sSubsystemScript, oSittingObject);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oSittingObject);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, sSubsystemScript, oSittingObject);
+        ES_Core_AddObjectToAllDispatchLists(sSubsystemScript, oSittingObject);
     }
 
     ES_Util_Log(OBJSIT_LOG_TAG, "* Created '" + IntToString(--nNth) + "' Sitting Objects");

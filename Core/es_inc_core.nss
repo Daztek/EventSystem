@@ -49,6 +49,8 @@ string ES_Core_Component_GetDisabledNWNXPlugins(string sPlugins);
 string ES_Core_Component_GetTypeNameFromType(int nType, int bPlural);
 // INTERNAL FUNCTION
 string ES_Core_Component_GetScriptPrefixFromType(int nType);
+// INTERNAL FUNCTION
+int ES_Core_Component_GetTypeFromScriptName(string sScriptName);
 /* ****************** */
 
 // Set oObject's nEvent script to the EventSystem's event script
@@ -77,6 +79,10 @@ void ES_Core_SubscribeEvent_NWNX(string sSubsystemScript, string sNWNXEvent, int
 void ES_Core_UnsubscribeEvent(string sSubsystemScript, string sEvent, int bClearDispatchList = FALSE);
 // Unsubscribe sSubsystemScript from all its subscribed events
 void ES_Core_UnsubscribeAllEvents(string sSubsystemScript, int bClearDispatchLists = FALSE);
+// Attempt to add oObject to the dispatch lists of *all* events sSubsystemScript is subscribed to
+void ES_Core_AddObjectToAllDispatchLists(string sSubsystemScript, object oObject);
+// Attempt to remove oObject from the dispatch lists of *all* events sSubsystemScript is subscribed to
+void ES_Core_RemoveObjectFromAllDispatchLists(string sSubsystemScript, object oObject);
 
 void ES_Core_Init()
 {
@@ -201,7 +207,7 @@ void ES_Core_Init()
             SetLocalString(oCoreDataObject, "Disabled" + sComponentTypeNamePlural, sDisabledComponents);
         }
 
-        // Initialize all components of nComponentType
+        // Initialize all components
         ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
             nssFunction("ES_Core_Component_Initialize", "sArrayElement, " + IntToString(nComponentType)), oModule);
 
@@ -230,12 +236,12 @@ void ES_Core_Init()
                 ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
                     nssFunction("ES_Core_Component_CheckComponentDependenciesByType", "sArrayElement, ES_CORE_COMPONENT_TYPE_SERVICE"), oModule);
             }
-
-            // Check the status of all components
-            ES_Util_Log(ES_CORE_LOG_TAG, "* " + sComponentTypeNamePlural + ": Status Check");
-            ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
-                nssFunction("ES_Core_Component_CheckStatus", "sArrayElement, " + IntToString(nComponentType)), oModule);
         }
+
+        // Check the status of all components
+        ES_Util_Log(ES_CORE_LOG_TAG, "* " + sComponentTypeNamePlural + ": Status Check");
+        ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
+            nssFunction("ES_Core_Component_CheckStatus", "sArrayElement, " + IntToString(nComponentType)), oModule);
 
         // Execute the Load Function of all components
         ES_Util_Log(ES_CORE_LOG_TAG, "* " + sComponentTypeNamePlural + ": Load");
@@ -387,6 +393,19 @@ string ES_Core_Component_GetScriptPrefixFromType(int nType)
     }
 
     return sComponentScriptPrefix;
+}
+
+int ES_Core_Component_GetTypeFromScriptName(string sScriptName)
+{
+    int nComponentType;
+    for (nComponentType = ES_CORE_COMPONENT_TYPE_PROVIDER; nComponentType <= ES_CORE_COMPONENT_TYPE_SUBSYSTEM; nComponentType++)
+    {
+        string sScriptPrefix = ES_Core_Component_GetScriptPrefixFromType(nComponentType);
+        if (GetStringLeft(sScriptName, GetStringLength(sScriptPrefix)) == sScriptPrefix)
+            return nComponentType;
+    }
+
+    return 0;
 }
 
 void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType)
@@ -563,11 +582,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
 
     // Get Functions
     ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Load");
-
-    if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
-    {
-        ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
-    }
+    ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
 
     if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
     {
@@ -580,107 +595,97 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
     }
 }
 
-void ES_Core_Component_CheckStatus(string sComponent, int nType)
+struct ES_Core_ComponentStatus
 {
-    object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
-    string sComponentTypeName = ES_Core_Component_GetTypeNameFromType(nType, FALSE);
+    int nComponentType;
+    string sDisabledComponents;
+    string sMissingComponents;
+    int bDisable;
+};
 
-    int nComponentDisabled = GetLocalInt(oComponentDataObject, "Disabled");
+struct ES_Core_ComponentStatus ES_Core_GetStatusByType(object oComponentDataObject, int nComponentType)
+{
+    string sComponentTypeNamePlural =  ES_Core_Component_GetTypeNameFromType(nComponentType, TRUE);
+    struct ES_Core_ComponentStatus cs;
+    cs.nComponentType = nComponentType;
 
-    string sDisabledProviders, sMissingProviders;
-    string sDisabledServices, sMissingServices;
+    int nNumComponentDependencies = ES_Util_StringArray_Size(oComponentDataObject, sComponentTypeNamePlural);
 
-    if (!nComponentDisabled)
+    if (nNumComponentDependencies)
     {
-        int nNumProviders = ES_Util_StringArray_Size(oComponentDataObject, "Providers");
+        int nComponentDependencyIndex;
 
-        if (nNumProviders)
+        for (nComponentDependencyIndex = 0; nComponentDependencyIndex < nNumComponentDependencies; nComponentDependencyIndex++)
         {
-            int nProviderIndex;
+            string sComponentDependency = ES_Util_StringArray_At(oComponentDataObject, sComponentTypeNamePlural, nComponentDependencyIndex);
+            object oComponentDependencyDataObject = ES_Core_GetComponentDataObject(sComponentDependency);
 
-            for (nProviderIndex = 0; nProviderIndex < nNumProviders; nProviderIndex++)
+            if (GetLocalInt(oComponentDependencyDataObject, "Disabled"))
             {
-                string sProvider = ES_Util_StringArray_At(oComponentDataObject, "Providers", nProviderIndex);
-                object oProviderDataObject = ES_Core_GetComponentDataObject(sProvider);
-
-                if (GetLocalInt(oProviderDataObject, "Disabled"))
-                {
-                    sDisabledProviders += sProvider + " ";
-                }
-
-                if (!NWNX_Util_IsValidResRef(sProvider, NWNX_UTIL_RESREF_TYPE_NSS))
-                {
-                    sMissingProviders += sProvider + " ";
-                }
+                cs.sDisabledComponents += sComponentDependency + " ";
             }
 
-            if (sDisabledProviders != "")
+            if (!NWNX_Util_IsValidResRef(sComponentDependency, NWNX_UTIL_RESREF_TYPE_NSS))
             {
-                nComponentDisabled = TRUE;
-                SetLocalInt(oComponentDataObject, "Disabled", nComponentDisabled);
-            }
-
-            if (sMissingProviders != "")
-            {
-                nComponentDisabled = TRUE;
-                SetLocalInt(oComponentDataObject, "Disabled", nComponentDisabled);
-            }
-        }
-
-        int nNumServices = ES_Util_StringArray_Size(oComponentDataObject, "Services");
-
-        if (nNumServices)
-        {
-            int nServiceIndex;
-
-            for (nServiceIndex = 0; nServiceIndex < nNumServices; nServiceIndex++)
-            {
-                string sService = ES_Util_StringArray_At(oComponentDataObject, "Services", nServiceIndex);
-                object oServiceDataObject = ES_Core_GetComponentDataObject(sService);
-
-                if (GetLocalInt(oServiceDataObject, "Disabled"))
-                {
-                    sDisabledServices += sService + " ";
-                }
-
-                if (!NWNX_Util_IsValidResRef(sService, NWNX_UTIL_RESREF_TYPE_NSS))
-                {
-                    sMissingServices += sService + " ";
-                }
-            }
-
-            if (sDisabledServices != "")
-            {
-                nComponentDisabled = TRUE;
-                SetLocalInt(oComponentDataObject, "Disabled", nComponentDisabled);
-            }
-
-            if (sMissingServices != "")
-            {
-                nComponentDisabled = TRUE;
-                SetLocalInt(oComponentDataObject, "Disabled", nComponentDisabled);
+                cs.sMissingComponents += sComponentDependency + " ";
             }
         }
     }
 
+    if (cs.sDisabledComponents != "" || cs.sMissingComponents != "")
+        cs.bDisable = TRUE;
+
+    return cs;
+}
+
+void ES_Core_Component_PrintStatus(struct ES_Core_ComponentStatus cs)
+{
+    string sComponentTypeNamePlural = ES_Core_Component_GetTypeNameFromType(cs.nComponentType, TRUE);
+
+    if (cs.sDisabledComponents != "")
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled " + sComponentTypeNamePlural + ": " + cs.sDisabledComponents);
+
+    if (cs.sMissingComponents != "")
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing " + sComponentTypeNamePlural + ": " + cs.sMissingComponents);
+}
+
+void ES_Core_Component_CheckStatus(string sComponent, int nType)
+{
+    object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
+    int nComponentDisabled = GetLocalInt(oComponentDataObject, "Disabled");
+    struct ES_Core_ComponentStatus csProviders;
+    struct ES_Core_ComponentStatus csServices;
+
+    if (!nComponentDisabled)
+    {
+        if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
+        {
+            csProviders = ES_Core_GetStatusByType(oComponentDataObject, ES_CORE_COMPONENT_TYPE_PROVIDER);
+        }
+
+        if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
+        {
+            csServices = ES_Core_GetStatusByType(oComponentDataObject, ES_CORE_COMPONENT_TYPE_SERVICE);
+        }
+
+        if (csProviders.bDisable || csServices.bDisable)
+            nComponentDisabled = TRUE;
+    }
+
     if (nComponentDisabled)
     {
-        if (sDisabledServices == "" && sMissingServices == "" && sDisabledProviders == "" && sMissingProviders == "")
+        SetLocalInt(oComponentDataObject, "Disabled", nComponentDisabled);
+
+        string sComponentTypeName = ES_Core_Component_GetTypeNameFromType(nType, FALSE);
+        string sComponentTypeNamePlural = ES_Core_Component_GetTypeNameFromType(nType, TRUE);
+
+        if (FindSubString(GetLocalString(ES_Core_GetCoreDataObject(), "Disabled" + sComponentTypeNamePlural), sComponent) != -1)
             ES_Util_Log(ES_CORE_LOG_TAG, "  > " + sComponentTypeName + " '" + sComponent + "' -> Manually Disabled");
         else
             ES_Util_Log(ES_CORE_LOG_TAG, "  > " + sComponentTypeName + " '" + sComponent + "' -> Disabled");
 
-        if (sDisabledProviders != "")
-            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Providers: " + sDisabledProviders);
-
-        if (sMissingProviders != "")
-            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing Providers: " + sMissingProviders);
-
-        if (sDisabledServices != "")
-            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Disabled Services: " + sDisabledServices);
-
-        if (sMissingServices != "")
-            ES_Util_Log(ES_CORE_LOG_TAG, "    > Found Missing Services: " + sMissingServices);
+        ES_Core_Component_PrintStatus(csProviders);
+        ES_Core_Component_PrintStatus(csServices);
     }
 }
 
@@ -895,5 +900,33 @@ void ES_Core_UnsubscribeAllEvents(string sSubsystemScript, int bClearDispatchLis
     }
 
     ES_Util_StringArray_Clear(oDataObject, "SubscribedEvents");
+}
+
+void ES_Core_AddObjectToAllDispatchLists(string sSubsystemScript, object oObject)
+{
+    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
+
+    int nNumEvents = ES_Util_StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
+
+    for (nIndex = 0; nIndex < nNumEvents; nIndex++)
+    {
+        string sEvent = ES_Util_StringArray_At(oDataObject, "SubscribedEvents", nIndex);
+
+        NWNX_Events_AddObjectToDispatchList(sEvent, sSubsystemScript, oObject);
+    }
+}
+
+void ES_Core_RemoveObjectFromAllDispatchLists(string sSubsystemScript, object oObject)
+{
+    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
+
+    int nNumEvents = ES_Util_StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
+
+    for (nIndex = 0; nIndex < nNumEvents; nIndex++)
+    {
+        string sEvent = ES_Util_StringArray_At(oDataObject, "SubscribedEvents", nIndex);
+
+        NWNX_Events_RemoveObjectFromDispatchList(sEvent, sSubsystemScript, oObject);
+    }
 }
 
