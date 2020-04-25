@@ -79,10 +79,10 @@ int GUI_CenterStringInWindow(string sString, int nWindowX, int nWindowWidth);
 void GUI_Draw(object oPlayer, string sMessage, int nX, int nY, int nAnchor, int nID, float fLifeTime = 0.0f);
 // Draw a window with borders on all sides
 // Returns the amount of IDs used, minimum of 2
-int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f);
+int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f, int bIncrementID = TRUE);
 // Draw a window that covers the conversation window and only has right and bottom borders
 // Returns the amount of IDs used, minimum of 2
-int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f);
+int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f, int bIncrementID = TRUE);
 // Draws a text notification at the the top left anchor
 // Returns the amount of IDs used, minimum of 4
 int GUI_DrawNotification(object oPlayer, string sMessage, int nX, int nY, int nID, int nTextColor = GUI_COLOR_WHITE, float fLifeTime = 0.0f);
@@ -199,7 +199,7 @@ int GUI_CenterStringInWindow(string sString, int nWindowX, int nWindowWidth)
     return (nWindowX + (nWindowWidth / 2)) - ((GetStringLength(sString) + 2) / 2);
 }
 
-int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f)
+int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, int nWidth, int nHeight, float fLifetime = 0.0f, int bIncrementID = TRUE)
 {
     string sTop = GUI_FONT_GUI_GLYPH_WINDOW_TOP_LEFT;
     string sMiddle = GUI_FONT_GUI_GLYPH_WINDOW_MIDDLE_LEFT;
@@ -217,17 +217,17 @@ int GUI_DrawWindow(object oPlayer, int nStartID, int nAnchor, int nX, int nY, in
     sMiddle += GUI_FONT_GUI_GLYPH_WINDOW_MIDDLE_RIGHT;
     sBottom += GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_RIGHT;
 
-    GUI_Draw(oPlayer, sTop, nX, nY, nAnchor, nStartID++, fLifetime);
+    GUI_Draw(oPlayer, sTop, nX, nY, nAnchor, bIncrementID ? nStartID++ : nStartID--, fLifetime);
     for (i = 0; i < nHeight; i++)
     {
-        GUI_Draw(oPlayer, sMiddle, nX, ++nY, nAnchor, nStartID++, fLifetime);
+        GUI_Draw(oPlayer, sMiddle, nX, ++nY, nAnchor, bIncrementID ? nStartID++ : nStartID--, fLifetime);
     }
     GUI_Draw(oPlayer, sBottom, nX, ++nY, nAnchor, nStartID, fLifetime);
 
     return nHeight + 2;
 }
 
-int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f)
+int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHeight, float fLifetime = 0.0f, int bIncrementID = TRUE)
 {
     int nX = 0, nY = 0;
     int nAnchor = SCREEN_ANCHOR_TOP_LEFT;
@@ -248,10 +248,10 @@ int GUI_DrawConversationWindow(object oPlayer, int nStartID, int nWidth, int nHe
     sMiddle += GUI_FONT_GUI_GLYPH_WINDOW_MIDDLE_RIGHT;
     sBottom += GUI_FONT_GUI_GLYPH_WINDOW_BOTTOM_RIGHT;
 
-    GUI_Draw(oPlayer, sTop, nX, nY, nAnchor, nStartID++, fLifetime);
+    GUI_Draw(oPlayer, sTop, nX, nY, nAnchor, bIncrementID ? nStartID++ : nStartID--, fLifetime);
     for (i = 0; i < nHeight; i++)
     {
-        GUI_Draw(oPlayer, sMiddle, nX, ++nY, nAnchor, nStartID++, fLifetime);
+        GUI_Draw(oPlayer, sMiddle, nX, ++nY, nAnchor, bIncrementID ? nStartID++ : nStartID--, fLifetime);
     }
     GUI_Draw(oPlayer, sBottom, nX, ++nY, nAnchor, nStartID, fLifetime);
 

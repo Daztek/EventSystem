@@ -87,10 +87,6 @@ void Spellbook_DrawSpellbookGUI(object oPlayer, int nSpellID)
     string sSpellIconResRef = GetStringLowerCase(Get2DAString("spells", "IconResRef", nSpellID));
 
     // *** KNOWN SPELLS PAGE
-    // Header
-    string sHeader = GetName(oPlayer) + "'s Spellbook";
-    PostString(oPlayer, sHeader, 10, 3, SCREEN_ANCHOR_TOP_LEFT, fLifeTime, nTextColor, nTextColor, nID++, sTextFont);
-
     int nCurrentSpellLevel = GetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellLevel");
     int nNumSpells = ES_Util_StringArray_Size(oPlayer, SPELLBOOK_SCRIPT_NAME + "Spells_" + IntToString(nCurrentSpellLevel));
 
@@ -137,9 +133,7 @@ void Spellbook_DrawSpellbookGUI(object oPlayer, int nSpellID)
         nDY += nLines;
     }
 
-    // Draw Book
-    PostString(oPlayer, SPELLBOOK_GLYPH_NAME, 1, 1, SCREEN_ANCHOR_TOP_LEFT, 0.0f, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID++, SPELLBOOK_BOOK_TEXTURE_NAME);
-
+    // Update Spell Icon
     SetTextureOverride(SPELLBOOK_ICON_TEXTURE_NAME, sSpellIconResRef, oPlayer);
 }
 
@@ -180,6 +174,15 @@ void Spellbook_ChatCommand(object oPlayer, string sParams, int nVolume)
         SpellBook_ExtractKnownSpells(oPlayer, nCurrentSpellLevel);
 
         int nCurrentSpell = StringToInt(ES_Util_StringArray_At(oPlayer, SPELLBOOK_SCRIPT_NAME + "Spells_" + IntToString(nCurrentSpellLevel), GetLocalInt(oPlayer, "CurrentSpellIndex")));
+
+        int nID = GUI_GetEndID(SPELLBOOK_SCRIPT_NAME);
+        // Draw Book
+        PostString(oPlayer, SPELLBOOK_GLYPH_NAME, 1, 1, SCREEN_ANCHOR_TOP_LEFT, 0.0f, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID--, SPELLBOOK_BOOK_TEXTURE_NAME);
+        // Draw Spell Icon
+        PostString(oPlayer, SPELLBOOK_GLYPH_NAME, 42, 3, SCREEN_ANCHOR_TOP_LEFT, 0.0f, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID--, SPELLBOOK_ICON_TEXTURE_NAME);
+        // Header
+        string sHeader = GetName(oPlayer) + "'s Spellbook";
+        PostString(oPlayer, sHeader, 10, 3, SCREEN_ANCHOR_TOP_LEFT, 0.0f, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID, "fnt_dialog_big16");
 
         Spellbook_ExtractSpellData(nCurrentSpell);
         Spellbook_DrawSpellbookGUI(oPlayer, nCurrentSpell);
@@ -251,7 +254,8 @@ void Spellbook_EventHandler(string sSubsystemScript, string sEvent)
 
             int nCurrentSpell = StringToInt(ES_Util_StringArray_At(oPlayer, SPELLBOOK_SCRIPT_NAME + "Spells_" + IntToString(nCurrentSpellLevel), nCurrentSpellIndex));
 
-            GUI_ClearBySubsystem(oPlayer, SPELLBOOK_SCRIPT_NAME);
+            int nStartID = GUI_GetStartID(SPELLBOOK_SCRIPT_NAME);
+            GUI_ClearByRange(oPlayer, nStartID, nStartID + GUI_GetIDAmount(SPELLBOOK_SCRIPT_NAME) - 3);
             Spellbook_ExtractSpellData(nCurrentSpell);
             Spellbook_DrawSpellbookGUI(oPlayer, nCurrentSpell);
         }
