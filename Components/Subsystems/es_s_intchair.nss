@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_toolbox"
 #include "es_srv_simdialog"
 
@@ -24,9 +25,9 @@ void InteractiveChair_SpawnChairs(string sSubsystemScript);
 // @Load
 void InteractiveChair_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
 
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
 
@@ -42,8 +43,8 @@ void InteractiveChair_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
-        int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
-        object oPlayer = ES_Util_GetEventData_NWNX_Object("PLAYER");
+        int nOption = Events_GetEventData_NWNX_Int("OPTION");
+        object oPlayer = Events_GetEventData_NWNX_Object("PLAYER");
         object oChair = GetLocalObject(oPlayer, "INTCHAIR_CURRENT_CHAIR");
 
         if (nOption == 1)
@@ -76,7 +77,7 @@ void InteractiveChair_EventHandler(string sSubsystemScript, string sEvent)
 
             SetLocalObject(oPlayer, "INTCHAIR_CURRENT_CHAIR", oChair);
 
-            NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oPlayer);
+            Events_AddObjectToDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
 
             SimpleDialog_StartConversation(oPlayer, oPlayer, sSubsystemScript);
 
@@ -91,7 +92,7 @@ void InteractiveChair_EventHandler(string sSubsystemScript, string sEvent)
             DeleteLocalObject(oPlayer, "INTCHAIR_CURRENT_CHAIR");
 
             SimpleDialog_AbortConversation(oPlayer);
-            NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oPlayer);
+            Events_RemoveObjectFromDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
 
             break;
         }
@@ -122,9 +123,9 @@ void InteractiveChair_SpawnChairs(string sSubsystemScript)
 
     string sSerializedChair = Toolbox_GeneratePlaceable(pd);
 
-    string sPlaceableOnUsed = ES_Core_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
-    string sTriggerOnEnter = ES_Core_GetEventName_Object(EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER);
-    string sTriggerOnExit = ES_Core_GetEventName_Object(EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT);
+    string sPlaceableOnUsed = Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED);
+    string sTriggerOnEnter = Events_GetEventName_Object(EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER);
+    string sTriggerOnExit = Events_GetEventName_Object(EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT);
 
     while ((oSpawnpoint = GetObjectByTag(INTCHAIR_WAYPOINT_TAG, nNth++)) != OBJECT_INVALID)
     {
@@ -135,9 +136,9 @@ void InteractiveChair_SpawnChairs(string sSubsystemScript)
         SetLocalObject(oTrigger, GetTag(oChair), oChair);
         SetLocalObject(oChair, GetTag(oTrigger), oTrigger);
 
-        NWNX_Events_AddObjectToDispatchList(sPlaceableOnUsed, sSubsystemScript, oChair);
-        NWNX_Events_AddObjectToDispatchList(sTriggerOnEnter, sSubsystemScript, oTrigger);
-        NWNX_Events_AddObjectToDispatchList(sTriggerOnExit, sSubsystemScript, oTrigger);
+        Events_AddObjectToDispatchList(sSubsystemScript, sPlaceableOnUsed, oChair);
+        Events_AddObjectToDispatchList(sSubsystemScript, sTriggerOnEnter, oTrigger);
+        Events_AddObjectToDispatchList(sSubsystemScript, sTriggerOnExit, oTrigger);
     }
 }
 

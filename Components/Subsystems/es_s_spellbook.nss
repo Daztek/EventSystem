@@ -13,6 +13,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_gui"
 #include "es_srv_chatcom"
 
@@ -36,7 +37,7 @@ const string SPELLBOOK_SPELL_DATA_ARRAY         = "SpellData_";
 // @Load
 void Spellbook_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_KEYBOARD_BEFORE", TRUE);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_KEYBOARD_BEFORE", TRUE);
 
     ChatCommand_Register(sSubsystemScript, "Spellbook_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + SPELLBOOK_CHATCOMMAND_NAME, "", SPELLBOOK_CHATCOMMAND_DESCRIPTION);
 
@@ -158,7 +159,7 @@ void Spellbook_ChatCommand(object oPlayer, string sParams, int nVolume)
     {
         GUI_UnlockPlayerInput(oPlayer);
 
-        NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_KEYBOARD_BEFORE", SPELLBOOK_SCRIPT_NAME, oPlayer);
+        Events_RemoveObjectFromDispatchList(SPELLBOOK_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
 
         DeleteLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellIndex");
         DeleteLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellLevel");
@@ -167,7 +168,7 @@ void Spellbook_ChatCommand(object oPlayer, string sParams, int nVolume)
     {
         GUI_LockPlayerInput(oPlayer);
 
-        NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_KEYBOARD_BEFORE", SPELLBOOK_SCRIPT_NAME, oPlayer);
+        Events_AddObjectToDispatchList(SPELLBOOK_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
 
         int nCurrentSpellLevel = GetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellLevel");
 
@@ -201,7 +202,7 @@ void Spellbook_EventHandler(string sSubsystemScript, string sEvent)
         if (!GUI_GetIsPlayerInputLocked(oPlayer))
             return;
 
-        string sKey = ES_Util_GetEventData_NWNX_String("KEY");
+        string sKey = Events_GetEventData_NWNX_String("KEY");
 
         int bRedraw = FALSE;
         int nCurrentSpellLevel = GetLocalInt(oPlayer, SPELLBOOK_SCRIPT_NAME + "CurrentSpellLevel");

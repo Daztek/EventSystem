@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "x2_inc_switches"
 
 const string SPELLHOOK_LOG_TAG      = "Spellhook";
@@ -44,7 +45,7 @@ void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpell)
 
     SetLocalInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), TRUE);
 
-    ES_Core_SubscribeEvent(sSubsystemScript, SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), FALSE);
+    Events_SubscribeEvent(sSubsystemScript, SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), FALSE);
 }
 
 void Spellhook_SkipEvent()

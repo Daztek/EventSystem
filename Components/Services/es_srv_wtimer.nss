@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 
 const string WORLD_TIMER_LOG_TAG                = "WorldTimer";
 const string WORLD_TIMER_SCRIPT_NAME            = "es_srv_wtimer";
@@ -36,7 +37,7 @@ void WorldTimer_Load(string sServiceScript)
 {
     object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME);
     SetLocalInt(oDataObject, "WORLD_TIMER_MINUTES_PER_HOUR", NWNX_Util_GetMinutesPerHour());
-    ES_Core_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_HEARTBEAT);
+    Events_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_HEARTBEAT);
 }
 
 // @EventHandler
@@ -91,7 +92,7 @@ void WorldTimer_EventHandler(string sServiceScript, string sEvent)
 void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bDispatchListMode = FALSE)
 {
     SetLocalInt(ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME), sWorldTimerEvent, TRUE);
-    ES_Core_SubscribeEvent(sSubsystemScript, sWorldTimerEvent, bDispatchListMode);
+    Events_SubscribeEvent(sSubsystemScript, sWorldTimerEvent, bDispatchListMode);
 }
 
 int WorldTimer_GetHeartbeatCount()

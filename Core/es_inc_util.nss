@@ -11,11 +11,8 @@
 
 #include "nwnx_object"
 #include "nwnx_util"
-#include "nwnx_events"
 
 #include "x3_inc_string"
-
-const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN = 3018;
 
 // Create a waypoint at locLocation with sTag
 object ES_Util_CreateWaypoint(location locLocation, string sTag);
@@ -170,19 +167,6 @@ int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValu
 void ES_Util_StringArray_Delete(object oObject, string sArrayName, int nIndex);
 // Delete sValue from sArrayName on oObject
 void ES_Util_StringArray_DeleteByValue(object oObject, string sArrayName, string sValue);
-
-// NWNX_Events_GetEventData() string data wrapper
-string ES_Util_GetEventData_NWNX_String(string sTag);
-// NWNX_Events_GetEventData() int data wrapper
-int ES_Util_GetEventData_NWNX_Int(string sTag);
-// NWNX_Events_GetEventData() float data wrapper
-float ES_Util_GetEventData_NWNX_Float(string sTag);
-// NWNX_Events_GetEventData() object data wrapper
-object ES_Util_GetEventData_NWNX_Object(string sTag);
-// NWNX_Events_GetEventData() vector data wrapper
-vector ES_Util_GetEventData_NWNX_Vector(string sTagX, string sTagY, string sTagZ);
-// NWNX_Events_GetEventData() location data wrapper
-location ES_Util_GetEventData_NWNX_Location(string sTagArea, string sTagX, string sTagY, string sTagZ);
 
 // This function will make sString be the specified color
 // as specified in sRGB.  RGB is the Red, Green, and Blue
@@ -739,39 +723,6 @@ void ES_Util_StringArray_DeleteByValue(object oObject, string sArrayName, string
             break;
         }
    }
-}
-
-string ES_Util_GetEventData_NWNX_String(string sTag)
-{
-    return NWNX_Events_GetEventData(sTag);
-}
-
-int ES_Util_GetEventData_NWNX_Int(string sTag)
-{
-    return StringToInt(ES_Util_GetEventData_NWNX_String(sTag));
-}
-
-float ES_Util_GetEventData_NWNX_Float(string sTag)
-{
-    return StringToFloat(ES_Util_GetEventData_NWNX_String(sTag));
-}
-
-object ES_Util_GetEventData_NWNX_Object(string sTag)
-{
-    return NWNX_Object_StringToObject(ES_Util_GetEventData_NWNX_String(sTag));
-}
-
-vector ES_Util_GetEventData_NWNX_Vector(string sTagX, string sTagY, string sTagZ)
-{
-    return Vector(ES_Util_GetEventData_NWNX_Float(sTagX),
-                  ES_Util_GetEventData_NWNX_Float(sTagY),
-                  ES_Util_GetEventData_NWNX_Float(sTagZ));
-}
-
-location ES_Util_GetEventData_NWNX_Location(string sTagArea, string sTagX, string sTagY, string sTagZ)
-{
-    return Location(ES_Util_GetEventData_NWNX_Object(sTagArea),
-                    ES_Util_GetEventData_NWNX_Vector(sTagX, sTagY, sTagZ), 0.0f);
 }
 
 string ES_Util_ColorString(string sString, string sRGB)

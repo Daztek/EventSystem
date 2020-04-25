@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_webhook"
 
 const string WEBHOOK_LOG_TAG        = "Webhook";
@@ -33,7 +34,7 @@ void Webhook_Load(string sServiceScript)
         nssFunction("Webhook_CheckAPIUrl", nssEscapeDoubleQuotes(WEBHOOK_CHANNEL_ADMIN)), oModule);
 
     if (bPlayerWebhook || bAdminWebhook)
-        ES_Core_SubscribeEvent_NWNX(sServiceScript, "NWNX_ON_WEBHOOK_FAILURE");
+        Events_SubscribeEvent_NWNX(sServiceScript, "NWNX_ON_WEBHOOK_FAILURE");
 }
 
 // @EventHandler
@@ -41,14 +42,14 @@ void Webhook_EventHandler(string sServiceScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_WEBHOOK_FAILURE")
     {
-        int nStatus = ES_Util_GetEventData_NWNX_Int("STATUS");
+        int nStatus = Events_GetEventData_NWNX_Int("STATUS");
 
         if (nStatus == 429)
         {// Rate limited
-            float fResendDelay = ES_Util_GetEventData_NWNX_Float("RETRY_AFTER") / 1000.0f;
-            string sMessage = ES_Util_GetEventData_NWNX_String("MESSAGE");
-            string sHost = ES_Util_GetEventData_NWNX_String("HOST");
-            string sPath = ES_Util_GetEventData_NWNX_String("PATH");
+            float fResendDelay = Events_GetEventData_NWNX_Float("RETRY_AFTER") / 1000.0f;
+            string sMessage = Events_GetEventData_NWNX_String("MESSAGE");
+            string sHost = Events_GetEventData_NWNX_String("HOST");
+            string sPath = Events_GetEventData_NWNX_String("PATH");
 
             ES_Util_Log(WEBHOOK_LOG_TAG, "WARNING: Webhook rate limited, resending in " + FloatToString(fResendDelay) + " seconds.");
 

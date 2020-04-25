@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 
 const string CHATCOMMAND_LOG_TAG                = "ChatCommand";
 const string CHATCOMMAND_SCRIPT_NAME            = "es_srv_chatcom";
@@ -197,7 +198,7 @@ void ChatCommand_CreateChatEventHandler(string sServiceScript)
     if (sReturn != "")
         ES_Util_Log(CHATCOMMAND_LOG_TAG, "  > ERROR: Failed to compile Event Handler with error: " + sReturn);
     else
-        ES_Core_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT);
+        Events_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT);
 }
 
 int ChatCommand_Register(string sSubsystemScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription)

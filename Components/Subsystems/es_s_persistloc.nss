@@ -13,6 +13,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_player"
 
 const string PERSISTENT_LOCATION_LOG_TAG        = "PersistentLocation";
@@ -24,8 +25,8 @@ void PersistentLocation_LoadLocation(object oPlayer);
 // @Load
 void PersistentLocation_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_ELC_VALIDATE_CHARACTER_AFTER");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_ELC_VALIDATE_CHARACTER_AFTER");
 }
 
 // @EventHandler

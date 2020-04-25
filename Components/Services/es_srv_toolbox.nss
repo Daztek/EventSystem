@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_area"
 
 const string TOOLBOX_LOG_TAG                            = "Toolbox";
@@ -171,22 +172,22 @@ string Toolbox_GeneratePlaceable(struct Toolbox_PlaceableData pd)
     if (pd.bPlot)       SetPlotFlag(oPlaceable, pd.bPlot);
     if (pd.bUseable)    SetUseableFlag(oPlaceable, pd.bUseable);
 
-    if (pd.scriptOnClick)               ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK, FALSE);
-    if (pd.scriptOnClose)               ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_CLOSED, FALSE);
-    if (pd.scriptOnDamaged)             ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DAMAGED, FALSE);
-    if (pd.scriptOnDeath)               ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DEATH, FALSE);
-    if (pd.scriptOnHeartbeat)           ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_HEARTBEAT, FALSE);
-    if (pd.scriptOnDisturbed)           ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_INVENTORYDISTURBED, FALSE);
-    if (pd.scriptOnLock)                ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_LOCK, FALSE);
-    if (pd.scriptOnPhysicalAttacked)    ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, FALSE);
-    if (pd.scriptOnOpen)                ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_OPEN, FALSE);
-    if (pd.scriptOnSpellCastAt)         ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, FALSE);
-    if (pd.scriptOnUnlock)              ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_UNLOCK, FALSE);
-    if (pd.scriptOnUsed)                ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_USED, FALSE);
-    if (pd.scriptOnUserDefined)         ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_USER_DEFINED_EVENT, FALSE);
-    if (pd.scriptOnDialog)              ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DIALOGUE, FALSE);
-    if (pd.scriptOnDisarm)              ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DISARM, FALSE);
-    if (pd.scriptOnTrapTriggered)       ES_Core_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_TRAPTRIGGERED, FALSE);
+    if (pd.scriptOnClick)               Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK, FALSE);
+    if (pd.scriptOnClose)               Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_CLOSED, FALSE);
+    if (pd.scriptOnDamaged)             Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DAMAGED, FALSE);
+    if (pd.scriptOnDeath)               Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DEATH, FALSE);
+    if (pd.scriptOnHeartbeat)           Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_HEARTBEAT, FALSE);
+    if (pd.scriptOnDisturbed)           Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_INVENTORYDISTURBED, FALSE);
+    if (pd.scriptOnLock)                Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_LOCK, FALSE);
+    if (pd.scriptOnPhysicalAttacked)    Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, FALSE);
+    if (pd.scriptOnOpen)                Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_OPEN, FALSE);
+    if (pd.scriptOnSpellCastAt)         Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, FALSE);
+    if (pd.scriptOnUnlock)              Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_UNLOCK, FALSE);
+    if (pd.scriptOnUsed)                Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_USED, FALSE);
+    if (pd.scriptOnUserDefined)         Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_USER_DEFINED_EVENT, FALSE);
+    if (pd.scriptOnDialog)              Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DIALOGUE, FALSE);
+    if (pd.scriptOnDisarm)              Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_DISARM, FALSE);
+    if (pd.scriptOnTrapTriggered)       Events_SetObjectEventScript(oPlaceable, EVENT_SCRIPT_PLACEABLE_ON_TRAPTRIGGERED, FALSE);
 
     DestroyObject(oPlaceable);
 
@@ -240,11 +241,11 @@ object Toolbox_CreateCircleTrigger(struct Toolbox_CircleTriggerData ctd, locatio
 
     NWNX_Object_SetTriggerGeometry(oTrigger, sGeometry);
 
-    if (ctd.scriptOnClick)          ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_CLICKED, FALSE);
-    if (ctd.scriptOnEnter)          ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, FALSE);
-    if (ctd.scriptOnExit)           ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, FALSE);
-    if (ctd.scriptOnHearbeat)       ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_HEARTBEAT, FALSE);
-    if (ctd.scriptOnUserDefined)    ES_Core_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_USER_DEFINED_EVENT, FALSE);
+    if (ctd.scriptOnClick)          Events_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_CLICKED, FALSE);
+    if (ctd.scriptOnEnter)          Events_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, FALSE);
+    if (ctd.scriptOnExit)           Events_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, FALSE);
+    if (ctd.scriptOnHearbeat)       Events_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_HEARTBEAT, FALSE);
+    if (ctd.scriptOnUserDefined)    Events_SetObjectEventScript(oTrigger, EVENT_SCRIPT_TRIGGER_ON_USER_DEFINED_EVENT, FALSE);
 
     return oTrigger;
 }

@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_gui"
 #include "es_srv_simdialog"
 #include "es_srv_chatcom"
@@ -151,8 +152,8 @@ void Portrait_ChatCommand(object oPlayer, string sParams, int nVolume)
 
         NWNX_Player_PlaySound(oPlayer, "gui_select");
 
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, PORTRAIT_SCRIPT_NAME, oPlayer);
-        NWNX_Events_AddObjectToDispatchList(SIMPLE_DIALOG_EVENT_CONVERSATION_END, PORTRAIT_SCRIPT_NAME, oPlayer);
+        Events_AddObjectToDispatchList(PORTRAIT_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+        Events_AddObjectToDispatchList(PORTRAIT_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_CONVERSATION_END, oPlayer);
 
         SimpleDialog_StartConversation(oPlayer, oPlayer, PORTRAIT_SCRIPT_NAME, 1, TRUE);
 
@@ -169,7 +170,7 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
         object oPlayer = OBJECT_SELF;
-        int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
+        int nOption = Events_GetEventData_NWNX_Int("OPTION");
 
         int nPortraitNumber = GetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_PortraitNumber");
         int nRace = GetLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
@@ -233,8 +234,8 @@ void Portrait_EventHandler(string sSubsystemScript, string sEvent)
         DeleteLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Race");
         DeleteLocalInt(oPlayer, PORTRAIT_SCRIPT_NAME + "_Gender");
 
-        NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, sSubsystemScript, oPlayer);
-        NWNX_Events_RemoveObjectFromDispatchList(SIMPLE_DIALOG_EVENT_CONVERSATION_END, sSubsystemScript, oPlayer);
+        Events_RemoveObjectFromDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+        Events_RemoveObjectFromDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONVERSATION_END, oPlayer);
 
         SetTextureOverride(PORTRAIT_FONT_TEXTURE_NAME, "", oPlayer);
 

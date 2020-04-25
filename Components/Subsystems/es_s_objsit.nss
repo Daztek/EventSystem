@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_simdialog"
 #include "es_srv_toolbox"
 
@@ -25,7 +26,7 @@ void ObjectSit_SpawnSittingObjects(string sSubsystemScript);
 // @Load
 void ObjectSit_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
 
@@ -49,8 +50,8 @@ void ObjectSit_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
         object oSittingObject = OBJECT_SELF;
-        object oPlayer = ES_Util_GetEventData_NWNX_Object("PLAYER");
-        int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
+        object oPlayer = Events_GetEventData_NWNX_Object("PLAYER");
+        int nOption = Events_GetEventData_NWNX_Int("OPTION");
 
         if (GetSittingCreature(oSittingObject) != oPlayer)
         {
@@ -111,7 +112,7 @@ void ObjectSit_SpawnSittingObjects(string sSubsystemScript)
     {
         object oSittingObject = Toolbox_CreatePlaceable(sSerializedChair, GetLocation(oSpawnpoint));
 
-        ES_Core_AddObjectToAllDispatchLists(sSubsystemScript, oSittingObject);
+        Events_AddObjectToAllDispatchLists(sSubsystemScript, oSittingObject);
     }
 
     ES_Util_Log(OBJSIT_LOG_TAG, "* Created '" + IntToString(--nNth) + "' Sitting Objects");

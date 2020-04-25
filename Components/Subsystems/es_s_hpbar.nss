@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_gui"
 #include "es_srv_chatcom"
 #include "es_srv_mediator"
@@ -61,14 +62,14 @@ void HealthBar_SetInfoBlurb(object oCreature, string sInfoBlurb);
 // @Load
 void HealthBar_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER, TRUE);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DAMAGED, EVENTS_EVENT_FLAG_AFTER, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DEATH, EVENTS_EVENT_FLAG_AFTER, TRUE);
 
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", TRUE);
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_CAST_SPELL_AFTER", TRUE);
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", TRUE);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", TRUE);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_CAST_SPELL_AFTER", TRUE);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", TRUE);
 
     GUI_ReserveIDs(sSubsystemScript, HEALTHBAR_GUI_NUM_IDS);
     Mediator_RegisterFunction(sSubsystemScript, "HealthBar_EnableHealthBar", "o");
@@ -83,14 +84,14 @@ void HealthBar_EnableHealthBar(object oCreature)
 
     SetLocalInt(oCreature, "HealthBar_Enabled", TRUE);
 
-    string sDamagedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER);
-    string sDeathEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER);
+    string sDamagedEvent = Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, EVENTS_EVENT_FLAG_AFTER);
+    string sDeathEvent = Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, EVENTS_EVENT_FLAG_AFTER);
 
-    ES_Core_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DAMAGED);
-    ES_Core_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DEATH);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DAMAGED);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DEATH);
 
-    NWNX_Events_AddObjectToDispatchList(sDamagedEvent, HEALTHBAR_SCRIPT_NAME, oCreature);
-    NWNX_Events_AddObjectToDispatchList(sDeathEvent, HEALTHBAR_SCRIPT_NAME, oCreature);
+    Events_AddObjectToDispatchList(HEALTHBAR_SCRIPT_NAME, sDamagedEvent, oCreature);
+    Events_AddObjectToDispatchList(HEALTHBAR_SCRIPT_NAME, sDeathEvent, oCreature);
 }
 
 void HealthBar_SetInfoBlurb(object oCreature, string sInfoBlurb)
@@ -247,7 +248,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
         sEvent == "NWNX_ON_INPUT_CAST_SPELL_AFTER")
     {
         object oPlayer = OBJECT_SELF;
-        object oCreature = ES_Util_GetEventData_NWNX_Object("TARGET");
+        object oCreature = Events_GetEventData_NWNX_Object("TARGET");
 
         if (!GetIsObjectValid(oCreature) ||
              GetObjectType(oCreature) != OBJECT_TYPE_CREATURE ||
@@ -270,7 +271,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
 
             if (sCurrentHealthBarTarget != sCreatureUUID)
             {
-                NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
+                Events_AddObjectToDispatchList(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", oPlayer);
 
                 HealthBar_AddPlayerToHealthBarList(oPlayer, oCreature);
 
@@ -286,7 +287,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
         object oPlayer = OBJECT_SELF;
         string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
-        NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
+        Events_RemoveObjectFromDispatchList(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", oPlayer);
 
         if (sCurrentHealthBarTarget != "")
         {
@@ -314,8 +315,8 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
             {
                 object oPlayer = GetEnteringObject();
 
-                NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", sSubsystemScript, oPlayer);
-                NWNX_Events_AddObjectToDispatchList("NWNX_ON_INPUT_CAST_SPELL_AFTER", sSubsystemScript, oPlayer);
+                Events_AddObjectToDispatchList(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", oPlayer);
+                Events_AddObjectToDispatchList(sSubsystemScript, "NWNX_ON_INPUT_CAST_SPELL_AFTER", oPlayer);
 
                 break;
             }
@@ -325,9 +326,9 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                 object oPlayer = GetExitingObject();
                 string sCurrentHealthBarTarget = GetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 
-                NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", sSubsystemScript, oPlayer);
-                NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_CAST_SPELL_AFTER", sSubsystemScript, oPlayer);
-                NWNX_Events_RemoveObjectFromDispatchList("NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", sSubsystemScript, oPlayer);
+                Events_RemoveObjectFromDispatchList(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_AFTER", oPlayer);
+                Events_RemoveObjectFromDispatchList(sSubsystemScript, "NWNX_ON_INPUT_CAST_SPELL_AFTER",  oPlayer);
+                Events_RemoveObjectFromDispatchList(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_AFTER", oPlayer);
 
                 if (sCurrentHealthBarTarget != "")
                 {
@@ -374,11 +375,11 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
             case EVENT_SCRIPT_CREATURE_ON_DEATH:
             {
                 object oCreature = OBJECT_SELF;
-                string sDamagedEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, ES_CORE_EVENT_FLAG_AFTER);
-                string sDeathEvent = ES_Core_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, ES_CORE_EVENT_FLAG_AFTER);
+                string sDamagedEvent = Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DAMAGED, EVENTS_EVENT_FLAG_AFTER);
+                string sDeathEvent = Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH, EVENTS_EVENT_FLAG_AFTER);
 
-                NWNX_Events_RemoveObjectFromDispatchList(sDamagedEvent, sSubsystemScript, oCreature);
-                NWNX_Events_RemoveObjectFromDispatchList(sDeathEvent, sSubsystemScript, oCreature);
+                Events_RemoveObjectFromDispatchList(sSubsystemScript, sDamagedEvent, oCreature);
+                Events_RemoveObjectFromDispatchList(sSubsystemScript, sDeathEvent, oCreature);
 
                 int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
 

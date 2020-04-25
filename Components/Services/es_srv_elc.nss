@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_elc"
 
 const string ELC_LOG_TAG        = "ELC";
@@ -31,6 +32,6 @@ void ELC_SubscribeEvent(string sSubsystemScript)
 {
     NWNX_ELC_SetELCScript(ELC_SCRIPT_NAME);
 
-    ES_Core_SubscribeEvent(sSubsystemScript, ELC_EVENT, FALSE);
+    Events_SubscribeEvent(sSubsystemScript, ELC_EVENT, FALSE);
 }
 

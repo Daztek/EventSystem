@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_dialog"
 
 // *** Events
@@ -266,7 +267,7 @@ void SimpleDialog_HandleConversationEnd(int bAborted)
 
 void SimpleDialog_SubscribeEvent(string sSubsystemScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE)
 {
-    ES_Core_SubscribeEvent(sSubsystemScript, sSimpleDialogEvent, bDispatchListMode);
+    Events_SubscribeEvent(sSubsystemScript, sSimpleDialogEvent, bDispatchListMode);
 }
 
 /* Conditional Event Related Functions */

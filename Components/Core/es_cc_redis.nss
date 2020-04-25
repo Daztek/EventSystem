@@ -1,18 +1,18 @@
 /*
-    ScriptName: es_prv_redis.nss
+    ScriptName: es_cc_redis.nss
     Created by: Daz
 
     Required NWNX Plugins:
         @NWNX[Redis]
 
-    Description: An EventSystem Provider that manages Redis Database functionality
+    Description: An EventSystem Core Component that manages Redis Database functionality
 */
 
 #include "es_inc_core"
 #include "nwnx_redis_short"
 
 const string REDIS_LOG_TAG      = "Redis";
-const string REDIS_SCRIPT_NAME  = "es_prv_redis";
+const string REDIS_SCRIPT_NAME  = "es_cc_redis";
 
 string Redis_GetHash(object oPlayer, string sSystem);
 void Redis_DeleteHash(string sHash);
@@ -39,9 +39,9 @@ vector Redis_GetVector(string sHash, string sVarName);
 void Redis_DeleteVector(string sHash, string sVarName);
 
 // @Load
-void Redis_Load(string sProviderScript)
+void Redis_Load(string sCoreComponentScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sProviderScript);
+    object oDataObject = ES_Util_GetDataObject(sCoreComponentScript);
 }
 
 string Redis_GetHash(object oPlayer, string sSystem)

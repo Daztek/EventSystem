@@ -11,7 +11,8 @@
 //void main() {}
 
 #include "es_inc_core"
-#include "es_srv_concom"
+#include "es_cc_events"
+#include "es_cc_concom"
 
 const string SUBSYSTEM_MANAGER_LOG_TAG      = "SubsystemManager";
 const string SUBSYSTEM_MANAGER_SCRIPT_NAME  = "es_s_subsysman";
@@ -21,7 +22,7 @@ const float SUBSYSTEM_MANAGER_IGNORE_TIME   = 2.5f;
 // @Load
 void SubsystemManager_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_RESOURCE_MODIFIED");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_RESOURCE_MODIFIED");
 }
 
 // @EventHandler
@@ -29,12 +30,12 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_RESOURCE_MODIFIED")
     {
-        string sAlias = ES_Util_GetEventData_NWNX_String("ALIAS");
-        int nType = ES_Util_GetEventData_NWNX_Int("TYPE");
+        string sAlias = Events_GetEventData_NWNX_String("ALIAS");
+        int nType = Events_GetEventData_NWNX_Int("TYPE");
 
         if (sAlias == "NWNX" && nType == NWNX_UTIL_RESREF_TYPE_NSS)
         {
-            string sResRef = ES_Util_GetEventData_NWNX_String("RESREF");
+            string sResRef = Events_GetEventData_NWNX_String("RESREF");
 
             if (ES_Core_Component_GetTypeFromScriptName(sResRef) == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
             {

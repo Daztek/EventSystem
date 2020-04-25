@@ -1,11 +1,11 @@
 /*
-    ScriptName: es_srv_profiler.nss
+    ScriptName: es_cc_profiler.nss
     Created by: Daz
 
     Required NWNX Plugins:
         @NWNX[Time]
 
-    Description: An EventSystem Service that adds a Script Profiler
+    Description: An EventSystem Core Component that adds a Script Profiler
 */
 
 //void main() {}
@@ -14,7 +14,7 @@
 #include "nwnx_time"
 
 const string PROFILER_LOG_TAG                           = "Profiler";
-const string PROFILER_SCRIPT_NAME                       = "es_srv_profiler";
+const string PROFILER_SCRIPT_NAME                       = "es_cc_profiler";
 
 const int    PROFILER_OVERHEAD_COMPENSATION_ITERATIONS  = 1000;
 
@@ -47,11 +47,11 @@ void Profiler_DeleteStats(string sName);
 string nssProfiler(string sName, string sContents, int bSkipLog = FALSE, int bEnableStats = TRUE);
 
 // @Load
-void Profiler_Load(string sServiceScript)
+void Profiler_Load(string sCoreComponentScript)
 {
     int nOverhead = Profiler_Calibrate(PROFILER_OVERHEAD_COMPENSATION_ITERATIONS);
 
-    ES_Util_Log(PROFILER_LOG_TAG, "Overhead Compensation: " + IntToString(nOverhead) + "us");
+    ES_Util_Log(PROFILER_LOG_TAG, "* Overhead Compensation: " + IntToString(nOverhead) + "us");
     Profiler_SetOverheadCompensation(nOverhead);
 }
 

@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[]
+        @NWNX[Object]
 
     Description: An EventSystem Subsystem that saves a player's hitpoints to
                  their .bic file when they log out and sets their hitpoints
@@ -13,6 +13,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 
 const string PERSISTENT_HITPOINTS_LOG_TAG       = "PersistentHitPoints";
 const string PERSISTENT_HITPOINTS_SCRIPT_NAME   = "es_s_persisthp";
@@ -23,8 +24,8 @@ void PersistentHitPoints_RestoreHitPoints(object oPlayer);
 // @Load
 void PersistentHitPoints_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_DISCONNECT_BEFORE");
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
 }
 
 // @EventHandler

@@ -15,6 +15,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_toolbox"
 #include "es_srv_simdialog"
 
@@ -44,9 +45,9 @@ void MusicPlayer_ApplyDisabledEffects(object oMusicPlayer);
 // @Load
 void MusicPlayer_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
-    ES_Core_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_MELEEATTACKED, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_SPELLCASTAT, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
 
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
@@ -63,9 +64,9 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
         object oMusicPlayer = OBJECT_SELF;
-        object oPlayer = ES_Util_GetEventData_NWNX_Object("PLAYER");
-        int nPage = ES_Util_GetEventData_NWNX_Int("PAGE");
-        int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
+        object oPlayer = Events_GetEventData_NWNX_Object("PLAYER");
+        int nPage = Events_GetEventData_NWNX_Int("PAGE");
+        int nOption = Events_GetEventData_NWNX_Int("OPTION");
 
         if (nPage == 1)
         {
@@ -159,8 +160,8 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE)
     {
         object oMusicPlayer = OBJECT_SELF;
-        object oPlayer = ES_Util_GetEventData_NWNX_Object("PLAYER");
-        int nPage = ES_Util_GetEventData_NWNX_Int("PAGE");
+        object oPlayer = Events_GetEventData_NWNX_Object("PLAYER");
+        int nPage = Events_GetEventData_NWNX_Int("PAGE");
 
         object oDataObject = ES_Util_GetDataObject(MUSICPLAYER_SCRIPT_NAME);
         int nCurrentTrack = GetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK);
@@ -190,9 +191,9 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION)
     {
         object oMusicPlayer = OBJECT_SELF;
-        object oPlayer = ES_Util_GetEventData_NWNX_Object("PLAYER");
-        int nPage = ES_Util_GetEventData_NWNX_Int("PAGE");
-        int nOption = ES_Util_GetEventData_NWNX_Int("OPTION");
+        object oPlayer = Events_GetEventData_NWNX_Object("PLAYER");
+        int nPage = Events_GetEventData_NWNX_Int("PAGE");
+        int nOption = Events_GetEventData_NWNX_Int("OPTION");
 
         if (nPage == 1 && nOption == 1)
         {
@@ -337,7 +338,7 @@ void MusicPlayer_SpawnPlaceables(string sSubsystemScript)
     {
         object oMusicPlayer = Toolbox_CreatePlaceable(sPlaceableData, GetLocation(oSpawnPoint));
 
-        ES_Core_AddObjectToAllDispatchLists(sSubsystemScript, oMusicPlayer);
+        Events_AddObjectToAllDispatchLists(sSubsystemScript, oMusicPlayer);
 
         SetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, MusicBackgroundGetDayTrack(GetArea(oMusicPlayer)));
 

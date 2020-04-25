@@ -12,13 +12,14 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 
 const int IDITEM_IDENTIFY_SKILL = SKILL_SPELLCRAFT;
 
 // @Load
 void IdentifyItem_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_ITEM_USE_LORE_BEFORE");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_ITEM_USE_LORE_BEFORE");
 }
 
 // @EventHandler
@@ -27,7 +28,7 @@ void IdentifyItem_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == "NWNX_ON_ITEM_USE_LORE_BEFORE")
     {
         object oPlayer = OBJECT_SELF;
-        object oItem = ES_Util_GetEventData_NWNX_Object("ITEM");
+        object oItem = Events_GetEventData_NWNX_Object("ITEM");
 
         SetIdentified(oItem, TRUE);
 
@@ -38,7 +39,7 @@ void IdentifyItem_EventHandler(string sSubsystemScript, string sEvent)
         if (nGoldPieceValue > nMaxItemGPValue)
         {
             SetIdentified(oItem, FALSE);
-            NWNX_Events_SkipEvent();
+            Events_SkipEvent();
         }
     }
 }

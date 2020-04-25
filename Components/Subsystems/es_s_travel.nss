@@ -16,6 +16,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_player"
 
 const string TRAVEL_EFFECT_TAG                  = "TravelEffectTag";
@@ -29,13 +30,13 @@ void Travel_ApplyEffect(object oPlayer, int nVFX, int nMaterial, effect eEffect)
 // @Load
 void Travel_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_MATERIALCHANGE_AFTER");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_MATERIALCHANGE_AFTER");
 }
 
 // @Unload
 void Travel_Unload(string sSubsystemScript)
 {
-    ES_Core_UnsubscribeAllEvents(sSubsystemScript);
+    Events_UnsubscribeAllEvents(sSubsystemScript);
 
     object oPlayer = GetFirstPC();
     while (GetIsObjectValid(oPlayer))
@@ -60,7 +61,7 @@ void Travel_EventHandler(string sSubsystemScript, string sEvent)
 
     if (!GetIsPC(oPlayer) || GetIsDM(oPlayer)) return;
 
-    int nMaterial = ES_Util_GetEventData_NWNX_Int("MATERIAL_TYPE");
+    int nMaterial = Events_GetEventData_NWNX_Int("MATERIAL_TYPE");
 
     effect eEffect = GetFirstEffect(oPlayer);
     while (GetIsEffectValid(eEffect))

@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_mediator"
 
 const string DUMPLOCALS_LOG_TAG         = "DumpLocals";
@@ -27,7 +28,7 @@ void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_IN
 // @Load
 void DumpLocals_Load(string sSubsystemScript)
 {
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_DUMP_LOCALS_BEFORE");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_DUMP_LOCALS_BEFORE");
 
     Mediator_RegisterFunction(sSubsystemScript, "DumpLocals_DumpLocals", "oio");
 }
@@ -36,10 +37,10 @@ void DumpLocals_Load(string sSubsystemScript)
 void DumpLocals_EventHandler(string sSubsystemScript, string sEvent)
 {
     object oDM = OBJECT_SELF;
-    object oTarget = ES_Util_GetEventData_NWNX_Object("TARGET");
-    int nType = ES_Util_GetEventData_NWNX_Int("TYPE");
+    object oTarget = Events_GetEventData_NWNX_Object("TARGET");
+    int nType = Events_GetEventData_NWNX_Int("TYPE");
 
-    NWNX_Events_SkipEvent();
+    Events_SkipEvent();
 
     DumpLocals_DumpLocals(oDM, nType, oTarget);
 }

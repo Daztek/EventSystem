@@ -28,6 +28,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "nwnx_area"
 
 const string SIMPLE_AI_LOG_TAG              = "SimpleAI";
@@ -142,7 +143,7 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
         if (sFunctionName != "")
         {
             sCases += nssCaseStatement(nEvent, nssFunction(sFunctionName));
-            ES_Core_SubscribeEvent_Object(sAIBehavior, nEvent, ES_CORE_EVENT_FLAG_DEFAULT, TRUE);
+            Events_SubscribeEvent_Object(sAIBehavior, nEvent, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
         }
     }
 
@@ -185,7 +186,7 @@ void SimpleAI_CleanUpOnDeath()
         {
             if (GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
-                NWNX_Events_RemoveObjectFromDispatchList(ES_Core_GetEventName_Object(nEvent), sBehavior, OBJECT_SELF);
+                Events_RemoveObjectFromDispatchList(sBehavior, Events_GetEventName_Object(nEvent), OBJECT_SELF);
             }
         }
     }
@@ -210,8 +211,8 @@ void SimpleAI_SetAIBehavior(object oCreature, string sBehavior)
         {
             if (GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
-                ES_Core_SetObjectEventScript(oCreature, nEvent, FALSE);
-                NWNX_Events_AddObjectToDispatchList(ES_Core_GetEventName_Object(nEvent), sBehavior, oCreature);
+                Events_SetObjectEventScript(oCreature, nEvent, FALSE);
+                Events_AddObjectToDispatchList(sBehavior, Events_GetEventName_Object(nEvent), oCreature);
             }
             else
                 SetEventScript(oCreature, nEvent, "");
@@ -242,7 +243,7 @@ void SimpleAI_UnsetAIBehavior(object oCreature)
             if (ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
                 SetEventScript(oCreature, nEvent, "");
-                NWNX_Events_RemoveObjectFromDispatchList(ES_Core_GetEventName_Object(nEvent), sBehavior, oCreature);
+                Events_RemoveObjectFromDispatchList(sBehavior, Events_GetEventName_Object(nEvent), oCreature);
             }
         }
     }

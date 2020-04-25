@@ -14,6 +14,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_events"
 #include "es_srv_wtimer"
 #include "es_srv_chatcom"
 
@@ -30,7 +31,7 @@ const float  CHARACTERSAVE_EXPORT_COOLDOWN          = 300.0f;
 void CharacterSave_Load(string sSubsystemScript)
 {
     WorldTimer_SubscribeEvent(sSubsystemScript, CHARACTERSAVE_AUTO_SAVE_INTERVAL);
-    ES_Core_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_EXPORT_CHARACTER_BEFORE");
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_CLIENT_EXPORT_CHARACTER_BEFORE");
 
     if (CHARACTERSAVE_CHAT_COMMAND != "")
     {

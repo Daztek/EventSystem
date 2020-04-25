@@ -1,12 +1,11 @@
 /*
-    ScriptName: es_srv_concom.nss
+    ScriptName: es_cc_concom.nss
     Created by: Daz
 
     Required NWNX Plugins:
         @NWNX[]
 
-    Description: An EventSystem Service that allows registering of
-                 server console commands by subsystems
+    Description: An EventSystem Core Component that allows registering ofserver console commands
 */
 
 //void main() {}
@@ -14,7 +13,7 @@
 #include "es_inc_core"
 
 const string CONSOLECOMMAND_LOG_TAG             = "ConsoleCommand";
-const string CONSOLECOMMAND_SCRIPT_NAME         = "es_srv_concom";
+const string CONSOLECOMMAND_SCRIPT_NAME         = "es_cc_concom";
 
 const string CONSOLECOMMAND_BASE_COMMAND        = "BaseCommand";
 
@@ -26,7 +25,6 @@ const string CONSOLECOMMAND_PARAMS              = "Params_";
 const string CONSOLECOMMAND_DESCRIPTION         = "Description_";
 const string CONSOLECOMMAND_SUBSYSTEM           = "Subsystem_";
 const string CONSOLECOMMAND_FUNCTION            = "Function_";
-
 
 // Register a console command
 //
@@ -47,7 +45,7 @@ void ConsoleCommand_RegisterBaseCommand(string sCommand, string sHelpParams, str
 }
 
 // @Load
-void ConsoleCommand_Load(string sServiceScript)
+void ConsoleCommand_Load(string sCoreComponentScript)
 {
     // Register Base Game Commands
     ConsoleCommand_RegisterBaseCommand("status",            "",                 "Show information about the server.");
@@ -84,7 +82,7 @@ void ConsoleCommand_Load(string sServiceScript)
     ConsoleCommand_RegisterBaseCommand("help",              "",                 "Display all commands.");
 
     // Override the help command with our own
-    ConsoleCommand_Register(sServiceScript, "ConsoleCommand_ShowHelp", "help", "", "Display all commands.");
+    ConsoleCommand_Register(sCoreComponentScript, "ConsoleCommand_ShowHelp", "help", "", "Display all commands.");
 }
 
 int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription)
