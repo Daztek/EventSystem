@@ -3,13 +3,15 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[Events]
+        @NWNX[Events Object]
 
-    Description: An EventSystem Core Component that manages Event functionality
+    Description: An EventSystem Core Component that allows Services
+                 and Subsystems to subscribe to events
 */
 
 #include "es_inc_core"
 #include "nwnx_events"
+#include "nwnx_object"
 
 //void main(){}
 
@@ -40,7 +42,7 @@ void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent 
 int Events_GetEventFlagFromEvent(string sEvent);
 // Convenience function to construct an object event
 //
-// If nEvent = EVENT_SCRIPT_MODULE_ON_MODULE_LOAD and nEventFlag = ES_CORE_EVENT_FLAG_AFTER -> Returns: 3002_OBJEVT_4
+// If nEvent = EVENT_SCRIPT_MODULE_ON_MODULE_LOAD and nEventFlag = EVENTS_EVENT_FLAG_AFTER -> Return = 3002_OBJEVT_4
 string Events_GetEventName_Object(int nEvent, int nEventFlag = EVENTS_EVENT_FLAG_DEFAULT);
 // Skips execution of the currently executing event.
 void Events_SkipEvent();
@@ -48,7 +50,7 @@ void Events_SkipEvent();
 //
 // sComponentScript:
 // nEvent: An EVENT_SCRIPT_* constant
-// nEventFlags: One or more ES_CORE_EVENT_FLAG_* constants
+// nEventFlags: One or more EVENTS_EVENT_FLAG_* constants
 //              For example, to subscribe to both the _BEFORE and _AFTER event you'd do the following:
 //              Events_SubscribeEvent_Object(sEventHandlerScript, nEvent, EVENTS_EVENT_FLAG_BEFORE | EVENTS_EVENT_FLAG_AFTER);
 // bDispatchListMode: Convenience option to toggle DispatchListMode for the event
@@ -177,7 +179,7 @@ void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode)
 {
     object oDataObject = ES_Util_GetDataObject(sScript);
 
-    ES_Util_StringArray_Insert(oDataObject, "SubscribedEvents", sEvent);
+    StringArray_Insert(oDataObject, "SubscribedEvents", sEvent);
 
     NWNX_Events_SubscribeEvent(sEvent, sScript);
 
@@ -243,7 +245,7 @@ void Events_UnsubscribeEvent(string sComponentScript, string sEvent, int bClearD
 {
     object oDataObject = ES_Util_GetDataObject(sComponentScript);
 
-    ES_Util_StringArray_DeleteByValue(oDataObject, "SubscribedEvents", sEvent);
+    StringArray_DeleteByValue(oDataObject, "SubscribedEvents", sEvent);
 
     NWNX_Events_UnsubscribeEvent(sEvent, sComponentScript);
 
@@ -255,11 +257,11 @@ void Events_UnsubscribeAllEvents(string sComponentScript, int bClearDispatchList
 {
     object oDataObject = ES_Util_GetDataObject(sComponentScript);
 
-    int nNumEvents = ES_Util_StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
+    int nNumEvents = StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
 
     for (nIndex = 0; nIndex < nNumEvents; nIndex++)
     {
-        string sEvent = ES_Util_StringArray_At(oDataObject, "SubscribedEvents", nIndex);
+        string sEvent = StringArray_At(oDataObject, "SubscribedEvents", nIndex);
 
         NWNX_Events_UnsubscribeEvent(sEvent, sComponentScript);
 
@@ -267,7 +269,7 @@ void Events_UnsubscribeAllEvents(string sComponentScript, int bClearDispatchList
             NWNX_Events_ToggleDispatchListMode(sEvent, sComponentScript, FALSE);
     }
 
-    ES_Util_StringArray_Clear(oDataObject, "SubscribedEvents");
+    StringArray_Clear(oDataObject, "SubscribedEvents");
 }
 
 void Events_AddObjectToDispatchList(string sComponentScript, string sEvent, object oObject)
@@ -284,11 +286,11 @@ void Events_AddObjectToAllDispatchLists(string sComponentScript, object oObject)
 {
     object oDataObject = ES_Util_GetDataObject(sComponentScript);
 
-    int nNumEvents = ES_Util_StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
+    int nNumEvents = StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
 
     for (nIndex = 0; nIndex < nNumEvents; nIndex++)
     {
-        string sEvent = ES_Util_StringArray_At(oDataObject, "SubscribedEvents", nIndex);
+        string sEvent = StringArray_At(oDataObject, "SubscribedEvents", nIndex);
 
         Events_AddObjectToDispatchList(sComponentScript, sEvent, oObject);
     }
@@ -298,11 +300,11 @@ void Events_RemoveObjectFromAllDispatchLists(string sComponentScript, object oOb
 {
     object oDataObject = ES_Util_GetDataObject(sComponentScript);
 
-    int nNumEvents = ES_Util_StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
+    int nNumEvents = StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
 
     for (nIndex = 0; nIndex < nNumEvents; nIndex++)
     {
-        string sEvent = ES_Util_StringArray_At(oDataObject, "SubscribedEvents", nIndex);
+        string sEvent = StringArray_At(oDataObject, "SubscribedEvents", nIndex);
 
         Events_RemoveObjectFromDispatchList(sComponentScript, sEvent, oObject);
     }

@@ -14,6 +14,7 @@
 
 #include "es_inc_core"
 #include "es_cc_events"
+#include "es_cc_pos"
 #include "nwnx_player"
 
 const string PERSISTENT_LOCATION_LOG_TAG        = "PersistentLocation";
@@ -46,7 +47,7 @@ void PersistentLocation_SaveLocation(object oPlayer)
     object oMaster = GetMaster(oPlayer);
     if (GetIsObjectValid(oMaster)) oPlayer = oMaster;
 
-    ES_Util_SetLocation(oPlayer, PERSISTENT_LOCATION_SCRIPT_NAME + "_Location", GetLocation(oPlayer), TRUE);
+    POS_SetLocation(oPlayer, PERSISTENT_LOCATION_SCRIPT_NAME + "_Location", GetLocation(oPlayer), TRUE);
 }
 
 void PersistentLocation_LoadLocation(object oPlayer)
@@ -56,7 +57,7 @@ void PersistentLocation_LoadLocation(object oPlayer)
 
     if (!GetLocalInt(oDataObject, sUUID))
     {
-        location locLocation = ES_Util_GetLocation(oPlayer, PERSISTENT_LOCATION_SCRIPT_NAME + "_Location");
+        location locLocation = POS_GetLocation(oPlayer, PERSISTENT_LOCATION_SCRIPT_NAME + "_Location");
         object oWaypoint = ES_Util_CreateWaypoint(locLocation, PERSISTENT_LOCATION_SCRIPT_NAME + sUUID);
 
         NWNX_Player_SetPersistentLocation(GetPCPublicCDKey(oPlayer), NWNX_Player_GetBicFileName(oPlayer), oWaypoint);

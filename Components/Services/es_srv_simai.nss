@@ -62,7 +62,7 @@ void SimpleAI_Load(string sServiceScript)
     ES_Util_Log(SIMPLE_AI_LOG_TAG, "* Executing Init Functions");
     ES_Util_ExecuteScriptChunkForArrayElements(oSystemDataObject, sAIBehaviorArray, sServiceScript, nssFunction("SimpleAI_ExecuteInitFunction", "sArrayElement"), oModule);
 
-    ES_Util_StringArray_Clear(oSystemDataObject, sAIBehaviorArray);
+    StringArray_Clear(oSystemDataObject, sAIBehaviorArray);
 }
 
 void SimpleAI_GetInitFunction(object oDataObject, string sScriptContents)
@@ -138,7 +138,7 @@ void SimpleAI_CreateEventHandler(string sAIBehavior)
     int nEvent;
     for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
     {
-        string sFunctionName = ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent));
+        string sFunctionName = GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent));
 
         if (sFunctionName != "")
         {
@@ -240,7 +240,7 @@ void SimpleAI_UnsetAIBehavior(object oCreature)
         int nEvent;
         for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
         {
-            if (ES_Util_GetString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
+            if (GetLocalString(oBehaviorDataObject, SIMPLE_AI_EVENT_FUNCTION + IntToString(nEvent)) != "")
             {
                 SetEventScript(oCreature, nEvent, "");
                 Events_RemoveObjectFromDispatchList(sBehavior, Events_GetEventName_Object(nEvent), oCreature);

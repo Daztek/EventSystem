@@ -14,6 +14,7 @@
 
 #include "es_inc_core"
 #include "es_cc_events"
+#include "es_cc_pos"
 
 const string PERSISTENT_HITPOINTS_LOG_TAG       = "PersistentHitPoints";
 const string PERSISTENT_HITPOINTS_SCRIPT_NAME   = "es_s_persisthp";
@@ -45,21 +46,21 @@ void PersistentHitPoints_SaveHitPoints(object oPlayer)
     object oMaster = GetMaster(oPlayer);
     if (GetIsObjectValid(oMaster)) oPlayer = oMaster;
 
-    ES_Util_SetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_Dead", GetIsDead(oPlayer), TRUE);
-    ES_Util_SetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_HP", GetCurrentHitPoints(oPlayer), TRUE);
+    POS_SetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_Dead", GetIsDead(oPlayer), TRUE);
+    POS_SetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_HP", GetCurrentHitPoints(oPlayer), TRUE);
 }
 
 void PersistentHitPoints_RestoreHitPoints(object oPlayer)
 {
     if (GetIsDM(oPlayer)) return;
 
-    int bDead = ES_Util_GetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_Dead");
+    int bDead = POS_GetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_Dead");
 
     if (bDead)
         ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectDeath(), oPlayer);
     else
     {
-        int nHitPoints = ES_Util_GetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_HP");
+        int nHitPoints = POS_GetInt(oPlayer, PERSISTENT_HITPOINTS_SCRIPT_NAME + "_HP");
         int nMaxHitPoints = GetMaxHitPoints(oPlayer);
 
         if (nHitPoints > 0 && nHitPoints < nMaxHitPoints)

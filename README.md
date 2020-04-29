@@ -3,15 +3,14 @@ This is an easy to use modular Event System for Neverwinter Nights using NWNX:EE
 
 *What makes this Event System special?*
 
-As mentioned earlier, it's easy to use and modular. Want to change the Skill needed to identify an item from Lore to Spellcraft? All you have to do after adding the Core system is add the following script file to your module: [es_s_iditem.nss](https://github.com/Daztek/EventSystem/blob/master/Subsystems/es_s_iditem.nss). The next time you run your server it'll automatically load the subsystem and subscribe to the events it needs, all without having to edit any existing scripts.
+As mentioned earlier, it's easy to use and modular. Want to change the Skill needed to identify an item from Lore to Spellcraft? All you have to do after adding the Core system is add the following script file to your module: [es_s_iditem.nss](https://github.com/Daztek/EventSystem/blob/master/Components/Subsystems/es_s_iditem.nss). The next time you run your server it'll automatically load the subsystem and subscribe to the events it needs, all without having to edit any existing scripts.
 
-Want players to get a movement speed increase while traveling on roads and a movement speed decrease while in water? [es_s_travel.nss](https://github.com/Daztek/EventSystem/blob/master/Subsystems/es_s_travel.nss) has you covered!
+Want players to get a movement speed increase while traveling on roads and a movement speed decrease while in water? [es_s_travel.nss](https://github.com/Daztek/EventSystem/blob/master/Components/Subsystems/es_s_travel.nss) has you covered!
 
 Lastly, tried a subsystem and it's actually not to your liking? All you have to do is remove its .nss file and it's gone, no fuss.
 
 ## Requirements for Core
 - **NWNX:EE Plugins**: 
-  - Events
   - Object
   - Util
 - **NWNX:EE Environment Variables**:
@@ -26,7 +25,7 @@ The only difference on setting up the system in Docker than in native Linux is o
 ## How To Use
 1) Make sure you have enabled the required plugins and set the required environment variables listed above.
 2) Add the script files in the [Core](https://github.com/Daztek/EventSystem/tree/master/Core) folder to your module.
-3) Add one or more [Services](https://github.com/Daztek/EventSystem/tree/master/Services) and [Subsystems](https://github.com/Daztek/EventSystem/tree/master/Subsystems) script files to your module.
+3) Add one or more [Core Components](https://github.com/Daztek/EventSystem/tree/master/Components/Core), [Services](https://github.com/Daztek/EventSystem/tree/master/Components/Services) and [Subsystems](https://github.com/Daztek/EventSystem/tree/master/Components/Subsystems) script files to your module.
 4) Start your server!
 
 ## Want to write your own subsystem?

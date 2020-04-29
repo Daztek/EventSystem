@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[]
+        @NWNX[Object]
 
     Description: An EventSystem Service that provides various GUI functionality
 */
@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "nwnx_object"
 
 const string GUI_LOG_TAG                                = "GUI";
 const string GUI_SCRIPT_NAME                            = "es_srv_gui";

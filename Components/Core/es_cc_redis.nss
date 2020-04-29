@@ -38,12 +38,6 @@ void Redis_SetVector(string sHash, string sVarName, vector vValue);
 vector Redis_GetVector(string sHash, string sVarName);
 void Redis_DeleteVector(string sHash, string sVarName);
 
-// @Load
-void Redis_Load(string sCoreComponentScript)
-{
-    object oDataObject = ES_Util_GetDataObject(sCoreComponentScript);
-}
-
 string Redis_GetHash(object oPlayer, string sSystem)
 {
     return GetModuleName() + ":" + sSystem + ":" + GetObjectUUID(oPlayer);

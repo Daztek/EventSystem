@@ -3,9 +3,10 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[]
+        @NWNX[Util]
 
-    Description: An EventSystem Core Component that allows registering ofserver console commands
+    Description: An EventSystem Core Component that allows Services
+                 and Subsystems to register server console commands
 */
 
 //void main() {}

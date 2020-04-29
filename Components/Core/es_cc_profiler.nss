@@ -16,7 +16,7 @@
 const string PROFILER_LOG_TAG                           = "Profiler";
 const string PROFILER_SCRIPT_NAME                       = "es_cc_profiler";
 
-const int    PROFILER_OVERHEAD_COMPENSATION_ITERATIONS  = 1000;
+const int PROFILER_OVERHEAD_COMPENSATION_ITERATIONS     = 1000;
 
 struct ProfilerData
 {

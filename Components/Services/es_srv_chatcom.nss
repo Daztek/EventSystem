@@ -59,6 +59,9 @@ int ChatCommand_Register(string sSubsystemScript, string sFunction, string sComm
 // sComparison: The comparison type, ==, !=, >= etc
 void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction, string sValue, string sComparison = "==");
 
+// Send oPlayer an info message in the format of "sCommandName: sMessage"
+void ChatCommand_SendInfoMessage(object oPlayer, string sCommandName, string sMessage);
+
 // @Load
 void ChatCommand_Load(string sServiceScript)
 {
@@ -71,7 +74,6 @@ void ChatCommand_Post(string sServiceScript)
 {
     ES_Util_ExecuteScriptChunk(sServiceScript, nssFunction("ChatCommand_CreateChatEventHandler", nssEscapeDoubleQuotes(sServiceScript)), GetModule());
 }
-
 
 string ChatCommand_Parse(string sMessage, string sCommand)
 {
@@ -246,5 +248,10 @@ void ChatCommand_SetPermission(int nCommandID, string sInclude, string sFunction
     SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_FUNCTION + sCommandID, sFunction);
     SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_VALUE + sCommandID, sValue);
     SetLocalString(oDataObject, CHATCOMMAND_PERMISSION_COMPARISON + sCommandID, sComparison);
+}
+
+void ChatCommand_SendInfoMessage(object oPlayer, string sCommandName, string sMessage)
+{
+    SendMessageToPC(oPlayer, ES_Util_ColorString(sCommandName + ": ", "070") + sMessage);
 }
 

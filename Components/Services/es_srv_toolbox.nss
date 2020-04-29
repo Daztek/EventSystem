@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[Area]
+        @NWNX[Area Object]
 
     Description: An EventSystem Service that allows you to create small items
                  and placeables on the fly.
@@ -14,6 +14,7 @@
 #include "es_inc_core"
 #include "es_cc_events"
 #include "nwnx_area"
+#include "nwnx_object"
 
 const string TOOLBOX_LOG_TAG                            = "Toolbox";
 const string TOOLBOX_SCRIPT_NAME                        = "es_srv_toolbox";

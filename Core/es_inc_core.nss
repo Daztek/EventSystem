@@ -41,7 +41,8 @@ int ES_Core_Component_GetTypeFromScriptName(string sScriptName);
 
 void ES_Core_Init()
 {
-    string sCoreRequiredNWNXPlugins = "Object Util";
+    /* Not really useful at the moment...
+    string sCoreRequiredNWNXPlugins = "Util";
     string sDisabledPlugins = ES_Core_Component_GetDisabledNWNXPlugins(sCoreRequiredNWNXPlugins);
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Checking Core NWNX Plugin Dependencies: " + sCoreRequiredNWNXPlugins);
@@ -51,6 +52,7 @@ void ES_Core_Init()
         ES_Util_Log(ES_CORE_LOG_TAG, "  > ERROR: Unable to initialize EventSystem: Missing Required NWNX Plugins: " + sDisabledPlugins);
         return;
     }
+    */
 
     ES_Util_Log(ES_CORE_LOG_TAG, "* Initializing EventSystem");
 
@@ -61,7 +63,6 @@ void ES_Core_Init()
 
     object oModule = GetModule();
     object oCoreDataObject = ES_Core_GetCoreDataObject();
-
 
     // This checks if any of the es_inc_* NSS files have changed
     // Can be disabled by setting the ES_SKIP_CORE_HASH_CHECK environment variable to true
@@ -82,7 +83,6 @@ void ES_Core_Init()
     }
     else
         ES_Util_Log(ES_CORE_LOG_TAG, "* WARNING: Skipping NWNX Hash Check");
-
 
     // *** INITIALIZE COMPONENTS
     int nComponentType;
@@ -148,7 +148,6 @@ void ES_Core_Init()
             nssFunction("ES_Core_Component_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Load")), oModule);
     }
 
-
     // *** SERVICES POST
     ES_Util_Log(ES_CORE_LOG_TAG, "");
     ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Post");
@@ -156,10 +155,8 @@ void ES_Core_Init()
     ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Component_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Post")), oModule);
 
-
     // Delete the CoreHashChanged variable so HotSwappable subsystems don't needlessly get recompiled
     DeleteLocalInt(oCoreDataObject, "CoreHashChanged");
-
 
     ES_Util_Log(ES_CORE_LOG_TAG, "");
     ES_Util_Log(ES_CORE_LOG_TAG, "* Resetting Instruction Limit");
@@ -202,7 +199,7 @@ void ES_Core_CheckCoreHashes()
     string sIncludeArray = ES_Util_GetResRefArray(oCoreDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "es_inc_.+", FALSE);
 
     ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
-    ES_Util_StringArray_Clear(oCoreDataObject, sIncludeArray);
+    StringArray_Clear(oCoreDataObject, sIncludeArray);
 }
 
 void ES_Core_CheckNWNXHashes()
@@ -211,10 +208,10 @@ void ES_Core_CheckNWNXHashes()
     string sIncludeArray = ES_Util_GetResRefArray(oCoreDataObject, NWNX_UTIL_RESREF_TYPE_NSS, "(?!nwnx_.+_t*)nwnx_.+", FALSE);
 
     // Manually insert nwnx.nss
-    ES_Util_StringArray_Insert(oCoreDataObject, sIncludeArray, "nwnx");
+    StringArray_Insert(oCoreDataObject, sIncludeArray, "nwnx");
 
     ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sIncludeArray, ES_CORE_SCRIPT_NAME, nssFunction("ES_Core_CheckIncludeHash", "sArrayElement"), oModule);
-    ES_Util_StringArray_Clear(oCoreDataObject, sIncludeArray);
+    StringArray_Clear(oCoreDataObject, sIncludeArray);
 }
 
 int ES_Core_GetCoreHashChanged()
@@ -370,7 +367,7 @@ string ES_Core_Component_GetDependenciesByType(string sComponent, string sScript
 
         if (GetStringLeft(sComponentDependency, nComponentDependencyScriptPrefixLength) == sComponentDependencyScriptPrefix)
         {
-            ES_Util_StringArray_Insert(oComponentDataObject, sComponentDependencyTypeNamePlural, sComponentDependency);
+            StringArray_Insert(oComponentDataObject, sComponentDependencyTypeNamePlural, sComponentDependency);
 
             sComponentDependencies += sComponentDependency + " ";
         }
@@ -454,7 +451,11 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
 
     // Get Functions
     ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Load");
-    ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
+
+    if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
+    {
+        ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
+    }
 
     if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
     {
@@ -481,7 +482,7 @@ struct ES_Core_ComponentStatus ES_Core_GetStatusByType(object oComponentDataObje
     struct ES_Core_ComponentStatus cs;
     cs.nComponentType = nComponentType;
 
-    int nNumComponentDependencies = ES_Util_StringArray_Size(oComponentDataObject, sComponentTypeNamePlural);
+    int nNumComponentDependencies = StringArray_Size(oComponentDataObject, sComponentTypeNamePlural);
 
     if (nNumComponentDependencies)
     {
@@ -489,7 +490,7 @@ struct ES_Core_ComponentStatus ES_Core_GetStatusByType(object oComponentDataObje
 
         for (nComponentDependencyIndex = 0; nComponentDependencyIndex < nNumComponentDependencies; nComponentDependencyIndex++)
         {
-            string sComponentDependency = ES_Util_StringArray_At(oComponentDataObject, sComponentTypeNamePlural, nComponentDependencyIndex);
+            string sComponentDependency = StringArray_At(oComponentDataObject, sComponentTypeNamePlural, nComponentDependencyIndex);
             object oComponentDependencyDataObject = ES_Core_GetComponentDataObject(sComponentDependency);
 
             if (GetLocalInt(oComponentDependencyDataObject, "Disabled"))
@@ -525,14 +526,14 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
 {
     object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
     int nComponentDisabled = GetLocalInt(oComponentDataObject, "Disabled");
-    struct ES_Core_ComponentStatus csProviders;
+    struct ES_Core_ComponentStatus csCoreComponents;
     struct ES_Core_ComponentStatus csServices;
 
     if (!nComponentDisabled)
     {
         if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
         {
-            csProviders = ES_Core_GetStatusByType(oComponentDataObject, ES_CORE_COMPONENT_TYPE_CORE);
+            csCoreComponents = ES_Core_GetStatusByType(oComponentDataObject, ES_CORE_COMPONENT_TYPE_CORE);
         }
 
         if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
@@ -540,7 +541,7 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
             csServices = ES_Core_GetStatusByType(oComponentDataObject, ES_CORE_COMPONENT_TYPE_SERVICE);
         }
 
-        if (csProviders.bDisable || csServices.bDisable)
+        if (csCoreComponents.bDisable || csServices.bDisable)
             nComponentDisabled = TRUE;
     }
 
@@ -556,7 +557,7 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
         else
             ES_Util_Log(ES_CORE_LOG_TAG, "  > " + sComponentTypeName + " '" + sComponent + "' -> Disabled");
 
-        ES_Core_Component_PrintStatus(csProviders);
+        ES_Core_Component_PrintStatus(csCoreComponents);
         ES_Core_Component_PrintStatus(csServices);
     }
 }
@@ -571,13 +572,13 @@ void ES_Core_Component_CheckComponentDependenciesByType(string sComponent, int n
 
     if (bHasEventHandler && !bDidNotExist && !bHasBeenCompiled)
     {
-        int nNumComponentDependencies = ES_Util_StringArray_Size(oComponentDataObject, sComponentDependencyTypeNamePlural), nComponentDependencyIndex;
+        int nNumComponentDependencies = StringArray_Size(oComponentDataObject, sComponentDependencyTypeNamePlural), nComponentDependencyIndex;
 
         if (nNumComponentDependencies)
         {
             for (nComponentDependencyIndex = 0; nComponentDependencyIndex < nNumComponentDependencies; nComponentDependencyIndex++)
             {
-                string sComponentDependency = ES_Util_StringArray_At(oComponentDataObject, sComponentDependencyTypeNamePlural, nComponentDependencyIndex);
+                string sComponentDependency = StringArray_At(oComponentDataObject, sComponentDependencyTypeNamePlural, nComponentDependencyIndex);
                 object oComponentDependencyDataObject = ES_Core_GetComponentDataObject(sComponentDependency);
 
                 if (GetLocalInt(oComponentDependencyDataObject, "HashChanged"))

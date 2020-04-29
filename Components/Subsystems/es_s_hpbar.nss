@@ -12,6 +12,7 @@
 
 #include "es_inc_core"
 #include "es_cc_events"
+#include "es_cc_pos"
 #include "es_srv_gui"
 #include "es_srv_chatcom"
 #include "es_srv_mediator"
@@ -111,7 +112,7 @@ void HealthBar_RemovePlayerFromHealthBarList(string sPlayerUUID, string sCreatur
     object oCreature = GetObjectByUUID(sCreatureUUID);
 
     if (GetIsObjectValid(oCreature))
-        ES_Util_StringArray_DeleteByValue(oCreature, "HealthBarTargets", sPlayerUUID);
+        StringArray_DeleteByValue(oCreature, "HealthBarTargets", sPlayerUUID);
 
     DeleteLocalString(GetObjectByUUID(sPlayerUUID), HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar");
 }
@@ -130,7 +131,7 @@ void HealthBar_AddPlayerToHealthBarList(object oPlayer, object oCreature)
         if (sCurrentHealthBarTarget != "")
             HealthBar_RemovePlayerFromHealthBarList(sPlayerUUID, sCurrentHealthBarTarget);
 
-        ES_Util_StringArray_Insert(oCreature, "HealthBarTargets", sPlayerUUID);
+        StringArray_Insert(oCreature, "HealthBarTargets", sPlayerUUID);
 
         SetLocalString(oPlayer, HEALTHBAR_SCRIPT_NAME + "_CurrentHealthBar", sCreatureUUID);
     }
@@ -201,8 +202,8 @@ struct HealthBar_Data HealthBar_Update(object oCreature = OBJECT_SELF, string sI
 
 struct HealthBar_Data HealthBar_AddCustomPlayerSettings(object oPlayer, struct HealthBar_Data hbd)
 {
-    hbd.nX = ES_Util_GetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_x");
-    hbd.nY = ES_Util_GetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_y");
+    hbd.nX = POS_GetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_x");
+    hbd.nY = POS_GetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_y");
 
     hbd.nNameColor = GUI_COLOR_ORANGE;
     hbd.nInfoColor = GUI_COLOR_SILVER;
@@ -348,7 +349,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                     HealthBar_AddPlayerToHealthBarList(oLastDamager, oCreature);
                 }
 
-                int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
+                int nNumTargets = StringArray_Size(oCreature, "HealthBarTargets");
 
                 if (nNumTargets)
                 {
@@ -360,7 +361,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                     int x;
                     for (x = 0; x < nNumTargets; x++)
                     {
-                        object oPlayer = GetObjectByUUID(ES_Util_StringArray_At(oCreature, "HealthBarTargets", x));
+                        object oPlayer = GetObjectByUUID(StringArray_At(oCreature, "HealthBarTargets", x));
 
                         if (GetIsObjectValid(oPlayer))
                         {
@@ -381,7 +382,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                 Events_RemoveObjectFromDispatchList(sSubsystemScript, sDamagedEvent, oCreature);
                 Events_RemoveObjectFromDispatchList(sSubsystemScript, sDeathEvent, oCreature);
 
-                int nNumTargets = ES_Util_StringArray_Size(oCreature, "HealthBarTargets");
+                int nNumTargets = StringArray_Size(oCreature, "HealthBarTargets");
 
                 if (nNumTargets)
                 {
@@ -394,7 +395,7 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
                     int x;
                     for (x = 0; x < nNumTargets; x++)
                     {
-                        object oPlayer = GetObjectByUUID(ES_Util_StringArray_At(oCreature, "HealthBarTargets", x));
+                        object oPlayer = GetObjectByUUID(StringArray_At(oCreature, "HealthBarTargets", x));
 
                         if (GetIsObjectValid(oPlayer))
                         {
@@ -410,18 +411,13 @@ void HealthBar_EventHandler(string sSubsystemScript, string sEvent)
     }
 }
 
-void HealthBar_SendInfoChatMessage(object oPlayer, string sMessage)
-{
-    SendMessageToPC(oPlayer, ES_Util_ColorString(HEALTHBAR_LOG_TAG + ": ", "070") + sMessage);
-}
-
 void HealthBar_SetHealthBarOption(object oPlayer, string sOption, string sValue)
 {
     if (sValue == "")
     {
-        int nValue = ES_Util_GetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_" + sOption);
+        int nValue = POS_GetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_" + sOption);
 
-        HealthBar_SendInfoChatMessage(oPlayer, "Current " + sOption + " value: " + IntToString(nValue));
+        ChatCommand_SendInfoMessage(oPlayer, HEALTHBAR_LOG_TAG, "Current " + sOption + " value: " + IntToString(nValue));
     }
     else
     {
@@ -429,12 +425,12 @@ void HealthBar_SetHealthBarOption(object oPlayer, string sOption, string sValue)
 
         if (nValue >= 0)
         {
-            HealthBar_SendInfoChatMessage(oPlayer, "Setting " + sOption + " to: " + IntToString(nValue));
+            ChatCommand_SendInfoMessage(oPlayer, HEALTHBAR_LOG_TAG, "Setting " + sOption + " to: " + IntToString(nValue));
 
-            ES_Util_SetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_" + sOption, nValue, TRUE);
+            POS_SetInt(oPlayer, HEALTHBAR_SCRIPT_NAME + "_" + sOption, nValue, TRUE);
         }
         else
-            HealthBar_SendInfoChatMessage(oPlayer, "Value for " + sOption + " must be >= 0");
+            ChatCommand_SendInfoMessage(oPlayer, HEALTHBAR_LOG_TAG, "Value for " + sOption + " must be >= 0");
     }
 }
 
@@ -450,14 +446,14 @@ void HealthBar_ChatCommand(object oPlayer, string sOption, int nVolume)
     else
     if ((sParams = ChatCommand_Parse(sOption, "preview")) != CHATCOMMAND_PARSE_ERROR)
     {
-        HealthBar_SendInfoChatMessage(oPlayer, "Preview");
+        ChatCommand_SendInfoMessage(oPlayer, HEALTHBAR_LOG_TAG, "Preview");
 
         HealthBar_Draw(oPlayer, HealthBar_Update(oPlayer, "It's you, oh no!"));
     }
     else
     if ((sParams = ChatCommand_Parse(sOption, "clear")) != CHATCOMMAND_PARSE_ERROR)
     {
-        HealthBar_SendInfoChatMessage(oPlayer, "Cleared");
+        ChatCommand_SendInfoMessage(oPlayer, HEALTHBAR_LOG_TAG, "Cleared");
 
         GUI_ClearBySubsystem(oPlayer, HEALTHBAR_SCRIPT_NAME);
 
@@ -469,9 +465,9 @@ void HealthBar_ChatCommand(object oPlayer, string sOption, int nVolume)
     else
     if ((sParams = ChatCommand_Parse(sOption, "reset")) != CHATCOMMAND_PARSE_ERROR)
     {
-        HealthBar_SendInfoChatMessage(oPlayer, "Reset");
+        ChatCommand_SendInfoMessage(oPlayer, HEALTHBAR_LOG_TAG, "Reset");
 
-        ES_Util_DeleteVarRegex(oPlayer, HEALTHBAR_SCRIPT_NAME + "_.*");
+        POS_DeleteVarRegex(oPlayer, HEALTHBAR_SCRIPT_NAME + "_.*");
     }
     else
     {

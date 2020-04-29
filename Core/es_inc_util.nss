@@ -7,9 +7,8 @@
 
 //void main() {}
 
+#include "es_inc_array"
 #include "es_inc_nss"
-
-#include "nwnx_object"
 #include "nwnx_util"
 
 #include "x3_inc_string"
@@ -74,7 +73,7 @@ int ES_Util_GetHasScriptFlag(string sScriptContents, string sFlag);
 
 // Create an array of resrefs on oArrayObject
 // Returns: The array name
-string ES_Util_GetResRefArray(object oArrayObject, int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE);
+string ES_Util_GetResRefArray(object oArrayObject, int nResType, string sRegexFilter = "", int bCustomResourcesOnly = TRUE);
 // Execute a script chunk and return a string result
 string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
 // Execute a script chunk and return an int result
@@ -86,87 +85,12 @@ void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArr
 int floor(float f);
 int ceil(float f);
 int round(float f);
+string ltrim(string s);
+string rtrim(string s);
+string trim(string s);
 
 // Calculate vCenter's angle to face vPoint
 float ES_Util_CalculateFacing(vector vCenter, vector vPoint);
-
-// Delete oObject's POS float variable sVarName
-void ES_Util_DeleteFloat(object oObject, string sVarName);
-// Delete any of oObject's POS float variables that match sRegex
-void ES_Util_DeleteFloatRegex(object oObject, string sRegex);
-// Get oObject's POS float variable sVarName
-// * Return value on error: 0.0f
-float ES_Util_GetFloat(object oObject, string sVarName);
-// Set oObject's POS float variable sVarName to fValue
-void ES_Util_SetFloat(object oObject, string sVarName, float fValue, int bPersist = FALSE);
-
-// Delete oObject's POS integer variable sVarName
-void ES_Util_DeleteInt(object oObject, string sVarName);
-// Delete any of oObject's POS int variables that match sRegex
-void ES_Util_DeleteIntRegex(object oObject, string sRegex);
-// Get oObject's POS integer variable sVarName
-// * Return value on error: 0
-int ES_Util_GetInt(object oObject, string sVarName);
-// Set oObject's POS integer variable sVarName to nValue
-void ES_Util_SetInt(object oObject, string sVarName, int nValue, int bPersist = FALSE);
-
-// Delete oObject's POS location variable sVarName
-void ES_Util_DeleteLocation(object oObject, string sVarName);
-// Delete any of oObject's POS location variables that match sRegex
-void ES_Util_DeleteLocationRegex(object oObject, string sRegex);
-// Get oObject's POS location variable sVarname
-location ES_Util_GetLocation(object oObject, string sVarName);
-// Set oObject's POS location variable sVarname to locValue
-void ES_Util_SetLocation(object oObject, string sVarName, location locValue, int bPersist = FALSE);
-
-// Delete oObject's POS vector variable sVarName
-void ES_Util_DeleteVector(object oObject, string sVarName);
-// Delete any of oObject's POS vector variables that match sRegex
-void ES_Util_DeleteVectorRegex(object oObject, string sRegex);
-// Get oObject's POS vector variable sVarname
-vector ES_Util_GetVector(object oObject, string sVarName);
-// Set oObject's POS vector variable sVarname to vValue
-void ES_Util_SetVector(object oObject, string sVarName, vector vValue, int bPersist = FALSE);
-
-// Delete oObject's POS object variable sVarName
-void ES_Util_DeleteObject(object oObject, string sVarName);
-// Delete any of oObject's POS object variables that match sRegex
-void ES_Util_DeleteObjectRegex(object oObject, string sRegex);
-// Get oObject's POS object variable sVarName
-// * Return value on error: OBJECT_INVALID
-object ES_Util_GetObject(object oObject, string sVarName);
-// Set oObject's POS object variable sVarName to oValue
-void ES_Util_SetObject(object oObject, string sVarName, object oValue);
-
-// Delete oObject's POS string variable sVarName
-void ES_Util_DeleteString(object oObject, string sVarName);
-// Delete any of oObject's POS string variables that match sRegex
-void ES_Util_DeleteStringRegex(object oObject, string sRegex);
-// Get oObject's POS string variable sVarName
-// * Return value on error: ""
-string ES_Util_GetString(object oObject, string sVarName);
-// Set oObject's POS string variable sVarName to sValue
-void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPersist = FALSE);
-
-// Delete any POS variables from oObject that match sRegex
-void ES_Util_DeleteVarRegex(object oObject, string sRegex);
-
-// Insert a string to sArrayName
-void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue);
-// Set nIndex of sArrayName to sValue
-void ES_Util_StringArray_Set(object oObject, string sArrayName, int nIndex, string sValue);
-// Get the size of sArrayName
-int ES_Util_StringArray_Size(object oObject, string sArrayName);
-// Get the string at nIndex of sArrayName
-string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex);
-// Delete sArrayName
-void ES_Util_StringArray_Clear(object oObject, string sArrayName);
-// Returns the index of sValue if it exists in sArrayName or -1 if not
-int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue);
-// Delete nIndex from sArrayName on oObject
-void ES_Util_StringArray_Delete(object oObject, string sArrayName, int nIndex);
-// Delete sValue from sArrayName on oObject
-void ES_Util_StringArray_DeleteByValue(object oObject, string sArrayName, string sValue);
 
 // This function will make sString be the specified color
 // as specified in sRGB.  RGB is the Red, Green, and Blue
@@ -402,14 +326,14 @@ int ES_Util_GetHasScriptFlag(string sScriptContents, string sFlag)
     return FindSubString(sScriptContents, "@" + sFlag, 0) != -1;
 }
 
-string ES_Util_GetResRefArray(object oArrayObject, int nType, string sRegexFilter = "", int bModuleResourcesOnly = TRUE)
+string ES_Util_GetResRefArray(object oArrayObject, int nResType, string sRegexFilter = "", int bCustomResourcesOnly = TRUE)
 {
     string sArrayName = "RRA_" + GetRandomUUID();
-    string sResRef = NWNX_Util_GetFirstResRef(nType, sRegexFilter, bModuleResourcesOnly);
+    string sResRef = NWNX_Util_GetFirstResRef(nResType, sRegexFilter, bCustomResourcesOnly);
 
     while (sResRef != "")
     {
-        ES_Util_StringArray_Insert(oArrayObject, sArrayName, sResRef);
+        StringArray_Insert(oArrayObject, sArrayName, sResRef);
 
         sResRef = NWNX_Util_GetNextResRef();
     }
@@ -453,7 +377,7 @@ int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk,
 
 void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject)
 {
-    int nArraySize = ES_Util_StringArray_Size(oArrayObject, sArrayName);
+    int nArraySize = StringArray_Size(oArrayObject, sArrayName);
 
     if(nArraySize)
     {
@@ -461,7 +385,7 @@ void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArr
 
         for (nIndex = 0; nIndex < nArraySize; nIndex++)
         {
-            string sArrayElement = ES_Util_StringArray_At(oArrayObject, sArrayName, nIndex);
+            string sArrayElement = StringArray_At(oArrayObject, sArrayName, nIndex);
             string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sArrayElement", nssEscapeDoubleQuotes(sArrayElement)) + sScriptChunk);
 
             string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
@@ -487,6 +411,27 @@ int round(float f)
     return FloatToInt(f + 0.5f);
 }
 
+string ltrim(string s)
+{
+    while (GetStringLeft(s, 1) == " ")
+        s = GetStringRight(s, GetStringLength(s) - 1);
+
+    return s;
+}
+
+string rtrim(string s)
+{
+    while (GetStringRight(s, 1) == " ")
+        s = GetStringLeft(s, GetStringLength(s) - 1);
+
+    return s;
+}
+
+string trim(string s)
+{
+    return ltrim(rtrim(s));
+}
+
 float ES_Util_CalculateFacing(vector vCenter, vector vPoint)
 {
     float fAngle;
@@ -504,225 +449,6 @@ float ES_Util_CalculateFacing(vector vCenter, vector vPoint)
         fAngle = (f == 360.0f ? 0.0f : f);
     }
     return fAngle - 270;
-}
-
-void ES_Util_DeleteFloat(object oObject, string sVarName)
-{
-    NWNX_Object_DeleteFloat(oObject, "ES!FLT!" + sVarName);
-}
-
-void ES_Util_DeleteFloatRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!FLT!)" + sRegex);
-}
-
-float ES_Util_GetFloat(object oObject, string sVarName)
-{
-    return NWNX_Object_GetFloat(oObject, "ES!FLT!" + sVarName);
-}
-
-void ES_Util_SetFloat(object oObject, string sVarName, float fValue, int bPersist = FALSE)
-{
-    NWNX_Object_SetFloat(oObject, "ES!FLT!" + sVarName, fValue, bPersist);
-}
-
-void ES_Util_DeleteInt(object oObject, string sVarName)
-{
-    NWNX_Object_DeleteInt(oObject, "ES!INT!" + sVarName);
-}
-
-void ES_Util_DeleteIntRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!INT!)" + sRegex);
-}
-
-int ES_Util_GetInt(object oObject, string sVarName)
-{
-    return NWNX_Object_GetInt(oObject, "ES!INT!" + sVarName);
-}
-
-void ES_Util_SetInt(object oObject, string sVarName, int nValue, int bPersist = FALSE)
-{
-    NWNX_Object_SetInt(oObject, "ES!INT!" + sVarName, nValue, bPersist);
-}
-
-void ES_Util_DeleteLocation(object oObject, string sVarName)
-{
-    NWNX_Object_DeleteString(oObject, "ES!LOC!" + sVarName);
-}
-
-void ES_Util_DeleteLocationRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!LOC!)" + sRegex);
-}
-
-location ES_Util_GetLocation(object oObject, string sVarName)
-{
-    return ES_Util_StringToLocation(NWNX_Object_GetString(oObject, "ES!LOC!" + sVarName));
-}
-
-void ES_Util_SetLocation(object oObject, string sVarName, location locValue, int bPersist = FALSE)
-{
-    NWNX_Object_SetString(oObject, "ES!LOC!" + sVarName, ES_Util_LocationToString(locValue), bPersist);
-}
-
-void ES_Util_DeleteVector(object oObject, string sVarName)
-{
-    NWNX_Object_DeleteString(oObject, "ES!VEC!" + sVarName);
-}
-
-void ES_Util_DeleteVectorRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!VEC!)" + sRegex);
-}
-
-vector ES_Util_GetVector(object oObject, string sVarName)
-{
-    return ES_Util_StringToVector(NWNX_Object_GetString(oObject, "ES!VEC!" + sVarName));
-}
-
-void ES_Util_SetVector(object oObject, string sVarName, vector vValue, int bPersist = FALSE)
-{
-    NWNX_Object_SetString(oObject, "ES!VEC!" + sVarName, ES_Util_VectorToString(vValue), bPersist);
-}
-
-void ES_Util_DeleteObject(object oObject, string sVarName)
-{
-    NWNX_Object_DeleteString(oObject, "ES!OBJ!" + sVarName);
-}
-
-void ES_Util_DeleteObjectRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!OBJ!)" + sRegex);
-}
-
-object ES_Util_GetObject(object oObject, string sVarName)
-{
-    return NWNX_Object_StringToObject(NWNX_Object_GetString(oObject, "ES!OBJ!" + sVarName));
-}
-
-void ES_Util_SetObject(object oObject, string sVarName, object oValue)
-{
-    NWNX_Object_SetString(oObject, "ES!OBJ!" + sVarName, ObjectToString(oValue), FALSE);
-}
-
-void ES_Util_DeleteString(object oObject, string sVarName)
-{
-    NWNX_Object_DeleteString(oObject, "ES!STR!" + sVarName);
-}
-
-void ES_Util_DeleteStringRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!STR!)" + sRegex);
-}
-
-string ES_Util_GetString(object oObject, string sVarName)
-{
-    return NWNX_Object_GetString(oObject, "ES!STR!" + sVarName);
-}
-
-void ES_Util_SetString(object oObject, string sVarName, string sValue, int bPersist = FALSE)
-{
-    NWNX_Object_SetString(oObject, "ES!STR!" + sVarName, sValue, bPersist);
-}
-
-void ES_Util_DeleteVarRegex(object oObject, string sRegex)
-{
-    NWNX_Object_DeleteVarRegex(oObject, "(?:ES!)((?:FLT!)|(?:INT!)|(?:LOC!)|(?:OBJ!)|(?:STR!))" + sRegex);
-}
-
-void ES_Util_StringArray_Insert(object oObject, string sArrayName, string sValue)
-{
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName);
-    SetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize), sValue);
-    SetLocalInt(oObject, "SA!NUM!" + sArrayName, ++nSize);
-}
-
-void ES_Util_StringArray_Set(object oObject, string sArrayName, int nIndex, string sValue)
-{
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName);
-
-    if (nIndex < nSize)
-        SetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), sValue);
-}
-
-int ES_Util_StringArray_Size(object oObject, string sArrayName)
-{
-    return GetLocalInt(oObject, "SA!NUM!" + sArrayName);
-}
-
-string ES_Util_StringArray_At(object oObject, string sArrayName, int nIndex)
-{
-    return GetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
-}
-
-void ES_Util_StringArray_Clear(object oObject, string sArrayName)
-{
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
-
-    if (nSize)
-    {
-        for (nIndex = 0; nIndex < nSize; nIndex++)
-        {
-            string sElement = ES_Util_StringArray_At(oObject, sArrayName, nIndex);
-
-            DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
-        }
-    }
-
-    DeleteLocalInt(oObject, "SA!NUM!" + sArrayName);
-}
-
-int ES_Util_StringArray_Contains(object oObject, string sArrayName, string sValue)
-{
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
-
-    if (nSize)
-    {
-        for (nIndex = 0; nIndex < nSize; nIndex++)
-        {
-            string sElement = ES_Util_StringArray_At(oObject, sArrayName, nIndex);
-
-            if (sElement == sValue)
-            {
-                return nIndex;
-            }
-        }
-    }
-
-    return -1;
-}
-
-void ES_Util_StringArray_Delete(object oObject, string sArrayName, int nIndex)
-{
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndexNew;
-    if (nIndex < nSize)
-    {
-        for (nIndexNew = nIndex; nIndexNew < nSize - 1; nIndexNew++)
-        {
-            ES_Util_StringArray_Set(oObject, sArrayName, nIndexNew, ES_Util_StringArray_At(oObject, sArrayName, nIndexNew + 1));
-        }
-
-        DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nSize - 1));
-        SetLocalInt(oObject, "SA!NUM!" + sArrayName, nSize - 1);
-    }
-}
-
-void ES_Util_StringArray_DeleteByValue(object oObject, string sArrayName, string sValue)
-{
-    int nSize = ES_Util_StringArray_Size(oObject, sArrayName), nIndex;
-    string sElement;
-
-    for (nIndex = 0; nIndex < nSize; nIndex++)
-    {
-        sElement = ES_Util_StringArray_At(oObject, sArrayName, nIndex);
-
-        if (sElement == sValue)
-        {
-            ES_Util_StringArray_Delete(oObject, sArrayName, nIndex);
-            break;
-        }
-   }
 }
 
 string ES_Util_ColorString(string sString, string sRGB)

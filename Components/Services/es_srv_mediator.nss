@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[]
+        @NWNX[Object]
 
     Description: An EventSystem Service that allows subsystems to call functions
                  from other subsystems without having to include them.
@@ -12,6 +12,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "nwnx_object"
 
 const string MEDIATOR_LOG_TAG                       = "Mediator";
 const string MEDIATOR_SCRIPT_NAME                   = "es_srv_mediator";

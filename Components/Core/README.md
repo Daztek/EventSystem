@@ -1,1 +1,1 @@
-# Various EventSystem Providers that provide database functionality
+# Various EventSystem Core Components that provide core functionality
