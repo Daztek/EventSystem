@@ -18,12 +18,14 @@
 const string SPELLHOOK_LOG_TAG      = "Spellhook";
 const string SPELLHOOK_SCRIPT_NAME  = "es_srv_spellhook";
 
-const string SPELLHOOK_EVENT_PREFIX = "SPELL_";
+const string SPELLHOOK_EVENT_PREFIX = "SPELL_EVENT_";
 
-// Subscribe sEventHandlerScript to a SPELL_* cast event
-void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpell);
+// Subscribe sEventHandlerScript to a spellcast event
+void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpellID, int bDispatchListMode = FALSE);
 // Skip a spellhook event
 void Spellhook_SkipEvent();
+// Get the spell event name for nSpellID
+string Spellhook_GetEventName(int nSpellID);
 
 // @Load
 void Spellhook_Load(string sServiceScript)
@@ -36,20 +38,25 @@ void Spellhook_SignalEvent()
     string sSpellEvent = SPELLHOOK_EVENT_PREFIX + IntToString(GetSpellId());
 
     if (GetLocalInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), sSpellEvent))
-        NWNX_Events_SignalEvent(sSpellEvent, OBJECT_SELF);
+        Events_SignalEvent(sSpellEvent, OBJECT_SELF);
 }
 
-void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpell)
+void Spellhook_SubscribeEvent(string sSubsystemScript, int nSpellID, int bDispatchListMode = FALSE)
 {
     SetModuleOverrideSpellscript(SPELLHOOK_SCRIPT_NAME);
 
-    SetLocalInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), TRUE);
+    SetLocalInt(ES_Util_GetDataObject(SPELLHOOK_SCRIPT_NAME), SPELLHOOK_EVENT_PREFIX + IntToString(nSpellID), TRUE);
 
-    Events_SubscribeEvent(sSubsystemScript, SPELLHOOK_EVENT_PREFIX + IntToString(nSpell), FALSE);
+    Events_SubscribeEvent(sSubsystemScript, SPELLHOOK_EVENT_PREFIX + IntToString(nSpellID), bDispatchListMode);
 }
 
 void Spellhook_SkipEvent()
 {
     SetModuleOverrideSpellScriptFinished();
+}
+
+string Spellhook_GetEventName(int nSpellID)
+{
+    return SPELLHOOK_EVENT_PREFIX + IntToString(nSpellID);
 }
 

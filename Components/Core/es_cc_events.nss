@@ -38,6 +38,8 @@ void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode)
 // nEvent: An EVENT_SCRIPT_* constant
 // bStoreOldEvent: If TRUE, the existing script will be stored and called before the _DEFAULT event.
 void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent = TRUE);
+// Wrapper for Events_SetObjectEventScript() to set all event scripts for an area
+void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE);
 // Get an ES_CORE_EVENT_FLAG_* from an object event
 int Events_GetEventFlagFromEvent(string sEvent);
 // Convenience function to construct an object event
@@ -61,6 +63,10 @@ void Events_SubscribeEvent_NWNX(string sComponentScript, string sNWNXEvent, int 
 void Events_UnsubscribeEvent(string sComponentScript, string sEvent, int bClearDispatchList = FALSE);
 // Unsubscribe sComponentScript from all its subscribed events
 void Events_UnsubscribeAllEvents(string sComponentScript, int bClearDispatchLists = FALSE);
+// Wrapper for NWNX_Events_PushEventData()
+void Events_PushEventData(string sTag, string sData);
+// Wrapper for NWNX_Events_SignalEvent()
+int Events_SignalEvent(string sEvent, object oTarget);
 // Add oObject to sComponentScript's dispatch list for sEvent
 void Events_AddObjectToDispatchList(string sComponentScript, string sEvent, object oObject);
 // Remove oObject from sComponentScript's dispatch list for sEvent
@@ -118,10 +124,7 @@ void Events_Load(string sCoreComponentScript)
     object oArea = GetFirstArea();
     while (GetIsObjectValid(oArea))
     {
-        Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_HEARTBEAT);
-        Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT);
-        Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_ENTER);
-        Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_EXIT);
+        Events_SetAreaEventScripts(oArea);
 
         oArea = GetNextArea();
     }
@@ -139,7 +142,7 @@ void Events_CheckObjectEventScripts(int nStart, int nEnd)
 
         if (bHashChanged || !bObjectEventScriptExists)
         {
-            ES_Util_AddScript(sScriptName, EVENTS_SCRIPT_NAME, nssFunction("Events_SignalEvent", IntToString(nEvent)));
+            ES_Util_AddScript(sScriptName, EVENTS_SCRIPT_NAME, nssFunction("Events_SignalObjectEvent", IntToString(nEvent)));
         }
     }
 }
@@ -156,23 +159,23 @@ void Events_SetEventFlag(int nEvent, int nEventFlag)
                 Events_GetEventFlags(nEvent) | nEventFlag);
 }
 
-void Events_SignalEvent(int nEvent, object oTarget = OBJECT_SELF)
+void Events_SignalObjectEvent(int nEvent, object oTarget = OBJECT_SELF)
 {
     int nEventFlags = Events_GetEventFlags(nEvent);
     string sEvent = IntToString(nEvent) + "_OBJEVT_";
 
     if (nEventFlags & EVENTS_EVENT_FLAG_BEFORE)
-        NWNX_Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_BEFORE), oTarget);
+        Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_BEFORE), oTarget);
 
     // Run any old stored event scripts
     string sScript = GetLocalString(oTarget, EVENTS_SCRIPT_NAME + "_OldEventScript!" + IntToString(nEvent));
     if (sScript != "") ExecuteScript(sScript, oTarget);
 
     if (nEventFlags & EVENTS_EVENT_FLAG_DEFAULT)
-        NWNX_Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_DEFAULT), oTarget);
+        Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_DEFAULT), oTarget);
 
     if (nEventFlags & EVENTS_EVENT_FLAG_AFTER)
-        NWNX_Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_AFTER), oTarget);
+        Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_AFTER), oTarget);
 }
 
 void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode)
@@ -198,6 +201,14 @@ void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent 
 
     if (bSet && bStoreOldEvent && sOldScript != "" && sOldScript != sNewScript)
         SetLocalString(oObject, EVENTS_SCRIPT_NAME + "_OldEventScript!" + sEvent, sOldScript);
+}
+
+void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE)
+{
+    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_HEARTBEAT, bStoreOldEvent);
+    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT, bStoreOldEvent);
+    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_ENTER, bStoreOldEvent);
+    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_EXIT, bStoreOldEvent);
 }
 
 int Events_GetEventFlagFromEvent(string sEvent)
@@ -270,6 +281,16 @@ void Events_UnsubscribeAllEvents(string sComponentScript, int bClearDispatchList
     }
 
     StringArray_Clear(oDataObject, "SubscribedEvents");
+}
+
+void Events_PushEventData(string sTag, string sData)
+{
+    NWNX_Events_PushEventData(sTag, sData);
+}
+
+int Events_SignalEvent(string sEvent, object oTarget)
+{
+    return NWNX_Events_SignalEvent(sEvent, oTarget);
 }
 
 void Events_AddObjectToDispatchList(string sComponentScript, string sEvent, object oObject)

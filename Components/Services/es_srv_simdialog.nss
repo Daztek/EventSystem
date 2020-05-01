@@ -173,10 +173,10 @@ int SimpleDialog_HandleStartingConditional()
                 {
                     DeleteLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
-                    NWNX_Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
-                    NWNX_Events_PushEventData("PLAYER", ObjectToString(oPlayer));
-                    NWNX_Events_PushEventData("PAGE", IntToString(nPage));
-                    NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, oSelf);
+                    Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
+                    Events_PushEventData("PLAYER", ObjectToString(oPlayer));
+                    Events_PushEventData("PAGE", IntToString(nPage));
+                    Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, oSelf);
 
                     string sOverrideText = GetLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
@@ -206,11 +206,11 @@ int SimpleDialog_HandleStartingConditional()
                     DeleteLocalInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
                     DeleteLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
-                    NWNX_Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
-                    NWNX_Events_PushEventData("PLAYER", ObjectToString(oPlayer));
-                    NWNX_Events_PushEventData("PAGE", IntToString(nPage));
-                    NWNX_Events_PushEventData("OPTION", IntToString(nOption));
-                    NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oSelf);
+                    Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
+                    Events_PushEventData("PLAYER", ObjectToString(oPlayer));
+                    Events_PushEventData("PAGE", IntToString(nPage));
+                    Events_PushEventData("OPTION", IntToString(nOption));
+                    Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oSelf);
 
                     string sOverrideText = GetLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
@@ -237,12 +237,12 @@ void SimpleDialog_HandleActionTaken()
     string sConversationTag = SimpleDialog_GetCurrentConversation(oPlayer);
     int nOption = SIMPLE_DIALOG_NUMBER_OF_OPTIONS - NWNX_Dialog_GetCurrentNodeID();
 
-    NWNX_Events_PushEventData("CONVERSATION_TAG", sConversationTag);
-    NWNX_Events_PushEventData("PLAYER", ObjectToString(oPlayer));
-    NWNX_Events_PushEventData("PAGE", IntToString(SimpleDialog_GetCurrentPage(oPlayer)));
-    NWNX_Events_PushEventData("OPTION", IntToString(nOption));
+    Events_PushEventData("CONVERSATION_TAG", sConversationTag);
+    Events_PushEventData("PLAYER", ObjectToString(oPlayer));
+    Events_PushEventData("PAGE", IntToString(SimpleDialog_GetCurrentPage(oPlayer)));
+    Events_PushEventData("OPTION", IntToString(nOption));
 
-    NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oSelf);
+    Events_SignalEvent(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oSelf);
 }
 
 void SimpleDialog_HandleConversationEnd(int bAborted)
@@ -251,10 +251,10 @@ void SimpleDialog_HandleConversationEnd(int bAborted)
     object oPlayer = GetPCSpeaker();
     string sConversationTag = SimpleDialog_GetCurrentConversation(oPlayer);
 
-    NWNX_Events_PushEventData("CONVERSATION_TAG", sConversationTag);
-    NWNX_Events_PushEventData("PLAYER", ObjectToString(oPlayer));
-    NWNX_Events_PushEventData("ABORTED", IntToString(bAborted));
-    NWNX_Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONVERSATION_END, oSelf);
+    Events_PushEventData("CONVERSATION_TAG", sConversationTag);
+    Events_PushEventData("PLAYER", ObjectToString(oPlayer));
+    Events_PushEventData("ABORTED", IntToString(bAborted));
+    Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONVERSATION_END, oSelf);
 
     DeleteLocalInt(oSelf, SIMPLE_DIALOG_CONDITIONAL_RESULT);
     DeleteLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);

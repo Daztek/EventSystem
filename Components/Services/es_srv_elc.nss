@@ -25,7 +25,7 @@ void ELC_SubscribeEvent(string sSubsystemScript);
 // @Load
 void ELC_Load(string sServiceScript)
 {
-    ES_Util_AddScript(sServiceScript, "nwnx_events", nssFunction("NWNX_Events_SignalEvent", nssEscapeDoubleQuotes(ELC_EVENT) + ", OBJECT_SELF"));
+    ES_Util_AddScript(sServiceScript, ELC_SCRIPT_NAME, nssFunction("Events_SignalEvent", nssEscapeDoubleQuotes(ELC_EVENT) + ", OBJECT_SELF"));
 }
 
 void ELC_SubscribeEvent(string sSubsystemScript)
