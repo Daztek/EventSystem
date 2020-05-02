@@ -34,6 +34,8 @@ struct InstanceData
     float fDestroyDelay;
 
     location locExit;
+
+    string sClosingMessage;
 };
 
 // INTERNAL FUNCTION
@@ -57,9 +59,11 @@ int Instance_GetDestroyType(object oInstance);
 float Instance_GetDestroyDelay(object oInstance);
 int Instance_GetIsClosing(object oInstance);
 location Instance_GetExitLocation(object oInstance);
+string Instance_GetClosingMessage(object oInstance);
 
-void Instance_SendMessageToOwner(object oInstance, string sMessage, int bFloating = FALSE);
-void Instance_SendMessageToInstance(object oInstance, string sMessage, int bFloating = FALSE);
+void Instance_SendMessageToOwner(object oInstance, string sMessage);
+void Instance_SendMessageToInstance(object oInstance, string sMessage);
+void Instance_RemoveAllPlayers(object oInstance);
 
 // @Load
 void Instance_Load(string sServiceScript)
@@ -159,15 +163,7 @@ void Instance_INTERNAL_Destroy(object oInstance, int nDelayCommandID)
         !(GetLocalInt(oInstance, "InstanceDelayCommandID") == nDelayCommandID))
         return;
 
-    location locExit = Instance_GetExitLocation(oInstance);
-
-    object oPlayer = GetFirstPC();
-    while (GetIsObjectValid(oPlayer))
-    {
-        AssignCommand(oPlayer, JumpToLocation(locExit));
-        oPlayer = GetNextPC();
-    }
-
+    Instance_RemoveAllPlayers(oInstance);
     DelayCommand(1.0f, Instance_INTERNAL_DestroyArea(oInstance, nDelayCommandID));
 }
 
@@ -193,6 +189,7 @@ void Instance_INTERNAL_ClientEnter(object oPlayer)
                     if (Instance_GetIsClosing(oInstance))
                     {
                         int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
+
                         SetLocalInt(oInstance, "InstanceDelayCommandID", ++nDelayCommandID);
                         DeleteLocalInt(oInstance, "InstanceIsClosing");
                     }
@@ -227,6 +224,9 @@ void Instance_INTERNAL_ClientExit(object oPlayer)
                     {
                         int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
                         float fDelay = Instance_GetDestroyDelay(oInstance);
+
+                        if (fDelay > 0.0f)
+                            ES_Util_SendServerMessageToArea(oInstance, Instance_GetClosingMessage(oInstance));
 
                         SetLocalInt(oInstance, "InstanceIsClosing", TRUE);
                         DelayCommand(fDelay, Instance_INTERNAL_Destroy(oInstance, nDelayCommandID));
@@ -308,9 +308,9 @@ void Instance_Register(string sAreaTag, string sAreaResRef)
 {
     object oDataObject = ES_Util_GetDataObject(INSTANCE_SCRIPT_NAME);
 
-    if (StringArray_Contains(oDataObject, "RegisteredInstances", sAreaResRef) == -1)
+    if (StringArray_Contains(oDataObject, "RegisteredInstanceBlueprints", sAreaResRef) == -1)
     {
-        StringArray_Insert(oDataObject, "RegisteredInstances", sAreaResRef);
+        StringArray_Insert(oDataObject, "RegisteredInstanceBlueprints", sAreaResRef);
 
         ES_Util_Log(INSTANCE_LOG_TAG, "* Registered Instance: " + sAreaResRef);
 
@@ -333,7 +333,7 @@ void Instance_Create(string sAreaResRef, struct InstanceData id)
 
     object oDataObject = ES_Util_GetDataObject(INSTANCE_SCRIPT_NAME);
 
-    if (StringArray_Contains(oDataObject, "RegisteredInstances", sAreaResRef) != -1)
+    if (StringArray_Contains(oDataObject, "RegisteredInstanceBlueprints", sAreaResRef) != -1)
     {
         object oInstance = CreateArea(sAreaResRef, id.sTag, id.sName);
 
@@ -355,6 +355,8 @@ void Instance_Create(string sAreaResRef, struct InstanceData id)
 
             SetLocalLocation(oInstance, "InstanceExitLocation", id.locExit);
 
+            SetLocalString(oInstance, "InstanceClosingMessage", id.sClosingMessage);
+
             Instance_INTERNAL_InstanceDispatchList_Add(oInstance);
 
             Events_PushEventData("TAG", GetTag(oInstance));
@@ -370,16 +372,8 @@ void Instance_Destroy(object oInstance)
         return;
 
     int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
-    location locExit = Instance_GetExitLocation(oInstance);
 
-    object oPlayer = GetFirstPC();
-    while (GetIsObjectValid(oPlayer))
-    {
-        AssignCommand(oPlayer, JumpToLocation(locExit));
-
-        oPlayer = GetNextPC();
-    }
-
+    Instance_RemoveAllPlayers(oInstance);
     SetLocalInt(oInstance, "InstanceIsClosing", TRUE);
     DelayCommand(1.0f, Instance_INTERNAL_DestroyArea(oInstance, nDelayCommandID));
 }
@@ -421,32 +415,53 @@ location Instance_GetExitLocation(object oInstance)
     return locExit;
 }
 
-// *** UTILITY FUNCIONS
-void Instance_SendMessageToOwner(object oInstance, string sMessage, int bFloating = FALSE)
+string Instance_GetClosingMessage(object oInstance)
 {
+    return GetLocalString(oInstance, "InstanceClosingMessage");
+}
+
+// *** UTILITY FUNCIONS
+void Instance_SendMessageToOwner(object oInstance, string sMessage)
+{
+    if (sMessage == "")
+        return;
+
     object oOwner = GetLocalObject(oInstance, "InstanceOwner");
 
     if (GetIsObjectValid(oOwner))
     {
-        if (bFloating)
-            FloatingTextStringOnCreature(sMessage, oOwner, FALSE);
-        else
-            SendMessageToPC(oOwner, sMessage);
+        SendMessageToPC(oOwner, sMessage);
     }
 }
 
-void Instance_SendMessageToInstance(object oInstance, string sMessage, int bFloating = FALSE)
+void Instance_SendMessageToInstance(object oInstance, string sMessage)
 {
+    if (sMessage == "")
+        return;
+
     object oPlayer = GetFirstPC();
 
     while (GetIsObjectValid(oPlayer))
     {
         if (GetArea(oPlayer) == oInstance)
         {
-            if (bFloating)
-                FloatingTextStringOnCreature(sMessage, oPlayer, FALSE);
-            else
-                SendMessageToPC(oPlayer, sMessage);
+            SendMessageToPC(oPlayer, sMessage);
+        }
+
+        oPlayer = GetNextPC();
+    }
+}
+
+void Instance_RemoveAllPlayers(object oInstance)
+{
+    location locExit = Instance_GetExitLocation(oInstance);
+
+    object oPlayer = GetFirstPC();
+    while (GetIsObjectValid(oPlayer))
+    {
+        if (GetArea(oPlayer) == oInstance)
+        {
+            AssignCommand(oPlayer, JumpToLocation(locExit));
         }
 
         oPlayer = GetNextPC();

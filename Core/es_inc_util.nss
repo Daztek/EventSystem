@@ -106,6 +106,8 @@ string ES_Util_ColorString(string sString, string sRGB);
 // Send a server message
 // If oPlayer is OBJECT_INVALID, the message will be sent to all players
 void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID, int bServerTag = TRUE);
+// Send a server message to all players in oArea
+void ES_Util_SendServerMessageToArea(object oArea, string sMessage, int bServerTag = TRUE);
 
 // Returns TRUE if there is at least 1 player or DM online
 int ES_Util_GetPlayersOnline();
@@ -458,13 +460,16 @@ string ES_Util_ColorString(string sString, string sRGB)
 
 void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID, int bServerTag = TRUE)
 {
-    sMessage = ES_Util_ColorString((bServerTag ? "[Server] " : "") + sMessage, "444");
+    if(sMessage == "")
+        return;
+    else
+        sMessage = ES_Util_ColorString((bServerTag ? "[Server] " : "") + sMessage, "444");
 
     if (oPlayer == OBJECT_INVALID)
     {
         oPlayer = GetFirstPC();
 
-        while( GetIsObjectValid(oPlayer) )
+        while (GetIsObjectValid(oPlayer))
         {
             SendMessageToPC(oPlayer, sMessage);
 
@@ -473,6 +478,24 @@ void ES_Util_SendServerMessage(string sMessage, object oPlayer = OBJECT_INVALID,
     }
     else
         SendMessageToPC(oPlayer, sMessage);
+}
+
+void ES_Util_SendServerMessageToArea(object oArea, string sMessage, int bServerTag = TRUE)
+{
+    if(sMessage == "")
+        return;
+    else
+        sMessage = ES_Util_ColorString((bServerTag ? "[Server] " : "") + sMessage, "444");
+
+    object oPlayer = GetFirstPC();
+
+    while( GetIsObjectValid(oPlayer) )
+    {
+        if (GetArea(oPlayer) == oArea)
+            SendMessageToPC(oPlayer, sMessage);
+
+        oPlayer = GetNextPC();
+    }
 }
 
 int ES_Util_GetPlayersOnline()
