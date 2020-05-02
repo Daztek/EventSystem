@@ -64,8 +64,6 @@ void Instance_SendMessageToInstance(object oInstance, string sMessage, int bFloa
 // @Load
 void Instance_Load(string sServiceScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sServiceScript);
-
     Events_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
     Events_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT);
     Events_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_AREA_ON_ENTER, EVENTS_EVENT_FLAG_BEFORE, TRUE);
@@ -124,32 +122,53 @@ void Instance_INTERNAL_InstanceDispatchList_Remove(object oInstance)
     Events_RemoveObjectFromDispatchList(INSTANCE_SCRIPT_NAME, sAreaOnExit, oInstance);
 }
 
-void Instance_INTERNAL_Destroy(object oInstance)
+void Instance_INTERNAL_DestroyArea(object oInstance, int nDelayCommandID)
 {
-    if (Instance_GetIsClosing(oInstance))
+    if (!GetIsObjectValid(oInstance)||
+        !Instance_GetIsClosing(oInstance) ||
+        !(GetLocalInt(oInstance, "InstanceDelayCommandID") == nDelayCommandID))
+        return;
+
+    string sOwnerUUID = Instance_GetOwnerUUID(oInstance);
+    string sInstanceTag = GetTag(oInstance);
+    int nInstanceDestroyed = DestroyArea(oInstance);
+
+    if (nInstanceDestroyed)
     {
-        string sOwnerUUID = Instance_GetOwnerUUID(oInstance);
-        string sInstanceTag = GetTag(oInstance);
-        int nInstanceDestroyed = DestroyArea(oInstance);
+        // Remove the instance from the dispatch lists
+        Instance_INTERNAL_InstanceDispatchList_Remove(oInstance);
 
-        if (nInstanceDestroyed)
-        {
-            // Remove the instance from the dispatch lists
-            Instance_INTERNAL_InstanceDispatchList_Remove(oInstance);
+        // Remove the instance from the owner's instance list
+        ObjectArray_DeleteByValue(ES_Util_GetDataObject(INSTANCE_SCRIPT_NAME), "PlayerInstances_" + sOwnerUUID, oInstance);
 
-            // Remove the instance from the owner's instance list
-            ObjectArray_DeleteByValue(ES_Util_GetDataObject(INSTANCE_SCRIPT_NAME), "PlayerInstances_" + sOwnerUUID, oInstance);
-
-            // Signal Destroy Event
-            Events_PushEventData("TAG", sInstanceTag);
-            Events_PushEventData("OWNER_UUID", sOwnerUUID);
-            Events_SignalEvent(INSTANCE_EVENT_DESTROYED, GetModule());
-        }
-        else
-        {
-            ES_Util_Log(INSTANCE_LOG_TAG, "ERROR: Failed to destroy instance[" + IntToString(nInstanceDestroyed) + "]: " + sInstanceTag);
-        }
+        // Signal Destroy Event
+        Events_PushEventData("TAG", sInstanceTag);
+        Events_PushEventData("OWNER_UUID", sOwnerUUID);
+        Events_SignalEvent(INSTANCE_EVENT_DESTROYED, GetModule());
     }
+    else
+    {
+        ES_Util_Log(INSTANCE_LOG_TAG, "ERROR: Failed to destroy instance[" + IntToString(nInstanceDestroyed) + "]: " + sInstanceTag);
+    }
+}
+
+void Instance_INTERNAL_Destroy(object oInstance, int nDelayCommandID)
+{
+    if (!GetIsObjectValid(oInstance) ||
+        !Instance_GetIsClosing(oInstance) ||
+        !(GetLocalInt(oInstance, "InstanceDelayCommandID") == nDelayCommandID))
+        return;
+
+    location locExit = Instance_GetExitLocation(oInstance);
+
+    object oPlayer = GetFirstPC();
+    while (GetIsObjectValid(oPlayer))
+    {
+        AssignCommand(oPlayer, JumpToLocation(locExit));
+        oPlayer = GetNextPC();
+    }
+
+    DelayCommand(1.0f, Instance_INTERNAL_DestroyArea(oInstance, nDelayCommandID));
 }
 
 void Instance_INTERNAL_ClientEnter(object oPlayer)
@@ -173,6 +192,8 @@ void Instance_INTERNAL_ClientEnter(object oPlayer)
                 {
                     if (Instance_GetIsClosing(oInstance))
                     {
+                        int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
+                        SetLocalInt(oInstance, "InstanceDelayCommandID", ++nDelayCommandID);
                         DeleteLocalInt(oInstance, "InstanceIsClosing");
                     }
 
@@ -202,11 +223,14 @@ void Instance_INTERNAL_ClientExit(object oPlayer)
             {
                 case INSTANCE_DESTROY_TYPE_OWNER_DISCONNECT:
                 {
-                    float fDelay = Instance_GetDestroyDelay(oInstance);
+                    if (!Instance_GetIsClosing(oInstance))
+                    {
+                        int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
+                        float fDelay = Instance_GetDestroyDelay(oInstance);
 
-                    SetLocalInt(oInstance, "InstanceIsClosing", TRUE);
-
-                    DelayCommand(fDelay, Instance_Destroy(oInstance));
+                        SetLocalInt(oInstance, "InstanceIsClosing", TRUE);
+                        DelayCommand(fDelay, Instance_INTERNAL_Destroy(oInstance, nDelayCommandID));
+                    }
 
                     break;
                 }
@@ -232,6 +256,9 @@ void Instance_INTERNAL_AreaEnter(object oPlayer, object oInstance)
             {
                 if (Instance_GetIsClosing(oInstance))
                 {
+                    int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
+
+                    SetLocalInt(oInstance, "InstanceDelayCommandID", ++nDelayCommandID);
                     DeleteLocalInt(oInstance, "InstanceIsClosing");
                 }
             }
@@ -258,11 +285,11 @@ void Instance_INTERNAL_AreaExit(object oPlayer, object oInstance)
             {
                 if (!Instance_GetIsClosing(oInstance))
                 {
+                    int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
                     float fDelay = Instance_GetDestroyDelay(oInstance);
 
                     SetLocalInt(oInstance, "InstanceIsClosing", TRUE);
-
-                    DelayCommand(fDelay, Instance_Destroy(oInstance));
+                    DelayCommand(fDelay, Instance_INTERNAL_Destroy(oInstance, nDelayCommandID));
                 }
             }
 
@@ -318,6 +345,8 @@ void Instance_Create(string sAreaResRef, struct InstanceData id)
 
             ObjectArray_Insert(oDataObject, "PlayerInstances_" + sOwnerUUID, oInstance);
 
+            SetLocalString(oInstance, "InstanceResRef", sAreaResRef);
+
             SetLocalObject(oInstance, "InstanceOwner", id.oOwner);
             SetLocalString(oInstance, "InstanceOwnerUUID", sOwnerUUID);
 
@@ -337,9 +366,10 @@ void Instance_Create(string sAreaResRef, struct InstanceData id)
 
 void Instance_Destroy(object oInstance)
 {
-    if (!Instance_GetIsClosing(oInstance))
+    if (!GetIsObjectValid(oInstance) || GetLocalString(oInstance, "InstanceResRef") == "")
         return;
 
+    int nDelayCommandID = GetLocalInt(oInstance, "InstanceDelayCommandID");
     location locExit = Instance_GetExitLocation(oInstance);
 
     object oPlayer = GetFirstPC();
@@ -350,7 +380,8 @@ void Instance_Destroy(object oInstance)
         oPlayer = GetNextPC();
     }
 
-    DelayCommand(1.0f, Instance_INTERNAL_Destroy(oInstance));
+    SetLocalInt(oInstance, "InstanceIsClosing", TRUE);
+    DelayCommand(1.0f, Instance_INTERNAL_DestroyArea(oInstance, nDelayCommandID));
 }
 
 // *** INFO FUNCTIONS
