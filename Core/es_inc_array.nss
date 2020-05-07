@@ -59,9 +59,9 @@ void StringArray_Clear(object oObject, string sArrayName)
         {
             DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
         }
-    }
 
-    DeleteLocalInt(oObject, "SA!NUM!" + sArrayName);
+        DeleteLocalInt(oObject, "SA!NUM!" + sArrayName);
+    }
 }
 
 int StringArray_Contains(object oObject, string sArrayName, string sValue)
@@ -170,9 +170,10 @@ void ObjectArray_Clear(object oObject, string sArrayName)
         {
             DeleteLocalString(oObject, "OA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
         }
+
+        DeleteLocalInt(oObject, "OA!NUM!" + sArrayName);
     }
 
-    DeleteLocalInt(oObject, "OA!NUM!" + sArrayName);
 }
 
 int ObjectArray_Contains(object oObject, string sArrayName, object oValue)

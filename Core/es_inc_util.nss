@@ -12,6 +12,7 @@
 #include "nwnx_util"
 
 #include "x3_inc_string"
+#include "x0_i0_position"
 
 // Create a waypoint at locLocation with sTag
 object ES_Util_CreateWaypoint(location locLocation, string sTag);
@@ -118,6 +119,15 @@ void DeleteLocalVector(object oObject, string sVarName);
 vector GetLocalVector(object oObject, string sVarName);
 // Set oObject's local vector variable sVarname to vValue
 void SetLocalVector(object oObject, string sVarName, vector vValue);
+
+// Get the nNth object with sTag in oArea
+object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0);
+
+// Get a random location fDistance from locPoint
+location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance);
+
+// Remove all effects with sTag from oPlayer
+void ES_Util_RemoveAllEffectsWithTag(object oPlayer, string sTag);
 
 
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
@@ -518,3 +528,40 @@ void SetLocalVector(object oObject, string sVarName, vector vValue)
     SetLocalLocation(oObject, "VEC:" + sVarName, Location(GetAreaFromLocation(GetStartingLocation()), vValue, 0.0f));
 }
 
+object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0)
+{
+    object oObject;
+    int nNthLoop;
+
+    while ((oObject = GetObjectByTag(sTag, nNthLoop++)) != OBJECT_INVALID)
+    {
+        if (GetArea(oObject) == oArea)
+        {
+            if (--nNth < 0)
+                return oObject;
+        }
+    }
+
+    return OBJECT_INVALID;
+}
+
+location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance)
+{
+    float fAngle = IntToFloat(Random(360));
+    float fOrient = IntToFloat(Random(360));
+
+    return GenerateNewLocationFromLocation(locPoint, fDistance, fAngle, fOrient);
+}
+
+void ES_Util_RemoveAllEffectsWithTag(object oPlayer, string sTag)
+{
+    effect eEffect = GetFirstEffect(oPlayer);
+
+    while (GetIsEffectValid(eEffect))
+    {
+        if (GetEffectTag(eEffect) == sTag)
+            RemoveEffect(oPlayer, eEffect);
+
+        eEffect = GetNextEffect(oPlayer);
+    }
+}

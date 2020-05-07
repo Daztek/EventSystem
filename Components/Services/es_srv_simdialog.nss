@@ -380,9 +380,15 @@ void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConv
         DeleteLocalString(oTarget, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
 
         if (bClearAllActions)
+        {
             AssignCommand(oPlayer, ClearAllActions(TRUE));
+            AssignCommand(oTarget, ClearAllActions(TRUE));
+        }
 
-        AssignCommand(oPlayer, ActionStartConversation(oTarget, SIMPLE_DIALOG_CONVERSATION, TRUE, FALSE));
+        if (!GetIsPC(oTarget) && GetObjectType(oTarget) == OBJECT_TYPE_CREATURE)
+            ActionStartConversation(oPlayer, SIMPLE_DIALOG_CONVERSATION, TRUE, FALSE);
+        else
+            AssignCommand(oPlayer, ActionStartConversation(oTarget, SIMPLE_DIALOG_CONVERSATION, TRUE, FALSE));
     }
 }
 
