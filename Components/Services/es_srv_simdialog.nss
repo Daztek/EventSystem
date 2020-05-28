@@ -370,7 +370,9 @@ void SimpleDialog_StartConversation(object oPlayer, object oTarget, string sConv
         return;
     }
 
-    if (GetIsObjectValid(SimpleDialog_GetConversation(sConversationTag)))
+    object oConversation = SimpleDialog_GetConversation(sConversationTag);
+
+    if (GetIsObjectValid(oConversation))
     {
         SimpleDialog_SetCurrentConversation(oPlayer, sConversationTag);
         SimpleDialog_SetCurrentPage(oPlayer, nStartingPage);

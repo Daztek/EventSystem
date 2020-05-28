@@ -37,6 +37,10 @@ void Wander_Init()
 // @SimAIBehavior_OnSpawn
 void Wander_Spawn()
 {
+    object oClothes = GetLocalObject(OBJECT_SELF, "AMBIENT_NPC_CLOTHES");
+    if (GetIsObjectValid(oClothes))
+        ActionEquipItem(oClothes, INVENTORY_SLOT_CHEST);
+
     SetLocalInt(OBJECT_SELF, AIBEHAVIOR_WANDER_NEXT_MOVE_TICK, Random(20) + 10);
 
     ActionForceMoveToObject(Wander_GetRandomWaypointInArea(), FALSE, 2.5f, 30.0f);

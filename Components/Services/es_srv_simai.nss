@@ -9,6 +9,8 @@
 
     Events:
         @SimAIBehavior_Init
+        @SimAIBehavior_Load     ! NYI !
+        @SimAIBehavior_Unload   ! NYI !
 
         @SimAIBehavior_OnBlocked
         @SimAIBehavior_OnCombatRoundEnd
@@ -37,6 +39,10 @@ const string SIMPLE_AI_SCRIPT_NAME          = "es_srv_simai";
 const string SIMPLE_AI_NPC_BEHAVIOR_TAG     = "SimpleAINPCBehavior";
 
 const string SIMPLE_AI_INIT_FUNCTION        = "SimpleAIInitFunction";
+/*
+const string SIMPLE_AI_LOAD_FUNCTION        = "SimpleAILoadFunction";
+const string SIMPLE_AI_UNLOAD_FUNCTION      = "SimpleAIUnloadFunction";
+*/
 const string SIMPLE_AI_EVENT_FUNCTION       = "SimpleAIEventFunction_";
 
 void SimpleAI_SetAIBehavior(object oCreature, string sBehavior);
@@ -71,11 +77,37 @@ void SimpleAI_GetInitFunction(object oDataObject, string sScriptContents)
 
     if (GetStringLength(sFunctionName))
     {
-        ES_Util_Log(SIMPLE_AI_LOG_TAG, "  > Found init function '" + sFunctionName + "'");
+        ES_Util_Log(SIMPLE_AI_LOG_TAG, "  > Found Init function '" + sFunctionName + "'");
 
         SetLocalString(oDataObject, SIMPLE_AI_INIT_FUNCTION, sFunctionName);
     }
 }
+
+/*
+void SimpleAI_GetLoadFunction(object oDataObject, string sScriptContents)
+{
+    string sFunctionName = ES_Util_GetFunctionName(sScriptContents, "SimAIBehavior_Load");
+
+    if (GetStringLength(sFunctionName))
+    {
+        ES_Util_Log(SIMPLE_AI_LOG_TAG, "  > Found Load function '" + sFunctionName + "'");
+
+        SetLocalString(oDataObject, SIMPLE_AI_LOAD_FUNCTION, sFunctionName);
+    }
+}
+
+void SimpleAI_GetUnloadFunction(object oDataObject, string sScriptContents)
+{
+    string sFunctionName = ES_Util_GetFunctionName(sScriptContents, "SimAIBehavior_Unload");
+
+    if (GetStringLength(sFunctionName))
+    {
+        ES_Util_Log(SIMPLE_AI_LOG_TAG, "  > Found Unload function '" + sFunctionName + "'");
+
+        SetLocalString(oDataObject, SIMPLE_AI_UNLOAD_FUNCTION, sFunctionName);
+    }
+}
+*/
 
 void SimpleAI_GetEventFunction(object oBehaviorDataObject, string sScriptContents, string sFunctionDecorator, int nEvent)
 {

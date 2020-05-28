@@ -35,7 +35,10 @@ const string KI_KOBOLD_TAG                  = "KI_KOBOLD_CREATURE";
 const string KI_AREA_TEMPLATE_TAG           = "KI_AREA";
 const string KI_START_NPC_TAG               = "KI_NPC";
 
-const int KI_SPAWN_KOBOLD_AMOUNT            = 10;
+const int KI_SPELL_ID                       = SPELL_FIREBALL;
+
+const int KI_SPAWN_KOBOLD_AMOUNT            = 25;
+const int KI_MAX_KOBOLDS_IN_AREA            = 250;
 
 const int KI_GUI_NUM_IDS                    = 20;
 
@@ -73,6 +76,8 @@ void KI_KoboldOnDeath(object oKobold);
 // @Load
 void KI_Load(string sSubsystemScript)
 {
+    ES_Util_Log(KI_LOG_TAG, "* Kobold Invasion Loading!");
+
     KI_SetupInstanceEvents(sSubsystemScript);
     KI_SetupNPCAndConversationEvents(sSubsystemScript);
     KI_SetupCatapultEvents(sSubsystemScript);
@@ -84,19 +89,14 @@ void KI_Load(string sSubsystemScript)
 void KI_EventHandler(string sSubsystemScript, string sEvent)
 {
     if (sEvent == "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE")
-    {
         KI_FireCatapults(OBJECT_SELF);
-    }
     else
-    if (sEvent == Spellhook_GetEventName(SPELL_FIREBALL))
-    {
+    if (sEvent == Spellhook_GetEventName(KI_SPELL_ID))
         KI_HandleFireball(OBJECT_SELF);
-    }
     else
     if (sEvent == "NWNX_ON_INPUT_KEYBOARD_BEFORE")
-    {
         KI_HandleGUIEvent(OBJECT_SELF);
-    }
+    else
     if(sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
         object oNPC = OBJECT_SELF;
@@ -116,17 +116,20 @@ void KI_EventHandler(string sSubsystemScript, string sEvent)
                     KI_SetupInstanceForPlayer(oPlayer, oInstance);
                 }
 
-                Instance_AddPlayer(oPlayer, oInstance);
+                if (GetIsObjectValid(oInstance))
+                    Instance_AddPlayer(oPlayer, oInstance);
+                else
+                {
+                    SendMessageToPC(oPlayer, KI_LOG_TAG + ": Tried to create an instance, but something went wrong :(");
+                    ES_Util_Log(KI_LOG_TAG, "ERROR: Failed to create an instance for:  " + GetName(oPlayer));
+                }
 
                 break;
             }
 
             case 2:// Player doesn't accept, end conversation
-            {
                 SimpleDialog_EndConversation(oPlayer);
                 break;
-            }
-
         }
     }
     else
@@ -135,54 +138,38 @@ void KI_EventHandler(string sSubsystemScript, string sEvent)
         string sCreator = Events_GetEventData_NWNX_String("CREATOR");
 
         if (sCreator == sSubsystemScript)
-        {
             KI_HandleInstanceCreatedEvent(OBJECT_SELF);
-        }
     }
     else
     if (sEvent == INSTANCE_EVENT_DESTROYED)
-    {
         KI_HandleInstanceDestroyedEvent(OBJECT_SELF);
-    }
     else
     {
         switch (StringToInt(sEvent))
         {
             case EVENT_SCRIPT_CREATURE_ON_DIALOGUE:
-            {
                 KI_StartConversation(GetLastSpeaker(), OBJECT_SELF);
                 break;
-            }
 
             case EVENT_SCRIPT_AREA_ON_ENTER:
-            {
                 KI_HandleAreaEnter(GetEnteringObject(), OBJECT_SELF);
                 break;
-            }
 
             case EVENT_SCRIPT_AREA_ON_EXIT:
-            {
                 KI_HandleAreaExit(GetExitingObject(), OBJECT_SELF);
                 break;
-            }
 
             case EVENT_SCRIPT_AREA_ON_HEARTBEAT:
-            {
                 KI_SpawnKobolds(OBJECT_SELF);
                 break;
-            }
 
             case EVENT_SCRIPT_CREATURE_ON_SPAWN_IN:
-            {
                 KI_KoboldOnSpawn(OBJECT_SELF);
                 break;
-            }
 
             case EVENT_SCRIPT_CREATURE_ON_DEATH:
-            {
                 KI_KoboldOnDeath(OBJECT_SELF);
                 break;
-            }
         }
     }
 }
@@ -216,6 +203,7 @@ void KI_SetupNPCAndConversationEvents(string sSubsystemScript)
 
         // Create Conversation
         object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
+
         SimpleDialog_AddPage(oConversation, "'ey, want to slaughter some kobolds?");
             SimpleDialog_AddOption(oConversation, "Heck yea, sign me up!");
             SimpleDialog_AddOption(oConversation, "Uh... what? No!");
@@ -237,13 +225,12 @@ void KI_SetupCatapultEvents(string sSubsystemScript)
     SetLocalString(oDataObject, "CatapultString", Toolbox_GeneratePlaceable(pd));
 
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", TRUE);
-    Spellhook_SubscribeEvent(sSubsystemScript, SPELL_FIREBALL, TRUE);
+    Spellhook_SubscribeEvent(sSubsystemScript, KI_SPELL_ID, TRUE);
 }
 
 void KI_SetupKobold(string sResRef)
 {
     object oDataObject = ES_Util_GetDataObject(KI_SCRIPT_NAME);
-
     object oKobold = CreateObject(OBJECT_TYPE_CREATURE, sResRef, GetStartingLocation(), FALSE, KI_KOBOLD_TAG);
 
     int nEvent;
@@ -264,8 +251,12 @@ void KI_SetupKobold(string sResRef)
 
 void KI_SetupKoboldEvents(string sSubsystemScript)
 {
+    KI_SetupKobold("nw_kobold001");
+    KI_SetupKobold("nw_kobold002");
     KI_SetupKobold("nw_kobold003");
     KI_SetupKobold("nw_kobold004");
+    KI_SetupKobold("nw_kobold005");
+    KI_SetupKobold("nw_kobold006");
 
     Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_SPAWN_IN, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
     Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_CREATURE_ON_DEATH, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
@@ -303,7 +294,7 @@ void KI_DrawStaticGUI(object oPlayer)
 
 void KI_UpdateKoboldKillCount(object oPlayer, object oInstance)
 {
-    int nID = GUI_GetStartID(KI_SCRIPT_NAME) + 2 /*This isn't a very nice way to do this, should fix at some point*/;
+    int nID = GUI_GetStartID(KI_SCRIPT_NAME) + 2; //This isn't a very nice way to do this, should fix at some point
     int nTextColor = GUI_COLOR_WHITE;
     string sTextFont = GUI_FONT_TEXT_NAME;
     float fLifeTime = 0.0f;
@@ -347,6 +338,8 @@ void KI_HandleGUIEvent(object oPlayer)
     {
         if (nCurrentGUISelection > 0)
         {
+            NWNX_Player_PlaySound(oPlayer, "gui_select");
+
             nCurrentGUISelection--;
             bRedraw = TRUE;
         }
@@ -356,6 +349,8 @@ void KI_HandleGUIEvent(object oPlayer)
     {
         if (nCurrentGUISelection < 1)
         {
+            NWNX_Player_PlaySound(oPlayer, "gui_select");
+
             nCurrentGUISelection++;
             bRedraw = TRUE;
         }
@@ -375,36 +370,34 @@ void KI_HandleGUIEvent(object oPlayer)
                 if (nInvasionMode)
                 {
                     FloatingTextStringOnCreature("Kobold Invasion: Start!", oPlayer, FALSE);
+
+                    ES_Util_Log(KI_LOG_TAG, GetName(oPlayer) + " started the Kobold Invasion!");
                 }
                 else
                 {
                     FloatingTextStringOnCreature("Kobold Invasion: Stop!", oPlayer, FALSE);
 
+                    ES_Util_Log(KI_LOG_TAG, GetName(oPlayer) + " stopped the Kobold Invasion!");
+
                     KI_KillAllKobolds(oInstance);
                 }
 
                 SetLocalInt(oInstance, "InvasionMode", nInvasionMode);
-
                 bRedraw = TRUE;
 
                 break;
             }
 
             case 1:
-            {
                 Instance_RemovePlayer(oPlayer, oInstance);
                 break;
-            }
         }
     }
 
     SetLocalInt(oInstance, "CurrentGUISelection", nCurrentGUISelection);
 
     if (bRedraw)
-    {
-        NWNX_Player_PlaySound(oPlayer, "gui_select");
         KI_UpdateGUI(oPlayer);
-    }
 }
 
 // ** NPC FUNCTIONS
@@ -440,8 +433,11 @@ object KI_CreateInstanceForPlayer(object oPlayer)
 
 void KI_SetupInstanceForPlayer(object oPlayer, object oInstance)
 {
+    if (!GetIsObjectValid(oInstance))
+        return;
+
     object oDataObject = ES_Util_GetDataObject(KI_SCRIPT_NAME);
-    object oSpawnpoint;
+    object oWaypoint;
     int nNth = 0;
 
     // Flag so the spellhook fires for placeables
@@ -449,29 +445,29 @@ void KI_SetupInstanceForPlayer(object oPlayer, object oInstance)
 
     // Spawn Catapults
     string sCatapult = GetLocalString(oDataObject, "CatapultString");
-    string sSpellEvent = Spellhook_GetEventName(SPELL_FIREBALL);
-    while ((oSpawnpoint = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_CATAPULT_TAG, oInstance, nNth++)) != OBJECT_INVALID)
+    string sSpellEvent = Spellhook_GetEventName(KI_SPELL_ID);
+    while ((oWaypoint = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_CATAPULT_TAG, oInstance, nNth++)) != OBJECT_INVALID)
     {
-        object oCatapult = Toolbox_CreatePlaceable(sCatapult, GetLocation(oSpawnpoint));
+        object oCatapult = Toolbox_CreatePlaceable(sCatapult, GetLocation(oWaypoint));
 
         Events_AddObjectToDispatchList(KI_SCRIPT_NAME, sSpellEvent, oCatapult);
         ObjectArray_Insert(oInstance, "Catapults", oCatapult);
     }
 
     // Get Spawnpoints
-    oSpawnpoint = OBJECT_INVALID;
+    oWaypoint = OBJECT_INVALID;
     nNth = 0;
-    while ((oSpawnpoint = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_SPAWN_TAG, oInstance, nNth++)) != OBJECT_INVALID)
+    while ((oWaypoint = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_SPAWN_TAG, oInstance, nNth++)) != OBJECT_INVALID)
     {
-        ObjectArray_Insert(oInstance, "Spawnpoints", oSpawnpoint);
+        ObjectArray_Insert(oInstance, "Spawnpoints", oWaypoint);
     }
 
     // Get MoveTo Locations
-    oSpawnpoint = OBJECT_INVALID;
+    oWaypoint = OBJECT_INVALID;
     nNth = 0;
-    while ((oSpawnpoint = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_MOVETO_TAG, oInstance, nNth++)) != OBJECT_INVALID)
+    while ((oWaypoint = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_MOVETO_TAG, oInstance, nNth++)) != OBJECT_INVALID)
     {
-        ObjectArray_Insert(oInstance, "MoveToPoints", oSpawnpoint);
+        ObjectArray_Insert(oInstance, "MoveToPoints", oWaypoint);
     }
 
     // Get Gate
@@ -505,14 +501,18 @@ void KI_HandleAreaEnter(object oPlayer, object oInstance)
 
     SetPlotFlag(oPlayer, TRUE);
 
-    effect eCutsceneInvisibility = TagEffect(SupernaturalEffect(EffectVisualEffect(VFX_DUR_CUTSCENE_INVISIBILITY)), "KI_INVIS");
+    effect eCutsceneInvisibility = TagEffect(SupernaturalEffect(EffectVisualEffect(VFX_DUR_CUTSCENE_INVISIBILITY)), "KI_INVISIBILITY");
     ApplyEffectToObject(DURATION_TYPE_PERMANENT, eCutsceneInvisibility, oPlayer);
 
-    KI_DrawStaticGUI(oPlayer);
+    if (GetPlayerBuildVersionMajor(oPlayer) >= 8193 && GetPlayerBuildVersionMinor(oPlayer) >= 11)
+        KI_DrawStaticGUI(oPlayer);
+
     KI_UpdateGUI(oPlayer);
 
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", oPlayer);
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
+
+    SendMessageToPC(oPlayer, "Hello! If you look to the top left you'll see a little menu with two options, you can switch between them with the 'W' and 'S' keys and select an option with the 'E' key!");
 }
 
 void KI_HandleAreaExit(object oPlayer, object oInstance)
@@ -524,12 +524,14 @@ void KI_HandleAreaExit(object oPlayer, object oInstance)
 
     SetPlotFlag(oPlayer, FALSE);
 
-    ES_Util_RemoveAllEffectsWithTag(oPlayer, "KI_INVIS");
+    ES_Util_RemoveAllEffectsWithTag(oPlayer, "KI_INVISIBILITY");
 
     GUI_ClearBySubsystem(oPlayer, KI_SCRIPT_NAME);
 
     DeleteLocalInt(oInstance, "CurrentGUISelection");
     DeleteLocalInt(oInstance, "InvasionMode");
+    DeleteLocalInt(oInstance, "KoboldsSlaughtered");
+    DeleteLocalInt(oInstance, "KillStreak");
 
     KI_KillAllKobolds(oInstance);
 
@@ -542,7 +544,7 @@ void KI_FireCatapult(object oCatapult, location locTarget)
 {
     locTarget = ES_Util_GetRandomLocationAroundPoint(locTarget, (Random(25) + 1) / 10.0f);
 
-    AssignCommand(oCatapult, ActionCastSpellAtLocation(SPELL_FIREBALL, locTarget, METAMAGIC_ANY, TRUE, PROJECTILE_PATH_TYPE_BALLISTIC));
+    AssignCommand(oCatapult, ActionCastSpellAtLocation(KI_SPELL_ID, locTarget, METAMAGIC_ANY, TRUE, PROJECTILE_PATH_TYPE_BALLISTIC));
 
     ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_FNF_SCREEN_BUMP), oCatapult);
     ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_DUST_EXPLOSION), oCatapult);
@@ -569,6 +571,22 @@ void KI_FireCatapults(object oPlayer)
     Events_SkipEvent();
 }
 
+void KI_AnnounceKills(int nAmount)
+{
+    string sSound;
+
+    if (nAmount < 2)
+        sSound = "";
+    else
+    if (nAmount < 9)
+        sSound = "kob_k" + IntToString(nAmount);
+    else
+        sSound = "kob_k8";
+
+    if (sSound != "")
+        NWNX_Player_PlaySound(Instance_GetOwner(GetArea(OBJECT_SELF)), sSound);
+}
+
 void KI_HandleFireball(object oCatapult)
 {
     location locTarget = GetSpellTargetLocation();
@@ -577,17 +595,22 @@ void KI_HandleFireball(object oCatapult)
 
     object oTarget = GetFirstObjectInShape(SHAPE_SPHERE, RADIUS_SIZE_HUGE, locTarget, FALSE, OBJECT_TYPE_CREATURE);
 
+    int nNumKobolds;
     while (GetIsObjectValid(oTarget))
     {
-        if (GetTag(oTarget) == KI_KOBOLD_TAG)
+        if (GetTag(oTarget) == KI_KOBOLD_TAG && !GetIsDead(oTarget))
         {
             float fDelay = GetDistanceBetweenLocations(locTarget, GetLocation(oTarget)) / 20;
             DelayCommand(fDelay, ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectDamage(d10() + 10, DAMAGE_TYPE_FIRE), oTarget));
             DelayCommand(fDelay, ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_FLAME_M), oTarget));
+
+            nNumKobolds++;
         }
 
         oTarget = GetNextObjectInShape(SHAPE_SPHERE, RADIUS_SIZE_HUGE, locTarget, FALSE, OBJECT_TYPE_CREATURE);
     }
+
+    KI_AnnounceKills(nNumKobolds);
 
     Spellhook_SkipEvent();
 }
@@ -599,6 +622,11 @@ void KI_SpawnKobolds(object oInstance)
 
     if (nInvasionMode)
     {
+        int nKoboldsInArea = GetLocalInt(oInstance, "KoboldsInArea");
+
+        if (nKoboldsInArea > KI_MAX_KOBOLDS_IN_AREA)
+            return;
+
         object oDataObject = ES_Util_GetDataObject(KI_SCRIPT_NAME);
         object oSpawnpoint = ObjectArray_At(oInstance, "Spawnpoints", Random( ObjectArray_Size(oInstance, "Spawnpoints")));
         vector vSpawnpoint = GetPosition(oSpawnpoint);
@@ -623,6 +651,8 @@ void KI_SpawnKobolds(object oInstance)
                 Events_AddObjectToDispatchList(KI_SCRIPT_NAME, sOnDeathEvent, oKobold);
             }
         }
+
+        SetLocalInt(oInstance, "KoboldsInArea", nKoboldsInArea + nNumKobolds);
     }
 }
 
@@ -638,6 +668,8 @@ void KI_KillAllKobolds(object oInstance)
 
         oKobold = GetNextObjectInArea(oInstance);
     }
+
+    DeleteLocalInt(oInstance, "KoboldsInArea");
 }
 
 void KI_KoboldOnSpawn(object oKobold)
@@ -645,19 +677,60 @@ void KI_KoboldOnSpawn(object oKobold)
     object oInstance = GetArea(oKobold);
     object oBridgeGate = GetLocalObject(oInstance, "BridgeGate");
     object oMoveToPoint = ObjectArray_At(oInstance, "MoveToPoints", Random(ObjectArray_Size(oInstance, "MoveToPoints")));
+    location locMoveToPoint = ES_Util_GetRandomLocationAroundPoint(GetLocation(oMoveToPoint), (Random(75) / 10.0f));
 
     ActionWait((Random(25) / 10.0f));
-    ActionForceMoveToObject(oMoveToPoint, TRUE, 1.0f + (Random(50) / 10.0f), 30.0f);
+    ActionForceMoveToLocation(locMoveToPoint, TRUE, 30.0f);
     ActionAttack(oBridgeGate);
+}
+
+void KI_AnnounceStreak(int nKoboldsSlaughtered)
+{
+    int nStreak;
+
+    if (nKoboldsSlaughtered >= 25 && nKoboldsSlaughtered < 75)
+        nStreak = 1;
+    else
+    if (nKoboldsSlaughtered >= 75 && nKoboldsSlaughtered < 125)
+        nStreak = 2;
+    else
+    if (nKoboldsSlaughtered >= 125 && nKoboldsSlaughtered < 175)
+        nStreak = 3;
+    else
+    if (nKoboldsSlaughtered >= 175 && nKoboldsSlaughtered < 225)
+        nStreak = 4;
+    else
+    if (nKoboldsSlaughtered >= 225 && nKoboldsSlaughtered < 300)
+        nStreak = 5;
+    else
+    if (nKoboldsSlaughtered >= 300)
+        nStreak = 6;
+
+    if (nStreak)
+    {
+        object oArea = GetArea(OBJECT_SELF);
+
+        if (GetLocalInt(oArea, "KillStreak") < nStreak)
+        {
+            SetLocalInt(oArea, "KillStreak", nStreak);
+            DelayCommand(2.5f, NWNX_Player_PlaySound(Instance_GetOwner(oArea), "kob_s" + IntToString(nStreak)));
+        }
+    }
 }
 
 void KI_KoboldOnDeath(object oKobold)
 {
     object oInstance = GetArea(oKobold);
-    int nKoboldsMurdered = GetLocalInt(oInstance, "KoboldsSlaughtered");
-    SetLocalInt(oInstance, "KoboldsSlaughtered", ++nKoboldsMurdered);
+
+    int nKoboldsSlaughtered = GetLocalInt(oInstance, "KoboldsSlaughtered");
+    SetLocalInt(oInstance, "KoboldsSlaughtered", ++nKoboldsSlaughtered);
+
+    int nKoboldsInArea = GetLocalInt(oInstance, "KoboldsInArea");
+    SetLocalInt(oInstance, "KoboldsInArea", --nKoboldsInArea);
 
     KI_UpdateKoboldKillCount(Instance_GetOwner(oInstance), oInstance);
+
+    KI_AnnounceStreak(nKoboldsSlaughtered);
 
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_SPAWN_IN), oKobold);
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH), oKobold);

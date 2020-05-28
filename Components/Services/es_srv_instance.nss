@@ -143,11 +143,7 @@ void Instance_INTERNAL_DestroyArea(object oInstance, int nDelayCommandID)
     string sOwnerUUID = Instance_GetOwnerUUID(oInstance);
     string sInstanceTag = GetTag(oInstance);
 
-    // Signal Destroyed Event
-    Instance_INTERNAL_SignalEvent(INSTANCE_EVENT_DESTROYED, oInstance);
-
     int nInstanceDestroyed = DestroyArea(oInstance);
-
     if (nInstanceDestroyed)
     {
         // Remove the instance from the dispatch lists
@@ -155,6 +151,9 @@ void Instance_INTERNAL_DestroyArea(object oInstance, int nDelayCommandID)
 
         // Remove the instance from the owner's instance list
         ObjectArray_DeleteByValue(ES_Util_GetDataObject(INSTANCE_SCRIPT_NAME), "PlayerInstances_" + sOwnerUUID, oInstance);
+
+        // Signal Destroyed Event
+        Instance_INTERNAL_SignalEvent(INSTANCE_EVENT_DESTROYED, oInstance);
     }
     else
     {
@@ -316,6 +315,12 @@ void Instance_SubscribeEvent(string sSubsystemScript, string sInstanceEvent, int
 
 void Instance_Register(string sTemplateAreaResRef, string sTemplateAreaTag = "")
 {
+    if (!NWNX_Util_IsValidResRef(sTemplateAreaResRef, NWNX_UTIL_RESREF_TYPE_AREA_ARE))
+    {
+        ES_Util_Log(INSTANCE_LOG_TAG, "* WARNING: Unable to register Instance Template: " + sTemplateAreaResRef + ", ResRef does not exist.");
+        return;
+    }
+
     object oDataObject = ES_Util_GetDataObject(INSTANCE_SCRIPT_NAME);
 
     if (StringArray_Contains(oDataObject, "InstanceTemplates", sTemplateAreaResRef) == -1)

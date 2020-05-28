@@ -48,6 +48,7 @@ int SQL_GetTableExists(string sTable)
     if (sDatabaseType == SQL_DATABASE_TYPE_SQLITE)
         sQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name=?;";
 
+    NWNX_SQL_PrepareQuery(sQuery);
     NWNX_SQL_PreparedString(0, sTable);
     NWNX_SQL_ExecutePreparedQuery();
 

@@ -112,6 +112,8 @@ void ObjectSit_SpawnSittingObjects(string sSubsystemScript)
     {
         object oSittingObject = Toolbox_CreatePlaceable(sSerializedChair, GetLocation(oSpawnpoint));
 
+        SetLocalObject(oSpawnpoint, "OBJSIT_SINGLE_CHAIR", oSittingObject);
+
         Events_AddObjectToAllDispatchLists(sSubsystemScript, oSittingObject);
     }
 

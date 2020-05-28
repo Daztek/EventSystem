@@ -33,7 +33,7 @@ void SitOnChair_Init()
 
             while (GetIsObjectValid(oSeat))
             {
-                int nAmount = ES_Util_GetInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
+                int nAmount = GetLocalInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
 
                 SetLocalInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT, ++nAmount);
                 SetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(nAmount), oSeat);
@@ -50,6 +50,10 @@ void SitOnChair_Init()
 void SitOnChair_Spawn()
 {
     object oSeat = SitOnChair_FindSeat();
+
+    object oClothes = GetLocalObject(OBJECT_SELF, "AMBIENT_NPC_CLOTHES");
+    if (GetIsObjectValid(oClothes))
+        ActionEquipItem(oClothes, INVENTORY_SLOT_CHEST);
 
     if (oSeat != OBJECT_INVALID)
     {
@@ -132,7 +136,7 @@ object SitOnChair_FindSeat()
     int nSeats = GetLocalInt(oArea, AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT);
     int nNumTries = 0, nMaxTries = nSeats / 2;
 
-    object oSeat = GetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
+    object oSeat = GetLocalObject(GetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats))), "OBJSIT_SINGLE_CHAIR");
 
     while (GetIsObjectValid(oSeat) && nNumTries < nMaxTries)
     {
@@ -141,7 +145,7 @@ object SitOnChair_FindSeat()
         if (!GetIsObjectValid(GetSittingCreature(oSeat)))
             return oSeat;
         else
-            oSeat = GetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats)));
+            oSeat = GetLocalObject(GetLocalObject(oArea, AIBEHAVIOR_SITONCHAIR_SEAT + IntToString(Random(nSeats))), "OBJSIT_SINGLE_CHAIR");
     }
 
     return OBJECT_INVALID;

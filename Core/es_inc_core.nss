@@ -414,7 +414,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
 
     // Get hash
     int nHash = NWNX_Util_Hash(sScriptContents);
-    ES_Util_Log(ES_CORE_LOG_TAG, "    > Hash: " + IntToString(nHash));
+    //ES_Util_Log(ES_CORE_LOG_TAG, "    > Hash: " + IntToString(nHash));
     SetLocalInt(oComponentDataObject, "Hash", nHash);
 
     // Get Script Flags

@@ -140,28 +140,20 @@ object ES_Util_CreateDataObject(string sTag, int bDestroyExisting = TRUE)
     if (bDestroyExisting)
         ES_Util_DestroyDataObject(sTag);
 
-    object oDataObject = ES_Util_CreateWaypoint(GetStartingLocation(), "ESDataObject_" + sTag);
-
-    SetLocalObject(GetModule(), "ESDataObject_" + sTag, oDataObject);
-
-    return oDataObject;
+    return ES_Util_CreateWaypoint(GetStartingLocation(), "ESDataObject_" + sTag);
 }
 
 void ES_Util_DestroyDataObject(string sTag)
 {
-    object oModule = GetModule();
-    object oDataObject = GetLocalObject(oModule, "ESDataObject_" + sTag);
+    object oDataObject = GetObjectByTag("ESDataObject_" + sTag);
 
     if (GetIsObjectValid(oDataObject))
-    {
-        DeleteLocalObject(oModule, "ESDataObject_" + sTag);
         DestroyObject(oDataObject);
-    }
 }
 
 object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE)
 {
-    object oDataObject = GetLocalObject(GetModule(), "ESDataObject_" + sTag);
+    object oDataObject = GetObjectByTag("ESDataObject_" + sTag);
 
     return GetIsObjectValid(oDataObject) ? oDataObject : bCreateIfNotExists ? ES_Util_CreateDataObject(sTag) : OBJECT_INVALID;
 }
@@ -525,7 +517,7 @@ vector GetLocalVector(object oObject, string sVarName)
 
 void SetLocalVector(object oObject, string sVarName, vector vValue)
 {
-    SetLocalLocation(oObject, "VEC:" + sVarName, Location(GetAreaFromLocation(GetStartingLocation()), vValue, 0.0f));
+    SetLocalLocation(oObject, "VEC:" + sVarName, Location(OBJECT_INVALID, vValue, 0.0f));
 }
 
 object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0)
@@ -565,3 +557,4 @@ void ES_Util_RemoveAllEffectsWithTag(object oPlayer, string sTag)
         eEffect = GetNextEffect(oPlayer);
     }
 }
+

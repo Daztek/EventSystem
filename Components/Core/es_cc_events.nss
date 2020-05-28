@@ -40,6 +40,8 @@ void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode)
 void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent = TRUE);
 // Wrapper for Events_SetObjectEventScript() to set all event scripts for an area
 void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE);
+// Wrapper for Events_SetObjectEventScript() to set all event scripts for a creature
+void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE);
 // Get an ES_CORE_EVENT_FLAG_* from an object event
 int Events_GetEventFlagFromEvent(string sEvent);
 // Convenience function to construct an object event
@@ -48,7 +50,7 @@ int Events_GetEventFlagFromEvent(string sEvent);
 string Events_GetEventName_Object(int nEvent, int nEventFlag = EVENTS_EVENT_FLAG_DEFAULT);
 // Skips execution of the currently executing event.
 void Events_SkipEvent();
-// Subscribe to an object event, generally called in a component's init function.
+// Subscribe to an object event, generally called in a component's load function.
 //
 // sComponentScript:
 // nEvent: An EVENT_SCRIPT_* constant
@@ -209,6 +211,23 @@ void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE)
     Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT, bStoreOldEvent);
     Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_ENTER, bStoreOldEvent);
     Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_EXIT, bStoreOldEvent);
+}
+
+void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE)
+{
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DAMAGED, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DEATH, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DIALOGUE, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DISTURBED, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_END_COMBATROUND, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_HEARTBEAT, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_MELEE_ATTACKED, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_NOTICE, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_RESTED, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_SPAWN_IN, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_SPELLCASTAT, bStoreOldEvent);
+    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_USER_DEFINED_EVENT, bStoreOldEvent);
 }
 
 int Events_GetEventFlagFromEvent(string sEvent)
