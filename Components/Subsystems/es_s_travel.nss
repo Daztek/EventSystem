@@ -63,14 +63,7 @@ void Travel_EventHandler(string sSubsystemScript, string sEvent)
 
     int nMaterial = Events_GetEventData_NWNX_Int("MATERIAL_TYPE");
 
-    effect eEffect = GetFirstEffect(oPlayer);
-    while (GetIsEffectValid(eEffect))
-    {
-        if (GetEffectTag(eEffect) == TRAVEL_EFFECT_TAG)
-            RemoveEffect(oPlayer, eEffect);
-
-        eEffect = GetNextEffect(oPlayer);
-    }
+    Effects_RemoveEffectsWithTag(oPlayer, TRAVEL_EFFECT_TAG);
 
     switch (nMaterial)
     {

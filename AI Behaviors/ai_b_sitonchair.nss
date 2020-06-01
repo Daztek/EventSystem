@@ -14,6 +14,8 @@ const string AIBEHAVIOR_SITONCHAIR_WAYPOINT_TAG     = "WP_AIB_SITONCHAIR";
 const string AIBEHAVIOR_SITONCHAIR_SEAT_AMOUNT      = "AIBSitOnChairSeatAmount";
 const string AIBEHAVIOR_SITONCHAIR_SEAT             = "AIBSitOnChairSeat_";
 
+const string AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK   = "AIBSitOnChairNextMoveTick";
+
 object SitOnChair_FindSeat();
 
 // @SimAIBehavior_Init
@@ -49,11 +51,13 @@ void SitOnChair_Init()
 // @SimAIBehavior_OnSpawn
 void SitOnChair_Spawn()
 {
-    object oSeat = SitOnChair_FindSeat();
-
     object oClothes = GetLocalObject(OBJECT_SELF, "AMBIENT_NPC_CLOTHES");
     if (GetIsObjectValid(oClothes))
         ActionEquipItem(oClothes, INVENTORY_SLOT_CHEST);
+
+    SetLocalInt(OBJECT_SELF, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK, Random(25) + 10);
+
+    object oSeat = SitOnChair_FindSeat();
 
     if (oSeat != OBJECT_INVALID)
     {
@@ -82,7 +86,7 @@ void SitOnChair_Heartbeat()
             if (oSeat != OBJECT_INVALID)
             {
                 ClearAllActions();
-                ActionForceMoveToObject(oSeat, FALSE, 5.0f, 15.0f);
+                ActionForceMoveToObject(oSeat, FALSE, 5.0f, 30.0f);
                 ActionSit(oSeat);
             }
         }
@@ -102,6 +106,19 @@ void SitOnChair_Heartbeat()
         else
         if(nRandom > 97)
             PlayVoiceChat(VOICE_CHAT_CHEER);
+
+        int nTick = SimpleAI_GetTick();
+        int nNextMoveTick = GetLocalInt(OBJECT_SELF, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK);
+
+        if (nTick > nNextMoveTick)
+        {
+            SetLocalInt(OBJECT_SELF, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK, Random(25) + 10);
+            ClearAllActions();
+            ActionRandomWalk();
+            SimpleAI_SetTick(0);
+        }
+        else
+            SimpleAI_SetTick(++nTick);
     }
 }
 
@@ -125,6 +142,9 @@ void SitOnChair_Conversation()
     else
     {
         SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
+
+        PrintString("Pelvis: " + IntToString(GetItemAppearance(GetItemInSlot(INVENTORY_SLOT_CHEST), ITEM_APPR_TYPE_ARMOR_MODEL, ITEM_APPR_ARMOR_MODEL_PELVIS)) +
+                    ", Head: " + IntToString(GetCreatureBodyPart(CREATURE_PART_HEAD)));
     }
 }
 

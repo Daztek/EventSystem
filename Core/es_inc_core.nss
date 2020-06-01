@@ -15,6 +15,7 @@
 //void main() {}
 
 #include "es_inc_util"
+#include "es_inc_effects"
 
 const string ES_CORE_LOG_TAG                = "Core";
 const string ES_CORE_SCRIPT_NAME            = "es_inc_core";

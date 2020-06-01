@@ -498,11 +498,8 @@ void KI_HandleAreaEnter(object oPlayer, object oInstance)
         return;
 
     GUI_LockPlayerInput(oPlayer);
-
     SetPlotFlag(oPlayer, TRUE);
-
-    effect eCutsceneInvisibility = TagEffect(SupernaturalEffect(EffectVisualEffect(VFX_DUR_CUTSCENE_INVISIBILITY)), "KI_INVISIBILITY");
-    ApplyEffectToObject(DURATION_TYPE_PERMANENT, eCutsceneInvisibility, oPlayer);
+    Effects_ToggleCutsceneInvisibility(oPlayer, TRUE);
 
     if (GetPlayerBuildVersionMajor(oPlayer) >= 8193 && GetPlayerBuildVersionMinor(oPlayer) >= 11)
         KI_DrawStaticGUI(oPlayer);
@@ -521,10 +518,8 @@ void KI_HandleAreaExit(object oPlayer, object oInstance)
         return;
 
     GUI_UnlockPlayerInput(oPlayer);
-
     SetPlotFlag(oPlayer, FALSE);
-
-    ES_Util_RemoveAllEffectsWithTag(oPlayer, "KI_INVISIBILITY");
+    Effects_ToggleCutsceneInvisibility(oPlayer, FALSE);
 
     GUI_ClearBySubsystem(oPlayer, KI_SCRIPT_NAME);
 
@@ -600,9 +595,8 @@ void KI_HandleFireball(object oCatapult)
     {
         if (GetTag(oTarget) == KI_KOBOLD_TAG && !GetIsDead(oTarget))
         {
-            float fDelay = GetDistanceBetweenLocations(locTarget, GetLocation(oTarget)) / 20;
-            DelayCommand(fDelay, ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectDamage(d10() + 10, DAMAGE_TYPE_FIRE), oTarget));
-            DelayCommand(fDelay, ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_FLAME_M), oTarget));
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectDeath(), oTarget);
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_FLAME_M), oTarget);
 
             nNumKobolds++;
         }
@@ -688,22 +682,22 @@ void KI_AnnounceStreak(int nKoboldsSlaughtered)
 {
     int nStreak;
 
-    if (nKoboldsSlaughtered >= 25 && nKoboldsSlaughtered < 75)
+    if (nKoboldsSlaughtered >= 100 && nKoboldsSlaughtered < 200)
         nStreak = 1;
     else
-    if (nKoboldsSlaughtered >= 75 && nKoboldsSlaughtered < 125)
+    if (nKoboldsSlaughtered >= 200 && nKoboldsSlaughtered < 300)
         nStreak = 2;
     else
-    if (nKoboldsSlaughtered >= 125 && nKoboldsSlaughtered < 175)
+    if (nKoboldsSlaughtered >= 300 && nKoboldsSlaughtered < 400)
         nStreak = 3;
     else
-    if (nKoboldsSlaughtered >= 175 && nKoboldsSlaughtered < 225)
+    if (nKoboldsSlaughtered >= 400 && nKoboldsSlaughtered < 500)
         nStreak = 4;
     else
-    if (nKoboldsSlaughtered >= 225 && nKoboldsSlaughtered < 300)
+    if (nKoboldsSlaughtered >= 500 && nKoboldsSlaughtered < 600)
         nStreak = 5;
     else
-    if (nKoboldsSlaughtered >= 300)
+    if (nKoboldsSlaughtered >= 600)
         nStreak = 6;
 
     if (nStreak)

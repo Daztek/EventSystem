@@ -23,7 +23,7 @@ const string RANDOM_NPC_TEMPLATE_TAG            = "RandomNPCTemplate";
 const string RANDOM_NPC_PREGENERATE_AMOUNT      = "RandomNPCPregenerateAmount";
 const string RANDOM_NPC_PREGENERATE_NAME        = "RandomNPCPregenerateNPC_";
 
-const int RANDOM_NPC_PREGENERATE_MAX            = 200;
+const int RANDOM_NPC_PREGENERATE_MAX            = 500;
 const int RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT = 100;
 
 // Create a new random NPC from scratch
@@ -90,6 +90,7 @@ struct RandomNPC_NPCData
 
     int bRandomScale;
     int bRandomName;
+    int bCutsceneGhost;
 };
 
 object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
@@ -138,7 +139,7 @@ object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
             case GENDER_MALE:
                 switch (nRace)
                 {
-                    case RACIAL_TYPE_DWARF:    nModel = Random(14) + 1; break;
+                    case RACIAL_TYPE_DWARF:    nModel = Random(13) + 1; break;
                     case RACIAL_TYPE_ELF:      nModel = Random(18) + 1; break;
                     case RACIAL_TYPE_GNOME:    nModel = Random(13) + 1; break;
                     case RACIAL_TYPE_HALFELF:  nModel = Random(34) + 1; break;
@@ -226,6 +227,9 @@ object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
 
     ChangeToStandardFaction(oNPC, nd.nStandardFaction);
 
+    if (nd.bCutsceneGhost)
+        ApplyEffectToObject(DURATION_TYPE_PERMANENT, EffectCutsceneGhost(), oNPC);
+
     NWNX_Object_SetFacing(oNPC, GetFacingFromLocation(locLocation));
 
     NWNX_Object_AddToArea(oNPC, GetAreaFromLocation(locLocation), GetPositionFromLocation(locLocation));
@@ -249,6 +253,7 @@ object RandomNPC_GenerateRandomNPC(location locLocation)
     nd.nStandardFaction = STANDARD_FACTION_COMMONER;
     nd.bRandomScale = TRUE;
     nd.bRandomName = TRUE;
+    nd.bCutsceneGhost = TRUE;
 
     object oNPC = RandomNPC_CreateNPC(nd, locLocation);
 
@@ -275,8 +280,9 @@ void RandomNPC_PregenerateRandomNPCs(int nAmount)
     for (nIndex = nCurrentAmount; nIndex < nCurrentAmount + nAmount; nIndex++)
     {
         object oNPC = RandomNPC_GenerateRandomNPC(locLocation);
+        string sNPC = NWNX_Object_Serialize(oNPC);
 
-        StoreCampaignObject(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(nIndex), oNPC);
+        SetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(nIndex), sNPC);
 
         DestroyObject(oNPC);
     }
@@ -287,10 +293,11 @@ void RandomNPC_PregenerateRandomNPCs(int nAmount)
 object RandomNPC_GetRandomPregeneratedNPC(string sTag, location locSpawn)
 {
     int nCount = GetCampaignInt(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT);
-    object oNPC = RetrieveCampaignObject(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(Random(nCount)), locSpawn);
+    string sNPC = GetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(Random(nCount)));
+    object oNPC = NWNX_Object_Deserialize(sNPC);
 
-    ApplyEffectToObject(DURATION_TYPE_PERMANENT, EffectCutsceneGhost(), oNPC);
     SetTag(oNPC, sTag);
+    NWNX_Object_AddToArea(oNPC, GetAreaFromLocation(locSpawn), GetPositionFromLocation(locSpawn));
 
     return oNPC;
 }

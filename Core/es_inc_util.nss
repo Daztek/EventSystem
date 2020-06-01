@@ -126,10 +126,6 @@ object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0);
 // Get a random location fDistance from locPoint
 location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance);
 
-// Remove all effects with sTag from oPlayer
-void ES_Util_RemoveAllEffectsWithTag(object oPlayer, string sTag);
-
-
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
 {
     return CreateObject(OBJECT_TYPE_WAYPOINT, "nw_waypoint001", locLocation, FALSE, sTag);
@@ -543,18 +539,5 @@ location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance
     float fOrient = IntToFloat(Random(360));
 
     return GenerateNewLocationFromLocation(locPoint, fDistance, fAngle, fOrient);
-}
-
-void ES_Util_RemoveAllEffectsWithTag(object oPlayer, string sTag)
-{
-    effect eEffect = GetFirstEffect(oPlayer);
-
-    while (GetIsEffectValid(eEffect))
-    {
-        if (GetEffectTag(eEffect) == sTag)
-            RemoveEffect(oPlayer, eEffect);
-
-        eEffect = GetNextEffect(oPlayer);
-    }
 }
 

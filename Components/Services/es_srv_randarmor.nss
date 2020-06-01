@@ -75,6 +75,7 @@ void RandomArmor_InsertArmorParts2DA(string sParts2DA)
             if (sParts2DA == "parts_shin" && (nIndex >= 18 && nIndex <= 21)) continue; // Pirate Shins
             if (sParts2DA == "parts_foot" && (nIndex >= 13 && nIndex <= 16)) continue; // Pirate Feet
             if (sParts2DA == "parts_hand" && (nIndex == 9)) continue; // Pirate Hands
+            if (sParts2DA == "parts_pelvis" && (nIndex == 36)) continue; // Underwear
 
             ES_Util_Log(RANDOM_ARMOR_LOG_TAG, "    > Inserting Armor Part: Index: '" + IntToString(nIndex) +  "', ACBonus: '" + sACBonus + "'");
 
