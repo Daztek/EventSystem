@@ -50,13 +50,15 @@ void Wander_Spawn()
 // @SimAIBehavior_OnHeartbeat
 void Wander_Heartbeat()
 {
+    int nAction = GetCurrentAction();
+
     if (SimpleAI_GetIsAreaEmpty())
     {
-        ClearAllActions();
+        if (nAction != ACTION_INVALID)
+            ClearAllActions();
         return;
     }
 
-    int nAction = GetCurrentAction();
     int nTick = SimpleAI_GetTick();
 
     if (nAction == ACTION_RANDOMWALK)
@@ -73,7 +75,7 @@ void Wander_Heartbeat()
         }
     }
     else
-    if (nAction != ACTION_MOVETOPOINT)
+    if (nAction != ACTION_MOVETOPOINT && nAction != ACTION_WAIT)
     {
         ClearAllActions();
         ActionRandomWalk();

@@ -24,7 +24,7 @@ const string RANDOM_NPC_PREGENERATE_AMOUNT      = "RandomNPCPregenerateAmount";
 const string RANDOM_NPC_PREGENERATE_NAME        = "RandomNPCPregenerateNPC_";
 
 const int RANDOM_NPC_PREGENERATE_MAX            = 500;
-const int RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT = 100;
+const int RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT = 250;
 
 // Create a new random NPC from scratch
 object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation);
@@ -328,7 +328,7 @@ void RandomNPC_CacheNPCSoundsets()
     {
         int nType = StringToInt(Get2DAString(sSoundset2DA, "TYPE", nIndex));
 
-        if (nType == 3)
+        if (nType <= 3)
         {
             int nGender = StringToInt(Get2DAString(sSoundset2DA, "GENDER", nIndex));
 
@@ -347,7 +347,7 @@ int RandomNPC_GetRandomSoundset(int nGender)
 {
     int bReturn = 0;
 
-    string sQuery = "SELECT SoundsetNum FROM " + RANDOM_NPC_SCRIPT_NAME + "_soundset WHERE Gender = ? ORDER BY RANDOM() LIMIT 1;";
+    string sQuery = "SELECT SoundsetNum FROM " + RANDOM_NPC_SCRIPT_NAME + "_soundset WHERE Gender = ? AND Type <= 2 ORDER BY RANDOM() LIMIT 1;";
 
     NWNX_SQL_PrepareQuery(sQuery);
     NWNX_SQL_PreparedInt(0, nGender);

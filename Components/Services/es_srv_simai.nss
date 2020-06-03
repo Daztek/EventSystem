@@ -54,6 +54,8 @@ int SimpleAI_GetIsAreaEmpty();
 int SimpleAI_GetTick();
 void SimpleAI_SetTick(int nTick);
 
+void SimpleAI_PlayVoiceChat(int nVoiceChatID, object oCreature = OBJECT_SELF, float fTimeout = 10.0f);
+
 // @Load
 void SimpleAI_Load(string sServiceScript)
 {
@@ -310,5 +312,17 @@ int SimpleAI_GetTick()
 void SimpleAI_SetTick(int nTick)
 {
     SetLocalInt(OBJECT_SELF, "SimpleAITick", nTick);
+}
+
+void SimpleAI_PlayVoiceChat(int nVoiceChatID, object oCreature = OBJECT_SELF, float fTimeout = 10.0f)
+{
+    int bCanPlay = !GetLocalInt(oCreature, "SimpleAI_PlayVoiceChatTimeout_" + IntToString(nVoiceChatID));
+
+    if (bCanPlay)
+    {
+        PlayVoiceChat(nVoiceChatID, oCreature);
+        SetLocalInt(oCreature, "SimpleAI_PlayVoiceChatTimeout_" + IntToString(nVoiceChatID), TRUE);
+        DelayCommand(fTimeout, DeleteLocalInt(oCreature, "SimpleAI_PlayVoiceChatTimeout_" + IntToString(nVoiceChatID)));
+    }
 }
 

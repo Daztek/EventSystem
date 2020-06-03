@@ -123,6 +123,9 @@ void SetLocalVector(object oObject, string sVarName, vector vValue);
 // Get the nNth object with sTag in oArea
 object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0);
 
+// Get a location fDistance ahead of oTarget
+location ES_Util_GetAheadLocation(object oTarget, float fDistance);
+
 // Get a random location fDistance from locPoint
 location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance);
 
@@ -539,5 +542,11 @@ location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance
     float fOrient = IntToFloat(Random(360));
 
     return GenerateNewLocationFromLocation(locPoint, fDistance, fAngle, fOrient);
+}
+
+location ES_Util_GetAheadLocation(object oTarget, float fDistance)
+{
+    float fDir = GetFacing(oTarget);
+    return GenerateNewLocation(oTarget, fDistance, fDir, fDir);
 }
 

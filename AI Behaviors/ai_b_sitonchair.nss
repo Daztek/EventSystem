@@ -51,11 +51,13 @@ void SitOnChair_Init()
 // @SimAIBehavior_OnSpawn
 void SitOnChair_Spawn()
 {
-    object oClothes = GetLocalObject(OBJECT_SELF, "AMBIENT_NPC_CLOTHES");
+    object oSelf = OBJECT_SELF;
+
+    object oClothes = GetLocalObject(oSelf, "AMBIENT_NPC_CLOTHES");
     if (GetIsObjectValid(oClothes))
         ActionEquipItem(oClothes, INVENTORY_SLOT_CHEST);
 
-    SetLocalInt(OBJECT_SELF, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK, Random(25) + 10);
+    SetLocalInt(oSelf, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK, Random(25) + 10);
 
     object oSeat = SitOnChair_FindSeat();
 
@@ -70,11 +72,34 @@ void SitOnChair_Spawn()
     }
 }
 
+void SitOnChair_PlayVoiceChat(int nVoiceChatID, float fNearbyCreatureDistance = 3.0f)
+{
+    object oNearby = GetNearestCreature(CREATURE_TYPE_IS_ALIVE, TRUE);
+
+    if (GetIsObjectValid(oNearby))
+    {
+        if (GetDistanceBetween(OBJECT_SELF, oNearby) <= fNearbyCreatureDistance)
+            SimpleAI_PlayVoiceChat(nVoiceChatID);
+    }
+}
+
+void SitOnChair_Sit(object oSeat)
+{
+    if (!GetIsObjectValid(GetSittingCreature(oSeat)))
+    {
+        ActionSit(oSeat);
+        SitOnChair_PlayVoiceChat(VOICE_CHAT_HELLO);
+    }
+    else
+        SitOnChair_PlayVoiceChat(VOICE_CHAT_MOVEOVER);
+}
+
 // @SimAIBehavior_OnHeartbeat
 void SitOnChair_Heartbeat()
 {
     if (SimpleAI_GetIsAreaEmpty()) return;
 
+    object oSelf = OBJECT_SELF;
     int nAction = GetCurrentAction();
 
     if (nAction == ACTION_RANDOMWALK)
@@ -87,65 +112,48 @@ void SitOnChair_Heartbeat()
             {
                 ClearAllActions();
                 ActionForceMoveToObject(oSeat, FALSE, 5.0f, 30.0f);
-                ActionSit(oSeat);
+                ActionDoCommand(SitOnChair_Sit(oSeat));
             }
         }
     }
-    else
-    if (nAction != ACTION_SIT && nAction != ACTION_MOVETOPOINT)
-    {
-        ActionRandomWalk();
-    }
-    else
-    if (nAction == ACTION_SIT)
+    else if (nAction == ACTION_SIT)
     {
         int nRandom = Random(100);
 
         if (nRandom < 5)
-            PlayVoiceChat(VOICE_CHAT_LAUGH);
+            SitOnChair_PlayVoiceChat(VOICE_CHAT_LAUGH);
         else
         if(nRandom > 97)
-            PlayVoiceChat(VOICE_CHAT_CHEER);
+            SitOnChair_PlayVoiceChat(VOICE_CHAT_CHEER);
 
         int nTick = SimpleAI_GetTick();
-        int nNextMoveTick = GetLocalInt(OBJECT_SELF, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK);
+        int nNextMoveTick = GetLocalInt(oSelf, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK);
 
         if (nTick > nNextMoveTick)
         {
-            SetLocalInt(OBJECT_SELF, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK, Random(25) + 10);
+            SetLocalInt(oSelf, AIBEHAVIOR_SITONCHAIR_NEXT_MOVE_TICK, Random(25) + 10);
             ClearAllActions();
+            SitOnChair_PlayVoiceChat(VOICE_CHAT_GOODBYE);
             ActionRandomWalk();
             SimpleAI_SetTick(0);
         }
         else
             SimpleAI_SetTick(++nTick);
     }
+    else
+    if (nAction != ACTION_SIT && nAction != ACTION_MOVETOPOINT && nAction != ACTION_WAIT)
+    {
+        ActionRandomWalk();
+    }
 }
 
 // @SimAIBehavior_OnConversation
 void SitOnChair_Conversation()
 {
-    if (GetCurrentAction() == ACTION_SIT)
-    {
-        ClearAllActions();
+    SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
 
-        int nRandom = Random(10);
-
-        if (nRandom > 4)
-           PlayVoiceChat(VOICE_CHAT_THREATEN);
-        else
-            SpeakString(Random(2) ? "Hey!" : "That's my seat!");
-
-
-        ActionRandomWalk();
-    }
-    else
-    {
-        SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
-
-        PrintString("Pelvis: " + IntToString(GetItemAppearance(GetItemInSlot(INVENTORY_SLOT_CHEST), ITEM_APPR_TYPE_ARMOR_MODEL, ITEM_APPR_ARMOR_MODEL_PELVIS)) +
-                    ", Head: " + IntToString(GetCreatureBodyPart(CREATURE_PART_HEAD)));
-    }
+    PrintString("Pelvis: " + IntToString(GetItemAppearance(GetItemInSlot(INVENTORY_SLOT_CHEST), ITEM_APPR_TYPE_ARMOR_MODEL, ITEM_APPR_ARMOR_MODEL_PELVIS)) +
+                ", Head: " + IntToString(GetCreatureBodyPart(CREATURE_PART_HEAD)));
 }
 
 /* *** */

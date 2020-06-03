@@ -116,6 +116,9 @@ void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_IN
         }
     }
 
-    SendMessageToPC(oPlayer, sMessage);
+    if (oPlayer == OBJECT_INVALID)
+        PrintString(sMessage);
+    else
+        SendMessageToPC(oPlayer, sMessage);
 }
 

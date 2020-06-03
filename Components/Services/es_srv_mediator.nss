@@ -53,11 +53,10 @@ int Mediator_GetIsFunctionRegistered(string sSubsystem, string sFunctionName, st
 // - bWarn: Write a warning to the log if parameters don't match or function is not registered
 //
 // Example:
-//   Mediator_ExecuteFunction("es_s_subsystem", "MySubsystemFunction", Mediator_Object(GetModule()) + Mediator_Int(1337) + Mediator_String("Test"));
+//   Mediator_ExecuteFunction("es_s_subsystem", "MySubsystemFunction", Mediator_Int(1337) + Mediator_Object(GetModule()) + Mediator_String("Test"));
 //
 // Returns: TRUE on success
 int Mediator_ExecuteFunction(string sSubsystem, string sFunctionName, string sArguments = "", object oTarget = OBJECT_SELF, int bWarn = TRUE);
-
 
 // Get a float return value from a function executed with Mediator_ExecuteFunction()
 float Mediator_GetReturnValueFloat();

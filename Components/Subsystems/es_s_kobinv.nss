@@ -657,6 +657,7 @@ void KI_KillAllKobolds(object oInstance)
     {
         if (GetTag(oKobold) == KI_KOBOLD_TAG)
         {
+            AssignCommand(oKobold, SetIsDestroyable(TRUE));
             DestroyObject(oKobold);
         }
 
@@ -676,6 +677,9 @@ void KI_KoboldOnSpawn(object oKobold)
     ActionWait((Random(25) / 10.0f));
     ActionForceMoveToLocation(locMoveToPoint, TRUE, 30.0f);
     ActionAttack(oBridgeGate);
+
+    //if (Random(101) < 10)
+    SetIsDestroyable(FALSE, FALSE, FALSE);
 }
 
 void KI_AnnounceStreak(int nKoboldsSlaughtered)
@@ -712,6 +716,12 @@ void KI_AnnounceStreak(int nKoboldsSlaughtered)
     }
 }
 
+void KI_DelayedDestroy(object oKobold)
+{
+    AssignCommand(oKobold, SetIsDestroyable(TRUE));
+    DestroyObject(oKobold);
+}
+
 void KI_KoboldOnDeath(object oKobold)
 {
     object oInstance = GetArea(oKobold);
@@ -728,5 +738,10 @@ void KI_KoboldOnDeath(object oKobold)
 
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_SPAWN_IN), oKobold);
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, Events_GetEventName_Object(EVENT_SCRIPT_CREATURE_ON_DEATH), oKobold);
+
+    effect eBlood = Effects_GetBloodEffect(oKobold);
+    Effects_ApplyImpactVisualEffects(oKobold, eBlood, Random(15) + 1, 0.0f, 0.5f);
+
+    DelayCommand(10.0f, KI_DelayedDestroy(oKobold));
 }
 
