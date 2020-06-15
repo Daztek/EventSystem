@@ -245,7 +245,7 @@ void Instance_INTERNAL_ClientExit(object oPlayer)
 
 void Instance_INTERNAL_AreaEnter(object oPlayer, object oInstance)
 {
-    if (!GetIsPC(oPlayer))
+    if (!ES_Util_GetIsPC(oPlayer))
         return;
 
     int nDestroyType = Instance_GetDestroyType(oInstance);
@@ -274,7 +274,7 @@ void Instance_INTERNAL_AreaEnter(object oPlayer, object oInstance)
 
 void Instance_INTERNAL_AreaExit(object oPlayer, object oInstance)
 {
-    if (!GetIsPC(oPlayer))
+    if (!ES_Util_GetIsPC(oPlayer))
         return;
 
     int nDestroyType = Instance_GetDestroyType(oInstance);
@@ -349,7 +349,7 @@ void Instance_Register(string sTemplateAreaResRef, string sTemplateAreaTag = "")
 // *** CREATE/DESTROY FUNCTIONS
 object Instance_Create(string sSubsystemScript, string sAreaResRef, struct InstanceData id)
 {
-    if (!GetIsObjectValid(id.oOwner) || !GetIsPC(id.oOwner))
+    if (!GetIsObjectValid(id.oOwner) || !ES_Util_GetIsPC(id.oOwner))
         return OBJECT_INVALID;
 
     object oInstance;

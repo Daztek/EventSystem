@@ -91,6 +91,9 @@ vector Events_GetEventData_NWNX_Vector(string sTagX, string sTagY, string sTagZ)
 // NWNX_Events_GetEventData() location data wrapper
 location Events_GetEventData_NWNX_Location(string sTagArea, string sTagX, string sTagY, string sTagZ);
 
+// Set all event scripts of oCreature to ""
+void Events_ClearCreatureEvents(object oCreature);
+
 // @Load
 void Events_Load(string sCoreComponentScript)
 {
@@ -215,19 +218,11 @@ void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE)
 
 void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE)
 {
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DAMAGED, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DEATH, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DIALOGUE, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_DISTURBED, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_END_COMBATROUND, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_HEARTBEAT, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_MELEE_ATTACKED, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_NOTICE, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_RESTED, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_SPAWN_IN, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_SPELLCASTAT, bStoreOldEvent);
-    Events_SetObjectEventScript(oCreature, EVENT_SCRIPT_CREATURE_ON_USER_DEFINED_EVENT, bStoreOldEvent);
+    int nEvent;
+    for (nEvent == EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
+    {
+        Events_SetObjectEventScript(oCreature, nEvent, bStoreOldEvent);
+    }
 }
 
 int Events_GetEventFlagFromEvent(string sEvent)
@@ -381,5 +376,15 @@ location Events_GetEventData_NWNX_Location(string sTagArea, string sTagX, string
 {
     return Location(Events_GetEventData_NWNX_Object(sTagArea),
                     Events_GetEventData_NWNX_Vector(sTagX, sTagY, sTagZ), 0.0f);
+}
+
+
+void Events_ClearCreatureEvents(object oCreature)
+{
+    int nEvent;
+    for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
+    {
+        SetEventScript(oCreature, nEvent, "");
+    }
 }
 

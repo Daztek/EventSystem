@@ -87,8 +87,8 @@ void Wander_Heartbeat()
 // @SimAIBehavior_OnConversation
 void Wander_Conversation()
 {
+    // Debug
     SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
-
     PrintString("Pelvis: " + IntToString(GetItemAppearance(GetItemInSlot(INVENTORY_SLOT_CHEST), ITEM_APPR_TYPE_ARMOR_MODEL, ITEM_APPR_ARMOR_MODEL_PELVIS)) +
                 ", Head: " + IntToString(GetCreatureBodyPart(CREATURE_PART_HEAD)));
 }

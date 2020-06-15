@@ -81,7 +81,7 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
 // Execute a script chunk for every element in sArrayName
 // You can access the array element through the sArrayElement variable in your script chunk
-void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject);
+void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject = OBJECT_INVALID);
 
 int floor(float f);
 int ceil(float f);
@@ -128,6 +128,9 @@ location ES_Util_GetAheadLocation(object oTarget, float fDistance);
 
 // Get a random location fDistance from locPoint
 location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance);
+
+// Returns TRUE if oObject is a PC in cases where GetIsPC() does not work
+int ES_Util_GetIsPC(object oObject);
 
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
 {
@@ -378,8 +381,11 @@ int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk,
     return GetLocalInt(oModule, "ES_TEMP_VAR");
 }
 
-void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject)
+void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject = OBJECT_INVALID)
 {
+    if (oObject == OBJECT_INVALID)
+        oObject = GetModule();
+
     int nArraySize = StringArray_Size(oArrayObject, sArrayName);
 
     if(nArraySize)
@@ -548,5 +554,10 @@ location ES_Util_GetAheadLocation(object oTarget, float fDistance)
 {
     float fDir = GetFacing(oTarget);
     return GenerateNewLocation(oTarget, fDistance, fDir, fDir);
+}
+
+int ES_Util_GetIsPC(object oObject)
+{
+    return GetIsPC(oObject) || GetStringLength(ObjectToString(oObject)) == 8;
 }
 

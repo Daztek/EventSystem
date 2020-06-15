@@ -150,8 +150,11 @@ void SitOnChair_Heartbeat()
 // @SimAIBehavior_OnConversation
 void SitOnChair_Conversation()
 {
-    SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
+    if (GetCurrentAction() == ACTION_SIT)
+        ClearAllActions();
 
+    // Debug
+    SpeakString("Behavior: " + SimpleAI_GetAIBehavior());
     PrintString("Pelvis: " + IntToString(GetItemAppearance(GetItemInSlot(INVENTORY_SLOT_CHEST), ITEM_APPR_TYPE_ARMOR_MODEL, ITEM_APPR_ARMOR_MODEL_PELVIS)) +
                 ", Head: " + IntToString(GetCreatureBodyPart(CREATURE_PART_HEAD)));
 }

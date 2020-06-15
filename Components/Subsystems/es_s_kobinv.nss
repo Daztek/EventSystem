@@ -494,7 +494,7 @@ void KI_HandleInstanceDestroyedEvent(object oInstance)
 // *** AREA FUNCTIONS
 void KI_HandleAreaEnter(object oPlayer, object oInstance)
 {
-    if (!GetIsPC(oPlayer) || Instance_GetOwner(oInstance) != oPlayer)
+    if (Instance_GetOwner(oInstance) != oPlayer)
         return;
 
     GUI_LockPlayerInput(oPlayer);
@@ -514,7 +514,7 @@ void KI_HandleAreaEnter(object oPlayer, object oInstance)
 
 void KI_HandleAreaExit(object oPlayer, object oInstance)
 {
-    if (!GetIsPC(oPlayer) || Instance_GetOwner(oInstance) != oPlayer)
+    if (Instance_GetOwner(oInstance) != oPlayer)
         return;
 
     GUI_UnlockPlayerInput(oPlayer);

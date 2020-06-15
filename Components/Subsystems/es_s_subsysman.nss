@@ -56,15 +56,12 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
                     {
                         ES_Util_Log(SUBSYSTEM_MANAGER_LOG_TAG, "Detected changes for '" + sResRef + "', recompiling EventHandler", FALSE);
 
-                        ES_Core_Component_ExecuteFunction(sResRef, "Unload");
+                        ES_Core_Component_ExecuteFunction(sResRef, "Unload", TRUE, TRUE);
 
-                        ES_Util_SuppressLog(TRUE);
                         ES_Core_Component_Initialize(sResRef, ES_CORE_COMPONENT_TYPE_SUBSYSTEM);
-                        ES_Core_Component_CheckHash(sResRef);
-                        ES_Util_SuppressLog(FALSE);
+                        ES_Core_Component_CheckEventHandler(sResRef);
 
-                        ES_Core_Component_ExecuteFunction(sResRef, "Load");
-
+                        ES_Core_Component_ExecuteFunction(sResRef, "Load", FALSE, TRUE);
                     }
                 }
             }
