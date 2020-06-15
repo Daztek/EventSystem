@@ -219,7 +219,7 @@ void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE)
 void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE)
 {
     int nEvent;
-    for (nEvent == EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
+    for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
     {
         Events_SetObjectEventScript(oCreature, nEvent, bStoreOldEvent);
     }
