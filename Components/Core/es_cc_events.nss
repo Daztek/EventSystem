@@ -42,6 +42,8 @@ void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent 
 void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE);
 // Wrapper for Events_SetObjectEventScript() to set all event scripts for a creature
 void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE);
+// Set all event scripts of oCreature to ""
+void Events_ClearCreatureEventScripts(object oCreature);
 // Get an ES_CORE_EVENT_FLAG_* from an object event
 int Events_GetEventFlagFromEvent(string sEvent);
 // Convenience function to construct an object event
@@ -91,9 +93,6 @@ vector Events_GetEventData_NWNX_Vector(string sTagX, string sTagY, string sTagZ)
 // NWNX_Events_GetEventData() location data wrapper
 location Events_GetEventData_NWNX_Location(string sTagArea, string sTagX, string sTagY, string sTagZ);
 
-// Set all event scripts of oCreature to ""
-void Events_ClearCreatureEvents(object oCreature);
-
 // @Load
 void Events_Load(string sCoreComponentScript)
 {
@@ -138,7 +137,7 @@ void Events_Load(string sCoreComponentScript)
 // *** INTERNAL FUNCTIONS
 void Events_CheckObjectEventScripts(int nStart, int nEnd)
 {
-    int bHashChanged = GetLocalInt(ES_Core_GetComponentDataObject(EVENTS_SCRIPT_NAME), "HashChanged"), nEvent;
+    int bHashChanged = ES_Core_GetComponentHashChanged(EVENTS_SCRIPT_NAME), nEvent;
 
     for (nEvent = nStart; nEvent <= nEnd; nEvent++)
     {
@@ -210,10 +209,11 @@ void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent 
 
 void Events_SetAreaEventScripts(object oArea, int bStoreOldEvent = TRUE)
 {
-    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_HEARTBEAT, bStoreOldEvent);
-    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_USER_DEFINED_EVENT, bStoreOldEvent);
-    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_ENTER, bStoreOldEvent);
-    Events_SetObjectEventScript(oArea, EVENT_SCRIPT_AREA_ON_EXIT, bStoreOldEvent);
+    int nEvent;
+    for (nEvent = EVENT_SCRIPT_AREA_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_AREA_ON_EXIT; nEvent++)
+    {
+        Events_SetObjectEventScript(oArea, nEvent, bStoreOldEvent);
+    }
 }
 
 void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE)
@@ -222,6 +222,15 @@ void Events_SetCreatureEventScripts(object oCreature, int bStoreOldEvent = TRUE)
     for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
     {
         Events_SetObjectEventScript(oCreature, nEvent, bStoreOldEvent);
+    }
+}
+
+void Events_ClearCreatureEventScripts(object oCreature)
+{
+    int nEvent;
+    for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
+    {
+        SetEventScript(oCreature, nEvent, "");
     }
 }
 
@@ -376,15 +385,5 @@ location Events_GetEventData_NWNX_Location(string sTagArea, string sTagX, string
 {
     return Location(Events_GetEventData_NWNX_Object(sTagArea),
                     Events_GetEventData_NWNX_Vector(sTagX, sTagY, sTagZ), 0.0f);
-}
-
-
-void Events_ClearCreatureEvents(object oCreature)
-{
-    int nEvent;
-    for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
-    {
-        SetEventScript(oCreature, nEvent, "");
-    }
 }
 

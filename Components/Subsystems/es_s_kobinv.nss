@@ -85,6 +85,36 @@ void KI_Load(string sSubsystemScript)
     KI_SetupGUIEvents(sSubsystemScript);
 }
 
+// @Test
+int KI_Test(string sSubsystemScript)
+{
+    object oObject = GetObjectByTag(KI_START_NPC_TAG);
+    int bResult = Test_Assert("NPC Exists", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_CREATURE));
+
+    object oArea = GetObjectByTag(KI_AREA_TEMPLATE_TAG);
+    bResult = Test_Assert("Template Area Exists", (GetIsObjectValid(oArea) && NWNX_Object_GetInternalObjectType(oArea) == NWNX_OBJECT_TYPE_INTERNAL_AREA));
+
+    if (bResult)
+    {
+        oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_START_TAG, oArea);
+        bResult = Test_Assert("Start Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+
+        oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_CATAPULT_TAG, oArea);
+        bResult = Test_Assert("Catapult Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+
+        oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_SPAWN_TAG, oArea);
+        bResult = Test_Assert("Spawn Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+
+        oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_MOVETO_TAG, oArea);
+        bResult = Test_Assert("MoveTo Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+
+        oObject = ES_Util_GetObjectByTagInArea(KI_BRIDGE_GATE_TAG, oArea);
+        bResult = Test_Assert("Bridge Gate Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_DOOR));
+    }
+
+    return bResult;
+}
+
 // @EventHandler
 void KI_EventHandler(string sSubsystemScript, string sEvent)
 {
@@ -96,6 +126,9 @@ void KI_EventHandler(string sSubsystemScript, string sEvent)
     else
     if (sEvent == "NWNX_ON_INPUT_KEYBOARD_BEFORE")
         KI_HandleGUIEvent(OBJECT_SELF);
+    else
+    if (sEvent == "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE")
+        Events_SkipEvent();
     else
     if(sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
@@ -225,6 +258,7 @@ void KI_SetupCatapultEvents(string sSubsystemScript)
     SetLocalString(oDataObject, "CatapultString", Toolbox_GeneratePlaceable(pd));
 
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", TRUE);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE", TRUE);
     Spellhook_SubscribeEvent(sSubsystemScript, KI_SPELL_ID, TRUE);
 }
 
@@ -233,9 +267,7 @@ void KI_SetupKobold(string sResRef)
     object oDataObject = ES_Util_GetDataObject(KI_SCRIPT_NAME);
     object oKobold = CreateObject(OBJECT_TYPE_CREATURE, sResRef, GetStartingLocation(), FALSE, KI_KOBOLD_TAG);
 
-    int nEvent;
-    for (nEvent = EVENT_SCRIPT_CREATURE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR; nEvent++)
-        SetEventScript(oKobold, nEvent, "");
+    Events_ClearCreatureEventScripts(oKobold);
 
     ApplyEffectToObject(DURATION_TYPE_PERMANENT, EffectCutsceneGhost(), oKobold);
 
@@ -507,6 +539,7 @@ void KI_HandleAreaEnter(object oPlayer, object oInstance)
     KI_UpdateGUI(oPlayer);
 
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", oPlayer);
+    Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE", oPlayer);
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
 
     SendMessageToPC(oPlayer, "Hello! If you look to the top left you'll see a little menu with two options, you can switch between them with the 'W' and 'S' keys and select an option with the 'E' key!");
@@ -531,6 +564,7 @@ void KI_HandleAreaExit(object oPlayer, object oInstance)
     KI_KillAllKobolds(oInstance);
 
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", oPlayer);
+    Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE", oPlayer);
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
 }
 

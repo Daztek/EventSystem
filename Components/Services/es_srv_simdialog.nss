@@ -144,9 +144,12 @@ void SimpleDialog_Load(string sServiceScript)
     ES_Util_AddScript("simdialog_at", sServiceScript, nssFunction("SimpleDialog_HandleActionTaken"));
     ES_Util_AddScript("simdialog_normal", sServiceScript, nssFunction("SimpleDialog_HandleConversationEnd", "FALSE"));
     ES_Util_AddScript("simdialog_abort", sServiceScript, nssFunction("SimpleDialog_HandleConversationEnd", "TRUE"));
+}
 
-    if (!NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG))
-        ES_Util_Log(SIMPLE_DIALOG_LOG_TAG, "* WARNING: Conversation file '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' not found, please add it to the module!");
+// @Test
+int SimpleDialog_Test(string sServiceScript)
+{
+    return Test_Assert("Conversation File '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' Exists", NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG));
 }
 
 int SimpleDialog_HandleStartingConditional()

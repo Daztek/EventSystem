@@ -14,6 +14,7 @@
 
 #include "es_inc_util"
 #include "es_inc_effects"
+#include "es_inc_test"
 
 const string ES_CORE_LOG_TAG                = "Core";
 const string ES_CORE_SCRIPT_NAME            = "es_inc_core";
@@ -30,6 +31,7 @@ int ES_Core_GetDBInt(string sVarName, string sComponent = "");
 
 int ES_Core_GetCoreHashChanged();
 int ES_Core_GetNWNXHashChanged(string sNWNXFile);
+int ES_Core_GetComponentHashChanged(string sComponent);
 
 void ES_Core_DisableComponent(string sComponent);
 string ES_Core_Component_GetTypeNameFromType(int nType, int bPlural);
@@ -41,6 +43,8 @@ string ES_Core_Component_GetNWNXScriptDependencies(string sComponent, string sSc
 string ES_Core_Component_GetDependenciesByType(string sComponent, string sScriptContents, int nType);
 void ES_Core_Component_GetFunctionByType(object oComponentDataObject, string sScriptContents, string sFunctionType);
 void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType, int bUseCachedScript = FALSE, int bForceExecute = FALSE);
+void ES_Core_Component_GetTestFunction(object oComponentDataObject, string sScriptContents);
+void ES_Core_Component_ExecuteTestFunction(string sComponent);
 
 void ES_Core_Init()
 {
@@ -118,6 +122,11 @@ void ES_Core_Init()
         ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
             nssFunction("ES_Core_Component_CheckEventHandler", "sArrayElement"), oModule);
 
+        // Execute Test Functions
+        ES_Util_Log(ES_CORE_LOG_TAG, "* " + sComponentTypeNamePlural + ": Running Tests");
+        ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
+            nssFunction("ES_Core_Component_ExecuteTestFunction", "sArrayElement"), oModule);
+
         // Check Status
         ES_Util_Log(ES_CORE_LOG_TAG, "* " + sComponentTypeNamePlural + ": Status Check");
         ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sComponentsArray, ES_CORE_SCRIPT_NAME,
@@ -134,6 +143,13 @@ void ES_Core_Init()
     ES_Util_Log(ES_CORE_LOG_TAG, "* Services: Post");
     string sServicesArray = GetLocalString(oCoreDataObject, "Services");
     ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sServicesArray, ES_CORE_SCRIPT_NAME,
+        nssFunction("ES_Core_Component_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Post")), oModule);
+
+    // *** SUBSYSTEMS POST
+    ES_Util_Log(ES_CORE_LOG_TAG, "");
+    ES_Util_Log(ES_CORE_LOG_TAG, "* Subsystems: Post");
+    string sSubsystemsArray = GetLocalString(oCoreDataObject, "Subsystems");
+    ES_Util_ExecuteScriptChunkForArrayElements(oCoreDataObject, sSubsystemsArray, ES_CORE_SCRIPT_NAME,
         nssFunction("ES_Core_Component_ExecuteFunction", "sArrayElement, " + nssEscapeDoubleQuotes("Post")), oModule);
 
     // Delete the CoreHashChanged variable so HotSwappable subsystems don't needlessly get recompiled
@@ -168,16 +184,17 @@ void ES_Core_Init()
   - Disabled (int)
   - Flags (string)
   - FailedToExecute{FunctionType} (int)
+  - FailedTest
 */
 
 object ES_Core_GetCoreDataObject()
 {
-    return ES_Util_GetDataObject("ES!Core!" + ES_CORE_SCRIPT_NAME);
+    return ES_Util_GetDataObject("ESCore_" + ES_CORE_SCRIPT_NAME);
 }
 
 object ES_Core_GetComponentDataObject(string sComponent, int bCreateIfNotExists = TRUE)
 {
-    return ES_Util_GetDataObject("ES!Core!Component!" + sComponent, bCreateIfNotExists);
+    return ES_Util_GetDataObject("ESCoreComponent_" + sComponent, bCreateIfNotExists);
 }
 
 string ES_Core_GetDatabaseName()
@@ -248,6 +265,11 @@ void ES_Core_CheckCoreHashes()
 int ES_Core_GetCoreHashChanged()
 {
     return GetLocalInt(ES_Core_GetCoreDataObject(), "CoreHashChanged");
+}
+
+int ES_Core_GetComponentHashChanged(string sComponent)
+{
+    return GetLocalInt(ES_Core_GetComponentDataObject(sComponent), "HashChanged");
 }
 
 // *****************************************************************************
@@ -464,6 +486,35 @@ void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType, 
     }
 }
 
+void ES_Core_Component_GetTestFunction(object oComponentDataObject, string sScriptContents)
+{
+    string sFunction = ES_Util_GetFunctionName(sScriptContents, "Test", "int");
+
+    if (sFunction != "")
+    {
+        ES_Util_Log(ES_CORE_LOG_TAG, "    > Test Function: " + sFunction + "()");
+        SetLocalString(oComponentDataObject, "TestFunction", sFunction);
+    }
+}
+
+void ES_Core_Component_ExecuteTestFunction(string sComponent)
+{
+    object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
+    string sFunction = GetLocalString(oComponentDataObject, "TestFunction");
+
+    if (sFunction != "")
+    {
+        object oModule = GetModule();
+
+        ES_Util_Log(ES_CORE_LOG_TAG, "  > Executing Test Function '" + sFunction + "()' for: " + sComponent);
+
+        int bResult = Test_ExecuteTestFunction(sComponent, sFunction);
+
+        if (!bResult)
+            SetLocalInt(oComponentDataObject, "FailedTest", TRUE);
+    }
+}
+
 // *****************************************************************************
 // Initialize Component Functions
 void ES_Core_Component_Initialize(string sComponent, int nType)
@@ -531,6 +582,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
 
     // Get Functions
     ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Load");
+    ES_Core_Component_GetTestFunction(oComponentDataObject, sScriptContents);
 
     if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
         ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
@@ -538,7 +590,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
     if (nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
         ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Unload");
 
-    if (nType == ES_CORE_COMPONENT_TYPE_SERVICE)
+    if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
         ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Post");
 }
 
@@ -743,6 +795,7 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
     int bManuallyDisabled = GetLocalInt(oComponentDataObject, "ManuallyDisabled");
     int bMissingNWNXPlugins = GetLocalInt(oComponentDataObject, "MissingNWNXPlugins");
     int bFailedToCompile = GetLocalInt(oComponentDataObject, "FailedToCompile");
+    int bFailedTest = GetLocalInt(oComponentDataObject, "FailedTest");
     struct ES_Core_ComponentStatus csCoreComponents;
     struct ES_Core_ComponentStatus csServices;
 
@@ -756,7 +809,7 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
         csServices = ES_Core_GetStatusByType(oComponentDataObject, ES_CORE_COMPONENT_TYPE_SERVICE);
     }
 
-    if (bManuallyDisabled || bMissingNWNXPlugins || bFailedToCompile || csCoreComponents.bDisable || csServices.bDisable)
+    if (bManuallyDisabled || bMissingNWNXPlugins || bFailedToCompile || bFailedTest || csCoreComponents.bDisable || csServices.bDisable)
     {
         ES_Core_DisableComponent(sComponent);
 
@@ -776,6 +829,9 @@ void ES_Core_Component_CheckStatus(string sComponent, int nType)
 
         if (bFailedToCompile)
             ES_Util_Log(ES_CORE_LOG_TAG, "    > Compilation Failure");
+
+        if (bFailedTest)
+            ES_Util_Log(ES_CORE_LOG_TAG, "    > Test Failure");
     }
 }
 

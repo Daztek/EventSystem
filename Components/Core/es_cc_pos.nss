@@ -76,6 +76,24 @@ void POS_SetString(object oObject, string sVarName, string sValue, int bPersist 
 // Delete any POS variables from oObject that match sRegex
 void POS_DeleteVarRegex(object oObject, string sRegex);
 
+// @Test
+int POS_Test(string sComponentScript)
+{
+    int bResult, nTestValue = 5;
+    object oModule = GetModule();
+
+    POS_SetInt(oModule, "POS_TEST", nTestValue);
+    bResult = Test_Assert("POS_{Set|Get}Int()", POS_GetInt(oModule, "POS_TEST") == nTestValue);
+
+    if (bResult)
+    {
+        POS_DeleteInt(oModule, "POS_TEST");
+        bResult = Test_Assert("POS_DeleteInt()", !POS_GetInt(oModule, "POS_TEST"));
+    }
+
+    return bResult;
+}
+
 void POS_DeleteFloat(object oObject, string sVarName)
 {
     NWNX_Object_DeleteFloat(oObject, "ES!FLT!" + sVarName);

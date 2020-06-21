@@ -84,7 +84,7 @@ int Profiler_Stop(struct ProfilerData startData)
     string sStats;
     if (startData.bEnableStats)
     {
-        object oDataObject = ES_Util_GetDataObject(PROFILER_SCRIPT_NAME + "!" + startData.sName);
+        object oDataObject = ES_Util_GetDataObject(PROFILER_SCRIPT_NAME + "_" + startData.sName);
         int nMin, nMax, nCount = GetLocalInt(oDataObject, "PROFILER_COUNT") + 1;
         SetLocalInt(oDataObject, "PROFILER_COUNT", nCount);
 
@@ -179,7 +179,7 @@ struct ProfilerStats Profiler_GetStats(string sName)
 
 void Profiler_DeleteStats(string sName)
 {
-    ES_Util_DestroyDataObject(PROFILER_SCRIPT_NAME + "!" + sName);
+    ES_Util_DestroyDataObject(PROFILER_SCRIPT_NAME + "_" + sName);
 
     ES_Util_Log(PROFILER_LOG_TAG, "Deleted stats for: '" + sName + "'");
 }

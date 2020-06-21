@@ -25,6 +25,8 @@ const string WORLD_TIMER_EVENT_60_MINUTES       = "WORLD_TIMER_EVENT_60_MINUTES"
 
 // Subscribe sEventHandlerScript to a WORLD_TIMER_EVENT_*
 void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bDispatchListMode = FALSE);
+// Unsubscribe sEventHandlerScript from a WORLD_TIMER_EVENT_*
+void WorldTimer_UnsubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bClearDispatchList = TRUE);
 // Get the current heartbeat count tick
 int WorldTimer_GetHeartbeatCount();
 
@@ -67,8 +69,22 @@ void WorldTimer_EventHandler(string sServiceScript, string sEvent)
 
 void WorldTimer_SubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bDispatchListMode = FALSE)
 {
-    SetLocalInt(ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME), sWorldTimerEvent, TRUE);
+    object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME);
+    int nCurrentSubscribed = GetLocalInt(oDataObject, sWorldTimerEvent);
+
+    SetLocalInt(oDataObject, sWorldTimerEvent, ++nCurrentSubscribed);
+
     Events_SubscribeEvent(sSubsystemScript, sWorldTimerEvent, bDispatchListMode);
+}
+
+void WorldTimer_UnsubscribeEvent(string sSubsystemScript, string sWorldTimerEvent, int bClearDispatchList = TRUE)
+{
+    object oDataObject = ES_Util_GetDataObject(WORLD_TIMER_SCRIPT_NAME);
+    int nCurrentSubscribed = GetLocalInt(oDataObject, sWorldTimerEvent);
+
+    SetLocalInt(oDataObject, sWorldTimerEvent, --nCurrentSubscribed);
+
+    Events_UnsubscribeEvent(sSubsystemScript, sWorldTimerEvent, bClearDispatchList);
 }
 
 int WorldTimer_GetHeartbeatCount()

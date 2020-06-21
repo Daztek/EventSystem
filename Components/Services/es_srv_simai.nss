@@ -228,7 +228,7 @@ void SimpleAI_CleanUpOnDeath()
 
 void SimpleAI_SetAIBehavior(object oCreature, string sBehavior)
 {
-    if (GetObjectType(oCreature) != OBJECT_TYPE_CREATURE || GetIsPC(oCreature))
+    if (GetObjectType(oCreature) != OBJECT_TYPE_CREATURE || ES_Util_GetIsPC(oCreature))
         return;
 
     object oSystemDataObject = ES_Util_GetDataObject(SIMPLE_AI_SCRIPT_NAME);
@@ -260,7 +260,7 @@ void SimpleAI_SetAIBehavior(object oCreature, string sBehavior)
 
 void SimpleAI_UnsetAIBehavior(object oCreature)
 {
-    if (GetObjectType(oCreature) != OBJECT_TYPE_CREATURE || GetIsPC(oCreature))
+    if (GetObjectType(oCreature) != OBJECT_TYPE_CREATURE || ES_Util_GetIsPC(oCreature))
         return;
 
     string sBehavior = SimpleAI_GetAIBehavior(oCreature);

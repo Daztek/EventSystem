@@ -29,7 +29,7 @@ const string CONSOLECOMMAND_FUNCTION            = "Function_";
 
 // Register a console command
 //
-// sSubsystemScript: The subsystem the command is from, for example: es_s_example
+// sComponentScript: The component the command is from, for example: es_s_example
 // sFunction: The function name to execute when the administrator uses the console command.
 //            The implementation must have the following signature: void <Name>(string sArgs)
 //            Note: DelayCommand/AssignCommand will not work in the function.
@@ -38,7 +38,7 @@ const string CONSOLECOMMAND_FUNCTION            = "Function_";
 // sHelpDescription: A description of what the command does for the 'help' console command
 //
 // Returns: TRUE on success
-void ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription);
+void ConsoleCommand_Register(string sComponentScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription);
 
 void ConsoleCommand_RegisterBaseCommand(string sCommand, string sHelpParams, string sHelpDescription)
 {
@@ -86,9 +86,9 @@ void ConsoleCommand_Load(string sCoreComponentScript)
     ConsoleCommand_Register(sCoreComponentScript, "ConsoleCommand_ShowHelp", "help", "", "Display all commands.");
 }
 
-int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription)
+int ConsoleCommand_Register(string sComponentScript, string sFunction, string sCommand, string sHelpParams, string sHelpDescription)
 {
-    if (sSubsystemScript == "" || sFunction == "" || sCommand == "" || sHelpDescription == "")
+    if (sComponentScript == "" || sFunction == "" || sCommand == "" || sHelpDescription == "")
         return FALSE;
 
     object oDataObject = ES_Util_GetDataObject(CONSOLECOMMAND_SCRIPT_NAME);
@@ -97,7 +97,7 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
 
     sCommand = GetStringLowerCase(sCommand);
 
-    if (sSubsystemScript == CONSOLECOMMAND_BASE_COMMAND && sFunction == CONSOLECOMMAND_BASE_COMMAND)
+    if (sComponentScript == CONSOLECOMMAND_BASE_COMMAND && sFunction == CONSOLECOMMAND_BASE_COMMAND)
     {
         SetLocalInt(oDataObject, CONSOLECOMMAND_REGISTERED_COMMAND + sCommand, nCommandID);
         SetLocalInt(oDataObject, CONSOLECOMMAND_NUM_COMMANDS, nCommandID);
@@ -121,17 +121,17 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
                 SetLocalString(oDataObject, CONSOLECOMMAND_COMMAND + sRegisteredCommandID, sCommand);
                 SetLocalString(oDataObject, CONSOLECOMMAND_PARAMS + sRegisteredCommandID, sHelpParams);
                 SetLocalString(oDataObject, CONSOLECOMMAND_DESCRIPTION + sRegisteredCommandID, sHelpDescription);
-                SetLocalString(oDataObject, CONSOLECOMMAND_SUBSYSTEM + sRegisteredCommandID, sSubsystemScript);
+                SetLocalString(oDataObject, CONSOLECOMMAND_SUBSYSTEM + sRegisteredCommandID, sComponentScript);
                 SetLocalString(oDataObject, CONSOLECOMMAND_FUNCTION + sRegisteredCommandID, sFunction);
 
-                bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
+                bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sComponentScript, nssFunction(sFunction, "sArgs"), TRUE);
 
                 if (bReturn)
                     ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Overriding Base Game Console Command -> '" + sCommand + "' by '" +
-                        sSubsystemScript + "' with Function: " + sFunction + "()");
+                        sComponentScript + "' with Function: " + sFunction + "()");
                 else
                     ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to override Console Command -> '" + sCommand + "' by '" +
-                        sSubsystemScript + "' with Function: " + sFunction + "()");
+                        sComponentScript + "' with Function: " + sFunction + "()");
             }
             else
             {
@@ -147,17 +147,17 @@ int ConsoleCommand_Register(string sSubsystemScript, string sFunction, string sC
             SetLocalString(oDataObject, CONSOLECOMMAND_COMMAND + sCommandID, sCommand);
             SetLocalString(oDataObject, CONSOLECOMMAND_PARAMS + sCommandID, sHelpParams);
             SetLocalString(oDataObject, CONSOLECOMMAND_DESCRIPTION + sCommandID, sHelpDescription);
-            SetLocalString(oDataObject, CONSOLECOMMAND_SUBSYSTEM + sCommandID, sSubsystemScript);
+            SetLocalString(oDataObject, CONSOLECOMMAND_SUBSYSTEM + sCommandID, sComponentScript);
             SetLocalString(oDataObject, CONSOLECOMMAND_FUNCTION + sCommandID, sFunction);
 
-            bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sSubsystemScript, nssFunction(sFunction, "sArgs"), TRUE);
+            bReturn = ES_Util_RegisterServerConsoleCommand(sCommand, sComponentScript, nssFunction(sFunction, "sArgs"), TRUE);
 
             if (bReturn)
                 ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* Registering Console Command -> '" + sCommand + "' for '" +
-                    sSubsystemScript + "' with Function: " + sFunction + "()");
+                    sComponentScript + "' with Function: " + sFunction + "()");
             else
                 ES_Util_Log(CONSOLECOMMAND_LOG_TAG, "* ERROR: Failed to register Console Command -> '" + sCommand + "' for '" +
-                    sSubsystemScript + "' with Function: " + sFunction + "()");
+                    sComponentScript + "' with Function: " + sFunction + "()");
         }
     }
 
