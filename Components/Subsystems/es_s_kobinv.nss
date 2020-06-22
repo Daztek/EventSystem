@@ -86,33 +86,31 @@ void KI_Load(string sSubsystemScript)
 }
 
 // @Test
-int KI_Test(string sSubsystemScript)
+void KI_Test(string sSubsystemScript)
 {
     object oObject = GetObjectByTag(KI_START_NPC_TAG);
-    int bResult = Test_Assert("NPC Exists", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_CREATURE));
+    Test_Assert("NPC Exists", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_CREATURE));
 
     object oArea = GetObjectByTag(KI_AREA_TEMPLATE_TAG);
-    bResult = Test_Assert("Template Area Exists", (GetIsObjectValid(oArea) && NWNX_Object_GetInternalObjectType(oArea) == NWNX_OBJECT_TYPE_INTERNAL_AREA));
+    Test_Assert("Template Area Exists", (GetIsObjectValid(oArea) && NWNX_Object_GetInternalObjectType(oArea) == NWNX_OBJECT_TYPE_INTERNAL_AREA));
 
-    if (bResult)
+    if (GetIsObjectValid(oArea))
     {
         oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_START_TAG, oArea);
-        bResult = Test_Assert("Start Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+        Test_Assert("Start Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
 
         oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_CATAPULT_TAG, oArea);
-        bResult = Test_Assert("Catapult Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+        Test_Assert("Catapult Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
 
         oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_SPAWN_TAG, oArea);
-        bResult = Test_Assert("Spawn Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+        Test_Assert("Spawn Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
 
         oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_MOVETO_TAG, oArea);
-        bResult = Test_Assert("MoveTo Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
+        Test_Assert("MoveTo Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
 
         oObject = ES_Util_GetObjectByTagInArea(KI_BRIDGE_GATE_TAG, oArea);
-        bResult = Test_Assert("Bridge Gate Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_DOOR));
+        Test_Assert("Bridge Gate Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_DOOR));
     }
-
-    return bResult;
 }
 
 // @EventHandler

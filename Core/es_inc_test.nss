@@ -9,33 +9,39 @@
 
 const string TEST_SCRIPT_NAME = "es_inc_test";
 
-int Test_Assert(string sTestName, int bAssert);
+void Test_Assert(string sTestName, int bAssert);
 
 int Test_ExecuteTestFunction(string sComponent, string sFunction)
 {
-    object oDataObject = ES_Util_GetDataObject(TEST_SCRIPT_NAME);
+    int bReturn;
+    string sResult = ES_Util_ExecuteScriptChunk(sComponent, nssFunction(sFunction, nssEscapeDoubleQuotes(sComponent)), GetModule());
 
-    SetLocalString(oDataObject, "CurrentTestComponent", sComponent);
+    if (sResult != "")
+    {
+        ES_Util_Log("Test", "    > WARNING: Failed to run tests with error: " + sResult);
+        bReturn = FALSE;
+    }
+    else
+    {
+        object oDataObject = ES_Util_GetDataObject(TEST_SCRIPT_NAME);
+        int nTotal = GetLocalInt(oDataObject, "NumTests");
+        int nFailed = GetLocalInt(oDataObject, "FailedTests");
+        int nPassed = nTotal - nFailed;
 
-    int bResult = ES_Util_ExecuteScriptChunkAndReturnInt(sComponent, nssFunction(sFunction, nssEscapeDoubleQuotes(sComponent)), GetModule());
+        ES_Util_Log("Test", "    * RESULT: Total: " + IntToString(nTotal) + " -> " + IntToString(nPassed) + " Passed | " + IntToString(nFailed) + " Failed");
 
-    int nTotal = GetLocalInt(oDataObject, "NumTests");
-    int nFailed = GetLocalInt(oDataObject, "FailedTests");
-    int nPassed = nTotal - nFailed;
+        DeleteLocalInt(oDataObject, "NumTests");
+        DeleteLocalInt(oDataObject, "FailedTests");
 
-    ES_Util_Log("Test", "    * RESULT: Total: " + IntToString(nTotal) + " -> " + IntToString(nPassed) + " Passed | " + IntToString(nFailed) + " Failed");
+        bReturn = !nFailed;
+    }
 
-    DeleteLocalString(oDataObject, "CurrentTestComponent");
-    DeleteLocalInt(oDataObject, "NumTests");
-    DeleteLocalInt(oDataObject, "FailedTests");
-
-    return bResult;
+    return bReturn;
 }
 
-int Test_Assert(string sTestName, int bAssert)
+void Test_Assert(string sTestName, int bAssert)
 {
     object oDataObject = ES_Util_GetDataObject(TEST_SCRIPT_NAME);
-    string sCurrentTestComponent = GetLocalString(oDataObject, "CurrentTestComponent");
     int nCurrentTest = GetLocalInt(oDataObject, "NumTests") + 1;
 
     ES_Util_Log("Test", "      [" + IntToString(nCurrentTest) + "] " + sTestName + " -> " + (bAssert ? "PASS" : "FAIL"));
@@ -44,7 +50,5 @@ int Test_Assert(string sTestName, int bAssert)
         SetLocalInt(oDataObject, "FailedTests", GetLocalInt(oDataObject, "FailedTests") + 1);
 
     SetLocalInt(oDataObject, "NumTests", nCurrentTest);
-
-    return bAssert;
 }
 

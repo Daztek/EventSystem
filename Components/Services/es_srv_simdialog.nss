@@ -147,9 +147,9 @@ void SimpleDialog_Load(string sServiceScript)
 }
 
 // @Test
-int SimpleDialog_Test(string sServiceScript)
+void SimpleDialog_Test(string sServiceScript)
 {
-    return Test_Assert("Conversation File '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' Exists", NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG));
+    Test_Assert("Conversation File '" + SIMPLE_DIALOG_CONVERSATION + ".dlg' Exists", NWNX_Util_IsValidResRef(SIMPLE_DIALOG_CONVERSATION, NWNX_UTIL_RESREF_TYPE_DIALOG));
 }
 
 int SimpleDialog_HandleStartingConditional()

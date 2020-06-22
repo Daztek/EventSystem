@@ -40,9 +40,9 @@ void SQL_Load(string sCoreComponentScript)
 }
 
 // @Test
-int SQL_Test(string sCoreComponentScript)
+void SQL_Test(string sCoreComponentScript)
 {
-    return Test_Assert("NWNX_SQL_GetDatabaseType() != \"\"", NWNX_SQL_GetDatabaseType() != "");
+    Test_Assert("NWNX_SQL_GetDatabaseType() != \"\"", NWNX_SQL_GetDatabaseType() != "");
 }
 
 int SQL_GetTableExists(string sTable)

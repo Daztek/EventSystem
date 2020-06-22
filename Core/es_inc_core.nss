@@ -43,7 +43,6 @@ string ES_Core_Component_GetNWNXScriptDependencies(string sComponent, string sSc
 string ES_Core_Component_GetDependenciesByType(string sComponent, string sScriptContents, int nType);
 void ES_Core_Component_GetFunctionByType(object oComponentDataObject, string sScriptContents, string sFunctionType);
 void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType, int bUseCachedScript = FALSE, int bForceExecute = FALSE);
-void ES_Core_Component_GetTestFunction(object oComponentDataObject, string sScriptContents);
 void ES_Core_Component_ExecuteTestFunction(string sComponent);
 
 void ES_Core_Init()
@@ -264,7 +263,8 @@ void ES_Core_CheckCoreHashes()
 
 int ES_Core_GetCoreHashChanged()
 {
-    return GetLocalInt(ES_Core_GetCoreDataObject(), "CoreHashChanged");
+    return GetLocalInt(ES_Core_GetCoreDataObject(), "CoreHashChanged") ||
+           ES_Core_GetNWNXHashChanged("nwnx_util"); // nwnx_util.nss is used in es_inc_util
 }
 
 int ES_Core_GetComponentHashChanged(string sComponent)
@@ -486,17 +486,6 @@ void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType, 
     }
 }
 
-void ES_Core_Component_GetTestFunction(object oComponentDataObject, string sScriptContents)
-{
-    string sFunction = ES_Util_GetFunctionName(sScriptContents, "Test", "int");
-
-    if (sFunction != "")
-    {
-        ES_Util_Log(ES_CORE_LOG_TAG, "    > Test Function: " + sFunction + "()");
-        SetLocalString(oComponentDataObject, "TestFunction", sFunction);
-    }
-}
-
 void ES_Core_Component_ExecuteTestFunction(string sComponent)
 {
     object oComponentDataObject = ES_Core_GetComponentDataObject(sComponent);
@@ -582,7 +571,7 @@ void ES_Core_Component_Initialize(string sComponent, int nType)
 
     // Get Functions
     ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Load");
-    ES_Core_Component_GetTestFunction(oComponentDataObject, sScriptContents);
+    ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "Test");
 
     if (nType == ES_CORE_COMPONENT_TYPE_SERVICE || nType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
         ES_Core_Component_GetFunctionByType(oComponentDataObject, sScriptContents, "EventHandler");
@@ -663,7 +652,7 @@ void ES_Core_Component_CheckComponentDependenciesByType(string sComponent, int n
             string sComponentDependency = StringArray_At(oComponentDataObject, sComponentDependencyTypeNamePlural, nComponentDependencyIndex);
             object oComponentDependencyDataObject = ES_Core_GetComponentDataObject(sComponentDependency);
 
-            if (GetLocalInt(oComponentDependencyDataObject, "HashChanged"))
+            if (GetLocalInt(oComponentDependencyDataObject, "HashChanged") || GetLocalInt(oComponentDependencyDataObject, "DependencyHashChanged"))
             {
                 ES_Util_Log(ES_CORE_LOG_TAG, "  > " + sComponentDependencyTypeNamePlural + " for '" + sComponent + "' have changed");
 
