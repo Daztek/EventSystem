@@ -115,9 +115,7 @@ object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
     SetPlotFlag(oNPC, nd.bPlot);
 
     if (nd.bRandomScale)
-    {
         SetObjectVisualTransform(oNPC, OBJECT_VISUAL_TRANSFORM_SCALE, 0.85 + IntToFloat(Random(30))/100);
-    }
 
     if (nd.nGender < 0 || nd.nGender > 1)
         NWNX_Creature_SetGender(oNPC, Random(2));

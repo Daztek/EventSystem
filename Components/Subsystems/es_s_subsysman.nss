@@ -36,8 +36,9 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
         if (sAlias == "NWNX" && nType == NWNX_UTIL_RESREF_TYPE_NSS)
         {
             string sResRef = Events_GetEventData_NWNX_String("RESREF");
+            int nComponentType = ES_Core_Component_GetTypeFromScriptName(sResRef);
 
-            if (ES_Core_Component_GetTypeFromScriptName(sResRef) == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
+            if (nComponentType == ES_CORE_COMPONENT_TYPE_SUBSYSTEM)
             {
                 object oDataObject = ES_Util_GetDataObject(SUBSYSTEM_MANAGER_SCRIPT_NAME);
                 object oComponent = ES_Core_GetComponentDataObject(sResRef, FALSE);
@@ -58,7 +59,7 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
 
                         ES_Core_Component_ExecuteFunction(sResRef, "Unload", TRUE, TRUE);
 
-                        ES_Core_Component_Initialize(sResRef, ES_CORE_COMPONENT_TYPE_SUBSYSTEM);
+                        ES_Core_Component_Initialize(sResRef, nComponentType);
                         ES_Core_Component_CheckEventHandler(sResRef);
 
                         ES_Core_Component_ExecuteFunction(sResRef, "Load", FALSE, TRUE);

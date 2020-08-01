@@ -51,7 +51,7 @@ void KI_SetupGUIEvents(string sSubsystemScript);
 void KI_DrawStaticGUI(object oPlayer);
 void KI_UpdateKoboldKillCount(object oPlayer, object oInstance);
 void KI_UpdateGUI(object oPlayer);
-void KI_HandleGUIEvent(object oPlayer);
+void KI_HandleGUIEvent(object oPlayer, string sEvent);
 
 void KI_StartConversation(object oPlayer, object oNPC);
 
@@ -94,8 +94,6 @@ void KI_Test(string sSubsystemScript)
     object oArea = GetObjectByTag(KI_AREA_TEMPLATE_TAG);
     Test_Assert("Template Area Exists", (GetIsObjectValid(oArea) && NWNX_Object_GetInternalObjectType(oArea) == NWNX_OBJECT_TYPE_INTERNAL_AREA));
 
-    if (GetIsObjectValid(oArea))
-    {
         oObject = ES_Util_GetObjectByTagInArea(KI_WAYPOINT_START_TAG, oArea);
         Test_Assert("Start Waypoint Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
 
@@ -110,7 +108,7 @@ void KI_Test(string sSubsystemScript)
 
         oObject = ES_Util_GetObjectByTagInArea(KI_BRIDGE_GATE_TAG, oArea);
         Test_Assert("Bridge Gate Exists In Template Area", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_DOOR));
-    }
+
 }
 
 // @EventHandler
@@ -122,8 +120,8 @@ void KI_EventHandler(string sSubsystemScript, string sEvent)
     if (sEvent == Spellhook_GetEventName(KI_SPELL_ID))
         KI_HandleFireball(OBJECT_SELF);
     else
-    if (sEvent == "NWNX_ON_INPUT_KEYBOARD_BEFORE")
-        KI_HandleGUIEvent(OBJECT_SELF);
+    if (sEvent == "NWNX_ON_INPUT_KEYBOARD_BEFORE" || sEvent == "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE")
+        KI_HandleGUIEvent(OBJECT_SELF, sEvent);
     else
     if (sEvent == "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE")
         Events_SkipEvent();
@@ -295,6 +293,7 @@ void KI_SetupKoboldEvents(string sSubsystemScript)
 void KI_SetupGUIEvents(string sSubsystemScript)
 {
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_KEYBOARD_BEFORE", TRUE);
+    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE", TRUE);
     GUI_ReserveIDs(sSubsystemScript, KI_GUI_NUM_IDS);
 }
 
@@ -354,13 +353,23 @@ void KI_UpdateGUI(object oPlayer)
     KI_UpdateKoboldKillCount(oPlayer, oInstance);
 }
 
-void KI_HandleGUIEvent(object oPlayer)
+void KI_HandleGUIEvent(object oPlayer, string sEvent)
 {
     if (!GUI_GetIsPlayerInputLocked(oPlayer))
         return;
 
     object oInstance = GetArea(oPlayer);
-    string sKey = Events_GetEventData_NWNX_String("KEY");
+
+    string sKey;
+    if (sEvent == "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE")
+    {
+        sKey = "SPACEBAR";
+
+        Events_SkipEvent();
+    }
+    else
+        sKey = Events_GetEventData_NWNX_String("KEY");
+
     int nCurrentGUISelection = GetLocalInt(oInstance, "CurrentGUISelection");
     int bRedraw;
 
@@ -386,7 +395,7 @@ void KI_HandleGUIEvent(object oPlayer)
         }
     }
     else
-    if (sKey == "E")
+    if (sKey == "SPACEBAR")
     {
         NWNX_Player_PlaySound(oPlayer, "gui_picklockopen");
 
@@ -539,8 +548,10 @@ void KI_HandleAreaEnter(object oPlayer, object oInstance)
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", oPlayer);
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE", oPlayer);
     Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
+    Events_AddObjectToDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE", oPlayer);
 
-    SendMessageToPC(oPlayer, "Hello! If you look to the top left you'll see a little menu with two options, you can switch between them with the 'W' and 'S' keys and select an option with the 'E' key!");
+
+    SendMessageToPC(oPlayer, "Hello! If you look to the top left you'll see a little menu with two options, you can switch between them with the 'W' and 'S' keys and select an option with the 'Spacebar'!");
 }
 
 void KI_HandleAreaExit(object oPlayer, object oInstance)
@@ -564,6 +575,7 @@ void KI_HandleAreaExit(object oPlayer, object oInstance)
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_WALK_TO_WAYPOINT_BEFORE", oPlayer);
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_ATTACK_OBJECT_BEFORE", oPlayer);
     Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
+    Events_RemoveObjectFromDispatchList(KI_SCRIPT_NAME, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE", oPlayer);
 }
 
 // ** CATAPULT FUNCTIONS

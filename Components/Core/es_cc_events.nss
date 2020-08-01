@@ -98,11 +98,6 @@ void Events_Load(string sCoreComponentScript)
 {
     ES_Util_Log(EVENTS_LOG_TAG, "* Checking Object Event Scripts");
 
-    // Check if the module shutdown script is set to sShutdownScriptName
-    string sShutdownScriptName = EVENTS_SCRIPT_PREFIX + IntToString(EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN);
-    if (NWNX_Util_GetEnvironmentVariable("NWNX_CORE_SHUTDOWN_SCRIPT") != sShutdownScriptName)
-        ES_Util_Log(EVENTS_LOG_TAG, "  > WARNING: NWNX environment variable 'NWNX_CORE_SHUTDOWN_SCRIPT' is not set to: " + sShutdownScriptName);
-
     // Check if all the object event script exist and (re)compile them if needed
     Events_CheckObjectEventScripts(EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN);
     Events_CheckObjectEventScripts(EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT);
@@ -132,6 +127,14 @@ void Events_Load(string sCoreComponentScript)
 
         oArea = GetNextArea();
     }
+}
+
+// @Test
+void Events_Test(string sCoreComponentScript)
+{
+    string sShutdownScriptName = EVENTS_SCRIPT_PREFIX + IntToString(EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN);
+    int bTest = NWNX_Util_GetEnvironmentVariable("NWNX_CORE_SHUTDOWN_SCRIPT") == sShutdownScriptName;
+    Test_Warn("NWNX environment variable 'NWNX_CORE_SHUTDOWN_SCRIPT' is set to: " + sShutdownScriptName, bTest);
 }
 
 // *** INTERNAL FUNCTIONS
