@@ -181,7 +181,7 @@ void POS_DeleteObjectRegex(object oObject, string sRegex)
 
 object POS_GetObject(object oObject, string sVarName)
 {
-    return NWNX_Object_StringToObject(NWNX_Object_GetString(oObject, "ES!OBJ!" + sVarName));
+    return StringToObject(NWNX_Object_GetString(oObject, "ES!OBJ!" + sVarName));
 }
 
 void POS_SetObject(object oObject, string sVarName, object oValue)

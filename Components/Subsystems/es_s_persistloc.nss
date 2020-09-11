@@ -58,9 +58,10 @@ void PersistentLocation_LoadLocation(object oPlayer)
     if (!GetLocalInt(oDataObject, sUUID))
     {
         location locLocation = POS_GetLocation(oPlayer, PERSISTENT_LOCATION_SCRIPT_NAME + "_Location");
-        object oWaypoint = ES_Util_CreateWaypoint(locLocation, PERSISTENT_LOCATION_SCRIPT_NAME + sUUID);
+        //object oWaypoint = ES_Util_CreateWaypoint(locLocation, PERSISTENT_LOCATION_SCRIPT_NAME + sUUID);
 
-        NWNX_Player_SetPersistentLocation(GetPCPublicCDKey(oPlayer), NWNX_Player_GetBicFileName(oPlayer), oWaypoint);
+        //NWNX_Player_SetPersistentLocation(GetPCPublicCDKey(oPlayer), NWNX_Player_GetBicFileName(oPlayer), oWaypoint);
+        NWNX_Player_SetSpawnLocation(oPlayer, locLocation);
 
         SetLocalInt(oDataObject, sUUID, TRUE);
     }

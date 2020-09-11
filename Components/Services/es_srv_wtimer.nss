@@ -33,8 +33,6 @@ int WorldTimer_GetHeartbeatCount();
 // @Load
 void WorldTimer_Load(string sServiceScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sServiceScript);
-
     Events_SubscribeEvent_Object(sServiceScript, EVENT_SCRIPT_MODULE_ON_HEARTBEAT);
 }
 

@@ -11,7 +11,6 @@
 //void main() {}
 
 #include "es_inc_core"
-#include "es_cc_sql"
 #include "nwnx_creature"
 #include "nwnx_object"
 
@@ -31,12 +30,12 @@ object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation);
 // Get a random pre-generated NPC
 object RandomNPC_GetRandomPregeneratedNPC(string sTag, location locSpawn);
 // Get a random soundset for nGender
-int RandomNPC_GetRandomSoundset(int nGender);
+int RandomNPC_GetRandomSoundset(int nGender, int nMaxType);
 
 // @Load
 void RandomNPC_Load(string sServiceScript)
 {
-    string sNPC = GetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_TEMPLATE_TAG);
+    string sNPC = GetCampaignString(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_TEMPLATE_TAG);
     if (sNPC == "")
     {
         ES_Util_Log(RANDOM_NPC_LOG_TAG, "* Generating NPC Template");
@@ -58,13 +57,12 @@ void RandomNPC_Load(string sServiceScript)
             }
 
             sNPC = NWNX_Object_Serialize(oNPC);
-            SetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_TEMPLATE_TAG, sNPC);
+            SetCampaignString(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_TEMPLATE_TAG, sNPC);
 
             DestroyObject(oNPC);
     }
 
     object oModule = GetModule();
-
     ES_Util_ExecuteScriptChunk(sServiceScript, nssFunction("RandomNPC_CacheNPCSoundsets"), oModule);
     ES_Util_ExecuteScriptChunk(sServiceScript, nssFunction("RandomNPC_PregenerateRandomNPCs", "RANDOM_NPC_PREGENERATE_AMOUNT_ON_INIT"), oModule);
 }
@@ -95,7 +93,7 @@ struct RandomNPC_NPCData
 
 object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
 {
-    object oNPC = NWNX_Object_Deserialize(GetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_TEMPLATE_TAG));
+    object oNPC = NWNX_Object_Deserialize(GetCampaignString(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_TEMPLATE_TAG));
 
     if (!NWNX_Creature_GetKnowsFeat(oNPC, FEAT_ARMOR_PROFICIENCY_LIGHT))
         NWNX_Creature_AddFeat(oNPC, FEAT_ARMOR_PROFICIENCY_LIGHT);
@@ -124,7 +122,7 @@ object RandomNPC_CreateNPC(struct RandomNPC_NPCData nd, location locLocation)
 
     SetPortraitResRef(oNPC, !GetGender(oNPC) ? "hu_m_99_" : "hu_f_99_");
 
-    NWNX_Creature_SetSoundset(oNPC, RandomNPC_GetRandomSoundset(GetGender(oNPC)));
+    NWNX_Creature_SetSoundset(oNPC, RandomNPC_GetRandomSoundset(GetGender(oNPC), 2));
 
     int nRace = GetRacialType(oNPC);
     SetCreatureAppearanceType(oNPC, nRace);
@@ -260,7 +258,7 @@ object RandomNPC_GenerateRandomNPC(location locLocation)
 
 void RandomNPC_PregenerateRandomNPCs(int nAmount)
 {
-    int nCurrentAmount = GetCampaignInt(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT);
+    int nCurrentAmount = GetCampaignInt(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT);
     int nTotal = nCurrentAmount + nAmount;
 
     ES_Util_Log(RANDOM_NPC_LOG_TAG, "* Pre-generated NPC amount: " + IntToString(nCurrentAmount) + "/" + IntToString(RANDOM_NPC_PREGENERATE_MAX));
@@ -270,7 +268,7 @@ void RandomNPC_PregenerateRandomNPCs(int nAmount)
 
     ES_Util_Log(RANDOM_NPC_LOG_TAG, "  > Generating an additional '" + IntToString(nAmount) + "' random NPCs");
 
-    SetCampaignInt(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT, nTotal);
+    SetCampaignInt(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT, nTotal);
 
     location locLocation = GetStartingLocation();
 
@@ -280,7 +278,7 @@ void RandomNPC_PregenerateRandomNPCs(int nAmount)
         object oNPC = RandomNPC_GenerateRandomNPC(locLocation);
         string sNPC = NWNX_Object_Serialize(oNPC);
 
-        SetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(nIndex), sNPC);
+        SetCampaignString(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(nIndex), sNPC);
 
         DestroyObject(oNPC);
     }
@@ -290,8 +288,8 @@ void RandomNPC_PregenerateRandomNPCs(int nAmount)
 
 object RandomNPC_GetRandomPregeneratedNPC(string sTag, location locSpawn)
 {
-    int nCount = GetCampaignInt(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT);
-    string sNPC = GetCampaignString(GetModuleName() + "_" + RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(Random(nCount)));
+    int nCount = GetCampaignInt(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_AMOUNT);
+    string sNPC = GetCampaignString(RANDOM_NPC_SCRIPT_NAME, RANDOM_NPC_PREGENERATE_NAME + IntToString(Random(nCount)));
     object oNPC = NWNX_Object_Deserialize(sNPC);
 
     SetTag(oNPC, sTag);
@@ -304,7 +302,7 @@ void RandomNPC_CacheNPCSoundsets()
 {
     string sSoundset2DA = "soundset";
 
-    if (SQL_GetTableExists(RANDOM_NPC_SCRIPT_NAME + "_" + sSoundset2DA))
+    if (SqlGetTableExistsCampaign(RANDOM_NPC_SCRIPT_NAME, sSoundset2DA))
     {
         ES_Util_Log(RANDOM_NPC_LOG_TAG, "* Table for '" + sSoundset2DA + "' already exists, skipping!");
         return;
@@ -312,50 +310,50 @@ void RandomNPC_CacheNPCSoundsets()
 
     ES_Util_Log(RANDOM_NPC_LOG_TAG, "* Creating table for '" + sSoundset2DA + "'");
 
-    string sQuery = "CREATE TABLE IF NOT EXISTS " + RANDOM_NPC_SCRIPT_NAME + "_" + sSoundset2DA + " ( SoundsetNum INTEGER UNIQUE, Gender INTEGER NOT NULL, Type INTEGER NOT NULL );";
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_ExecutePreparedQuery();
+    string sQuery = "CREATE TABLE IF NOT EXISTS " + sSoundset2DA + " ( SoundsetNum INTEGER UNIQUE, Gender INTEGER NOT NULL, Type INTEGER NOT NULL );";
+    sqlquery sql = SqlPrepareQueryCampaign(RANDOM_NPC_SCRIPT_NAME, sQuery);
+    SqlStep(sql);
 
     int nNumRows = NWNX_Util_Get2DARowCount(sSoundset2DA);
+    PrintInteger(nNumRows);
 
-    sQuery = "INSERT INTO " + RANDOM_NPC_SCRIPT_NAME + "_" + sSoundset2DA + " (SoundsetNum, Gender, Type) VALUES (?, ?, ?);";
-    NWNX_SQL_PrepareQuery(sQuery);
+    sQuery = "INSERT INTO " + sSoundset2DA + " (SoundsetNum, Gender, Type) VALUES (@SoundsetNum, @Gender, @Type);";
 
     int nIndex;
     for (nIndex = 0; nIndex < nNumRows; nIndex++)
     {
+        string sResRef = Get2DAString(sSoundset2DA, "RESREF", nIndex);
         int nType = StringToInt(Get2DAString(sSoundset2DA, "TYPE", nIndex));
 
-        if (nType <= 3)
+        if (sResRef != "" && nType <= 3)
         {
             int nGender = StringToInt(Get2DAString(sSoundset2DA, "GENDER", nIndex));
 
             ES_Util_Log(RANDOM_NPC_LOG_TAG, "  > Inserting Soundset: Index: '" + IntToString(nIndex) +
                 "', Type: '" + IntToString(nType) + "', Gender: '" + IntToString(nGender) + "'");
 
-            NWNX_SQL_PreparedInt(0, nIndex);
-            NWNX_SQL_PreparedInt(1, nGender);
-            NWNX_SQL_PreparedInt(2, nType);
-            NWNX_SQL_ExecutePreparedQuery();
+            sql = SqlPrepareQueryCampaign(RANDOM_NPC_SCRIPT_NAME, sQuery);
+            SqlBindInt(sql, "@SoundsetNum", nIndex);
+            SqlBindInt(sql, "@Gender", nGender);
+            SqlBindInt(sql, "@Type", nType);
+            SqlStep(sql);
         }
     }
 }
 
-int RandomNPC_GetRandomSoundset(int nGender)
+int RandomNPC_GetRandomSoundset(int nGender, int nMaxType)
 {
     int bReturn = 0;
 
-    string sQuery = "SELECT SoundsetNum FROM " + RANDOM_NPC_SCRIPT_NAME + "_soundset WHERE Gender = ? AND Type <= 2 ORDER BY RANDOM() LIMIT 1;";
+    string sQuery = "SELECT SoundsetNum FROM soundset WHERE Gender = @Gender AND Type <= @MaxType ORDER BY RANDOM() LIMIT 1;";
+    sqlquery sql = SqlPrepareQueryCampaign(RANDOM_NPC_SCRIPT_NAME, sQuery);
 
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_PreparedInt(0, nGender);
-    NWNX_SQL_ExecutePreparedQuery();
+    SqlBindInt(sql, "@Gender", nGender);
+    SqlBindInt(sql, "@MaxType", nMaxType);
 
-    if (NWNX_SQL_ReadyToReadNextRow())
+    if (SqlStep(sql))
     {
-        NWNX_SQL_ReadNextRow();
-
-        bReturn = StringToInt(NWNX_SQL_ReadDataInActiveRow(0));
+        bReturn = SqlGetInt(sql, 0);
     }
 
     return bReturn;

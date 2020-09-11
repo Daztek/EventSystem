@@ -90,7 +90,7 @@ void ChatCommand_ShowHelp(object oPlayer, string sParams, int nVolume)
     object oDataObject = ES_Util_GetDataObject(CHATCOMMAND_SCRIPT_NAME);
     string sHelp = GetLocalString(oDataObject, CHATCOMMAND_HELP_TEXT + GetObjectUUID(oPlayer));
 
-    if (sHelp == "")
+    if (sHelp == "" || sParams == "reload")
     {
         int nNumCommands = GetLocalInt(oDataObject, CHATCOMMAND_NUM_COMMANDS);
 
@@ -163,7 +163,6 @@ void ChatCommand_CreateChatEventHandler(string sServiceScript)
             string sFunction = nssFunction(GetLocalString(oDataObject, CHATCOMMAND_FUNCTION + sCommandID), "oPlayer, sParams, nVolume");
 
             string sInclude = GetLocalString(oDataObject, CHATCOMMAND_SUBSYSTEM + sCommandID);
-
             if (FindSubString(sIncludes, sInclude) == -1)
                 sIncludes += nssInclude(sInclude);
 

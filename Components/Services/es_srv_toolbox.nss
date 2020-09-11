@@ -207,7 +207,7 @@ object Toolbox_CreatePlaceable(string sPlaceable, location locLocation, string s
     float fFacingAdjustment = GetLocalFloat(oPlaceable, "ToolboxFacingAdjustment");
     float fFacing = GetFacingFromLocation(locLocation) + fFacingAdjustment;
 
-    NWNX_Object_SetFacing(oPlaceable, fFacing);
+    AssignCommand(oPlaceable, SetFacing(fFacing));
     DeleteLocalFloat(oPlaceable, "ToolboxFacingAdjustment");
 
     return oPlaceable;

@@ -15,6 +15,8 @@
 #include "es_inc_util"
 #include "es_inc_effects"
 #include "es_inc_test"
+#include "es_inc_sqlite"
+#include "es_inc_sqlocals"
 
 const string ES_CORE_LOG_TAG                = "Core";
 const string ES_CORE_SCRIPT_NAME            = "es_inc_core";
@@ -56,6 +58,8 @@ void ES_Core_Init()
 
     object oModule = GetModule();
     object oCoreDataObject = ES_Core_GetCoreDataObject();
+
+    SQLocals_CreateTable();
 
     // Check Core EventSystem Hashes
     ES_Util_Log(ES_CORE_LOG_TAG, "* Hash Check: Core");
@@ -198,7 +202,7 @@ object ES_Core_GetComponentDataObject(string sComponent, int bCreateIfNotExists 
 
 string ES_Core_GetDatabaseName()
 {
-    return "ESCore_" + GetModuleName();
+    return ES_CORE_SCRIPT_NAME;
 }
 
 void ES_Core_SetDBInt(string sVarName, int nValue, string sComponent = "")
@@ -457,6 +461,8 @@ void ES_Core_Component_ExecuteFunction(string sComponent, string sFunctionType, 
         if (bForceExecute || !GetLocalInt(oComponentDataObject, "Disabled"))
         {
             string sResult;
+
+            SetScriptParam("SCRIPT_NAME", sComponent);
 
             if (bUseCachedScript)
             {

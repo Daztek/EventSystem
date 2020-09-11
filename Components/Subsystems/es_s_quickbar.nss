@@ -11,7 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
-#include "es_cc_sql"
+#include "es_cc_profiler"
 #include "es_srv_chatcom"
 #include "nwnx_creature"
 
@@ -24,76 +24,63 @@ const string QUICKBAR_CHATCOMMAND_DESCRIPTION   = "Save or Load Quickbar Configu
 // @Load
 void Quickbar_Load(string sSubsystemScript)
 {
-    string sQuery = "CREATE TABLE IF NOT EXISTS " + QUICKBAR_SCRIPT_NAME + "_quickbardata(" +
+    string sQuery = "CREATE TABLE IF NOT EXISTS quickbar_data (" +
                     "uuid TEXT NOT NULL, " +
                     "name TEXT NOT NULL, " +
                     "quickbar TEXT NOT NULL, " +
                     "PRIMARY KEY(uuid, name));";
-    NWNX_SQL_ExecuteQuery(sQuery);
+    sqlquery sql = SqlPrepareQueryCampaign(sSubsystemScript, sQuery);
+    SqlStep(sql);
 
-    ChatCommand_Register(sSubsystemScript, "Quickbar_ChatCommand",  CHATCOMMAND_GLOBAL_PREFIX + QUICKBAR_CHATCOMMAND_NAME, "", QUICKBAR_CHATCOMMAND_DESCRIPTION);
+    ChatCommand_Register(sSubsystemScript, "Quickbar_ChatCommand", CHATCOMMAND_GLOBAL_PREFIX + QUICKBAR_CHATCOMMAND_NAME, "", QUICKBAR_CHATCOMMAND_DESCRIPTION);
 }
 
 string Quickbar_GetQuickbar(object oPlayer, string sName)
 {
     string sSerializedQuickbar;
-    string sQuery = "SELECT quickbar FROM " + QUICKBAR_SCRIPT_NAME + "_quickbardata WHERE uuid=? AND name=?;";
+    string sQuery = "SELECT quickbar FROM quickbar_data WHERE uuid=@uuid AND name=@name;";
+    sqlquery sql = SqlPrepareQueryCampaign(QUICKBAR_SCRIPT_NAME, sQuery);
 
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_PreparedString(0, GetObjectUUID(oPlayer));
-    NWNX_SQL_PreparedString(1, sName);
-    NWNX_SQL_ExecutePreparedQuery();
+    SqlBindString(sql, "@uuid", GetObjectUUID(oPlayer));
+    SqlBindString(sql, "@name", sName);
 
-    if (NWNX_SQL_ReadyToReadNextRow())
-    {
-        NWNX_SQL_ReadNextRow();
-
-        sSerializedQuickbar = NWNX_SQL_ReadDataInActiveRow(0);
-    }
-
-    return sSerializedQuickbar;
+    return SqlStep(sql) ? SqlGetString(sql, 0) : "";
 }
 
 void Quickbar_SaveQuickbar(object oPlayer, string sName, string sSerializedQuickbar)
 {
-    string sQuery = "REPLACE INTO " + QUICKBAR_SCRIPT_NAME + "_quickbardata(uuid, name, quickbar) VALUES(?, ?, ?);";
+    string sQuery = "REPLACE INTO quickbar_data (uuid, name, quickbar) VALUES(@uuid, @name, @quickbar);";
+    sqlquery sql = SqlPrepareQueryCampaign(QUICKBAR_SCRIPT_NAME, sQuery);
 
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_PreparedString(0, GetObjectUUID(oPlayer));
-    NWNX_SQL_PreparedString(1, sName);
-    NWNX_SQL_PreparedString(2, sSerializedQuickbar);
-
-    NWNX_SQL_ExecutePreparedQuery();
+    SqlBindString(sql, "@uuid", GetObjectUUID(oPlayer));
+    SqlBindString(sql, "@name", sName);
+    SqlBindString(sql, "@quickbar", sSerializedQuickbar);
+    SqlStep(sql);
 }
 
 void Quickbar_DeleteQuickbar(object oPlayer, string sName)
 {
-    string sQuery = "DELETE FROM " + QUICKBAR_SCRIPT_NAME + "_quickbardata WHERE uuid=? AND name=?;";
+    string sQuery = "DELETE FROM quickbar_data WHERE uuid=@uuid AND name=@name;";
+    sqlquery sql = SqlPrepareQueryCampaign(QUICKBAR_SCRIPT_NAME, sQuery);
 
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_PreparedString(0, GetObjectUUID(oPlayer));
-    NWNX_SQL_PreparedString(1, sName);
-
-    NWNX_SQL_ExecutePreparedQuery();
+    SqlBindString(sql, "@uuid", GetObjectUUID(oPlayer));
+    SqlBindString(sql, "@name", sName);
+    SqlStep(sql);
 }
 
 string Quickbar_ListQuickbars(object oPlayer)
 {
-    string sSerializedQuickbar;
-    string sQuery = "SELECT name FROM " + QUICKBAR_SCRIPT_NAME + "_quickbardata WHERE uuid=?;";
+    string sQuickbarList, sQuery = "SELECT name FROM quickbar_data WHERE uuid=@uuid;";
+    sqlquery sql = SqlPrepareQueryCampaign(QUICKBAR_SCRIPT_NAME, sQuery);
 
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_PreparedString(0, GetObjectUUID(oPlayer));
-    NWNX_SQL_ExecutePreparedQuery();
+    SqlBindString(sql, "@uuid", GetObjectUUID(oPlayer));
 
-    while (NWNX_SQL_ReadyToReadNextRow())
+    while (SqlStep(sql))
     {
-        NWNX_SQL_ReadNextRow();
-
-        sSerializedQuickbar += NWNX_SQL_ReadDataInActiveRow(0) + ", ";
+        sQuickbarList += SqlGetString(sql, 0) + ", ";
     }
 
-    return GetSubString(sSerializedQuickbar, 0, GetStringLength(sSerializedQuickbar) - 2);
+    return GetSubString(sQuickbarList, 0, GetStringLength(sQuickbarList) - 2);
 }
 
 void Quickbar_ChatCommand(object oPlayer, string sOption, int nVolume)

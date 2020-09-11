@@ -10,6 +10,7 @@
 */
 
 #include "es_inc_core"
+#include "es_cc_profiler"
 #include "nwnx_events"
 #include "nwnx_object"
 
@@ -18,8 +19,12 @@
 const string EVENTS_LOG_TAG                         = "Events";
 const string EVENTS_SCRIPT_NAME                     = "es_cc_events";
 
-const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3018;
+const int EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN    = 3019;
 const string EVENTS_SCRIPT_PREFIX                   = "es_obj_e_";
+
+const int EVENTS_EVENT_TYPE_CUSTOM                  = 0;
+const int EVENTS_EVENT_TYPE_OBJECT                  = 1;
+const int EVENTS_EVENT_TYPE_NWNX                    = 2;
 
 const int EVENTS_EVENT_FLAG_BEFORE                  = 1;
 const int EVENTS_EVENT_FLAG_DEFAULT                 = 2;
@@ -31,7 +36,7 @@ void Events_CheckObjectEventScripts(int nStart, int nEnd);
 // You probably want one of these instead:
 //  - Events_SubscribeEvent_Object()
 //  - Events_SubscribeEvent_NWNX();
-void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode);
+void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode, int nEventType = EVENTS_EVENT_TYPE_CUSTOM, int nFlag = 0);
 
 // Set oObject's nEvent script to the EventSystem's event script
 //
@@ -75,9 +80,9 @@ int Events_SignalEvent(string sEvent, object oTarget);
 void Events_AddObjectToDispatchList(string sComponentScript, string sEvent, object oObject);
 // Remove oObject from sComponentScript's dispatch list for sEvent
 void Events_RemoveObjectFromDispatchList(string sComponentScript, string sEvent, object oObject);
-// Attempt to add oObject to the dispatch lists of *all* events sComponentScript is subscribed to
+// Add oObject to the dispatch lists of all dispatchmode events sComponentScript is subscribed to
 void Events_AddObjectToAllDispatchLists(string sComponentScript, object oObject);
-// Attempt to remove oObject from the dispatch lists of *all* events sComponentScript is subscribed to
+// Remove oObject from the dispatch lists of all dispatchmode events sComponentScript is subscribed to
 void Events_RemoveObjectFromAllDispatchLists(string sComponentScript, object oObject);
 
 // NWNX_Events_GetEventData() string data wrapper
@@ -93,9 +98,25 @@ vector Events_GetEventData_NWNX_Vector(string sTagX, string sTagY, string sTagZ)
 // NWNX_Events_GetEventData() location data wrapper
 location Events_GetEventData_NWNX_Location(string sTagArea, string sTagX, string sTagY, string sTagZ);
 
+// Wrapper function for EnterTargetingMode()
+// Make oPlayer enter a targeting mode named sTargetingMode
+void Events_EnterTargetingMode(object oPlayer, string sTargetingMode, int nValidObjectTypes = OBJECT_TYPE_ALL, int nMouseCursorId = MOUSECURSOR_MAGIC, int nBadTargetCursor = MOUSECURSOR_NOMAGIC);
+// Get the current targeting mode of oPlayer
+string Events_GetCurrentTargetingMode(object oPlayer);
+
 // @Load
 void Events_Load(string sCoreComponentScript)
 {
+    string sQuery = "CREATE TABLE IF NOT EXISTS " + EVENTS_SCRIPT_NAME + " (" +
+                    "component TEXT NOT NULL, " +
+                    "event TEXT NOT NULL, " +
+                    "flag INTEGER NOT NULL, " +
+                    "type INTEGER NOT NULL, " +
+                    "dispatchmode INTEGER NOT NULL, " +
+                    "PRIMARY KEY(component, event));";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlStep(sql);
+
     ES_Util_Log(EVENTS_LOG_TAG, "* Checking Object Event Scripts");
 
     // Check if all the object event script exist and (re)compile them if needed
@@ -113,7 +134,7 @@ void Events_Load(string sCoreComponentScript)
     // Set all module event script to the EventSystem event scripts
     object oModule = GetModule();
     int nEvent;
-    for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_CHAT; nEvent++)
+    for(nEvent = EVENT_SCRIPT_MODULE_ON_HEARTBEAT; nEvent <= EVENT_SCRIPT_MODULE_ON_PLAYER_TARGET; nEvent++)
     {
         Events_SetObjectEventScript(oModule, nEvent);
     }
@@ -154,42 +175,43 @@ void Events_CheckObjectEventScripts(int nStart, int nEnd)
     }
 }
 
-int Events_GetEventFlags(int nEvent)
-{
-    return GetLocalInt(ES_Util_GetDataObject(EVENTS_SCRIPT_NAME), "EventFlags_" + IntToString(nEvent));
-}
-
-void Events_SetEventFlag(int nEvent, int nEventFlag)
-{
-    SetLocalInt(ES_Util_GetDataObject(EVENTS_SCRIPT_NAME),
-                "EventFlags_" + IntToString(nEvent),
-                Events_GetEventFlags(nEvent) | nEventFlag);
-}
-
 void Events_SignalObjectEvent(int nEvent, object oTarget = OBJECT_SELF)
 {
-    int nEventFlags = Events_GetEventFlags(nEvent);
-    string sEvent = IntToString(nEvent) + "_OBJEVT_";
+    string sEventID = IntToString(nEvent);
+    string sEvent = sEventID + "_OBJEVT_";
+    string sQuery = "SELECT " +
+                        "SUM(CASE WHEN flag=" + IntToString(EVENTS_EVENT_FLAG_BEFORE) + " THEN 1 ELSE 0 END), " +
+                        "SUM(CASE WHEN flag=" + IntToString(EVENTS_EVENT_FLAG_DEFAULT) + " THEN 1 ELSE 0 END), " +
+                        "SUM(CASE WHEN flag=" + IntToString(EVENTS_EVENT_FLAG_AFTER) + " THEN 1 ELSE 0 END) " +
+                    "FROM " + EVENTS_SCRIPT_NAME + " WHERE event LIKE @like;";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@like", sEvent + "%");
+    int bResult = SqlStep(sql);
 
-    if (nEventFlags & EVENTS_EVENT_FLAG_BEFORE)
+    if (bResult && SqlGetInt(sql, 0))
         Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_BEFORE), oTarget);
 
-    // Run any old stored event scripts
-    string sScript = GetLocalString(oTarget, EVENTS_SCRIPT_NAME + "_OldEventScript!" + IntToString(nEvent));
+    // Run any stored event scripts
+    string sScript = GetLocalString(oTarget, EVENTS_SCRIPT_NAME + "_OldEventScript!" + sEventID);
     if (sScript != "") ExecuteScript(sScript, oTarget);
 
-    if (nEventFlags & EVENTS_EVENT_FLAG_DEFAULT)
+    if (bResult && SqlGetInt(sql, 1))
         Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_DEFAULT), oTarget);
 
-    if (nEventFlags & EVENTS_EVENT_FLAG_AFTER)
+    if (bResult && SqlGetInt(sql, 2))
         Events_SignalEvent(sEvent + IntToString(EVENTS_EVENT_FLAG_AFTER), oTarget);
 }
 
-void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode)
+void Events_SubscribeEvent(string sScript, string sEvent, int bDispatchListMode, int nEventType = EVENTS_EVENT_TYPE_CUSTOM, int nFlag = 0)
 {
-    object oDataObject = ES_Util_GetDataObject(sScript);
-
-    StringArray_Insert(oDataObject, "SubscribedEvents", sEvent);
+    string sQuery = "REPLACE INTO " + EVENTS_SCRIPT_NAME + "(component, event, flag, type, dispatchmode) VALUES(@component, @event, @flag, @type, @dispatchmode);";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@component", sScript);
+    SqlBindString(sql, "@event", sEvent);
+    SqlBindInt(sql, "@flag", nFlag);
+    SqlBindInt(sql, "@type", nEventType);
+    SqlBindInt(sql, "@dispatchmode", bDispatchListMode);
+    SqlStep(sql);
 
     NWNX_Events_SubscribeEvent(sEvent, sScript);
 
@@ -206,7 +228,10 @@ void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent 
 
     int bSet = SetEventScript(oObject, nEvent, sNewScript);
 
-    if (bSet && bStoreOldEvent && sOldScript != "" && sOldScript != sNewScript)
+    if (!bSet)
+        ES_Util_Log(EVENTS_LOG_TAG, "WARNING: Failed to SetObjectEventScript: " + GetName(oObject) + "(" + IntToString(nEvent) + ")");
+    else
+    if (bStoreOldEvent && sOldScript != "" && sOldScript != sNewScript)
         SetLocalString(oObject, EVENTS_SCRIPT_NAME + "_OldEventScript!" + sEvent, sOldScript);
 }
 
@@ -255,34 +280,27 @@ void Events_SkipEvent()
 void Events_SubscribeEvent_Object(string sComponentScript, int nEvent, int nEventFlags = EVENTS_EVENT_FLAG_DEFAULT, int bDispatchListMode = FALSE)
 {
     if (nEventFlags & EVENTS_EVENT_FLAG_BEFORE)
-    {
-        Events_SetEventFlag(nEvent, EVENTS_EVENT_FLAG_BEFORE);
-        Events_SubscribeEvent(sComponentScript, Events_GetEventName_Object(nEvent, EVENTS_EVENT_FLAG_BEFORE), bDispatchListMode);
-    }
+        Events_SubscribeEvent(sComponentScript, Events_GetEventName_Object(nEvent, EVENTS_EVENT_FLAG_BEFORE), bDispatchListMode, EVENTS_EVENT_TYPE_OBJECT, EVENTS_EVENT_FLAG_BEFORE);
 
     if (nEventFlags & EVENTS_EVENT_FLAG_DEFAULT)
-    {
-        Events_SetEventFlag(nEvent, EVENTS_EVENT_FLAG_DEFAULT);
-        Events_SubscribeEvent(sComponentScript, Events_GetEventName_Object(nEvent, EVENTS_EVENT_FLAG_DEFAULT), bDispatchListMode);
-    }
+        Events_SubscribeEvent(sComponentScript, Events_GetEventName_Object(nEvent, EVENTS_EVENT_FLAG_DEFAULT), bDispatchListMode, EVENTS_EVENT_TYPE_OBJECT, EVENTS_EVENT_FLAG_DEFAULT);
 
     if (nEventFlags & EVENTS_EVENT_FLAG_AFTER)
-    {
-        Events_SetEventFlag(nEvent, EVENTS_EVENT_FLAG_AFTER);
-        Events_SubscribeEvent(sComponentScript, Events_GetEventName_Object(nEvent, EVENTS_EVENT_FLAG_AFTER), bDispatchListMode);
-    }
+        Events_SubscribeEvent(sComponentScript, Events_GetEventName_Object(nEvent, EVENTS_EVENT_FLAG_AFTER), bDispatchListMode, EVENTS_EVENT_TYPE_OBJECT, EVENTS_EVENT_FLAG_AFTER);
 }
 
 void Events_SubscribeEvent_NWNX(string sComponentScript, string sNWNXEvent, int bDispatchListMode = FALSE)
 {
-    Events_SubscribeEvent(sComponentScript, sNWNXEvent, bDispatchListMode);
+    Events_SubscribeEvent(sComponentScript, sNWNXEvent, bDispatchListMode, EVENTS_EVENT_TYPE_NWNX);
 }
 
 void Events_UnsubscribeEvent(string sComponentScript, string sEvent, int bClearDispatchList = FALSE)
 {
-    object oDataObject = ES_Util_GetDataObject(sComponentScript);
-
-    StringArray_DeleteByValue(oDataObject, "SubscribedEvents", sEvent);
+    string sQuery = "DELETE FROM " + EVENTS_SCRIPT_NAME + " WHERE component=@component AND event=@event;";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@component", sComponentScript);
+    SqlBindString(sql, "@event", sEvent);
+    SqlStep(sql);
 
     NWNX_Events_UnsubscribeEvent(sEvent, sComponentScript);
 
@@ -292,13 +310,13 @@ void Events_UnsubscribeEvent(string sComponentScript, string sEvent, int bClearD
 
 void Events_UnsubscribeAllEvents(string sComponentScript, int bClearDispatchLists = FALSE)
 {
-    object oDataObject = ES_Util_GetDataObject(sComponentScript);
+    string sQuery = "SELECT event FROM " + EVENTS_SCRIPT_NAME + " WHERE component=@component;";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@component", sComponentScript);
 
-    int nNumEvents = StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
-
-    for (nIndex = 0; nIndex < nNumEvents; nIndex++)
+    while (SqlStep(sql))
     {
-        string sEvent = StringArray_At(oDataObject, "SubscribedEvents", nIndex);
+        string sEvent = SqlGetString(sql, 0);
 
         NWNX_Events_UnsubscribeEvent(sEvent, sComponentScript);
 
@@ -306,7 +324,10 @@ void Events_UnsubscribeAllEvents(string sComponentScript, int bClearDispatchList
             NWNX_Events_ToggleDispatchListMode(sEvent, sComponentScript, FALSE);
     }
 
-    StringArray_Clear(oDataObject, "SubscribedEvents");
+    sQuery = "DELETE FROM " + EVENTS_SCRIPT_NAME + " WHERE component=@component";
+    sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@component", sComponentScript);
+    SqlStep(sql);
 }
 
 void Events_PushEventData(string sTag, string sData)
@@ -331,28 +352,28 @@ void Events_RemoveObjectFromDispatchList(string sComponentScript, string sEvent,
 
 void Events_AddObjectToAllDispatchLists(string sComponentScript, object oObject)
 {
-    object oDataObject = ES_Util_GetDataObject(sComponentScript);
+    string sQuery = "SELECT event FROM " + EVENTS_SCRIPT_NAME + " WHERE " + "component=@component AND dispatchmode=@dispatchmode;";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@component", sComponentScript);
+    SqlBindInt(sql, "@dispatchmode", TRUE);
 
-    int nNumEvents = StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
-
-    for (nIndex = 0; nIndex < nNumEvents; nIndex++)
+    while (SqlStep(sql))
     {
-        string sEvent = StringArray_At(oDataObject, "SubscribedEvents", nIndex);
-
+        string sEvent = SqlGetString(sql, 0);
         Events_AddObjectToDispatchList(sComponentScript, sEvent, oObject);
     }
 }
 
 void Events_RemoveObjectFromAllDispatchLists(string sComponentScript, object oObject)
 {
-    object oDataObject = ES_Util_GetDataObject(sComponentScript);
+    string sQuery = "SELECT event FROM " + EVENTS_SCRIPT_NAME + " WHERE " + "component=@component AND dispatchmode=@dispatchmode;";
+    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    SqlBindString(sql, "@component", sComponentScript);
+    SqlBindInt(sql, "@dispatchmode", TRUE);
 
-    int nNumEvents = StringArray_Size(oDataObject, "SubscribedEvents"), nIndex;
-
-    for (nIndex = 0; nIndex < nNumEvents; nIndex++)
+    while (SqlStep(sql))
     {
-        string sEvent = StringArray_At(oDataObject, "SubscribedEvents", nIndex);
-
+        string sEvent = SqlGetString(sql, 0);
         Events_RemoveObjectFromDispatchList(sComponentScript, sEvent, oObject);
     }
 }
@@ -374,7 +395,7 @@ float Events_GetEventData_NWNX_Float(string sTag)
 
 object Events_GetEventData_NWNX_Object(string sTag)
 {
-    return NWNX_Object_StringToObject(Events_GetEventData_NWNX_String(sTag));
+    return StringToObject(Events_GetEventData_NWNX_String(sTag));
 }
 
 vector Events_GetEventData_NWNX_Vector(string sTagX, string sTagY, string sTagZ)
@@ -388,5 +409,16 @@ location Events_GetEventData_NWNX_Location(string sTagArea, string sTagX, string
 {
     return Location(Events_GetEventData_NWNX_Object(sTagArea),
                     Events_GetEventData_NWNX_Vector(sTagX, sTagY, sTagZ), 0.0f);
+}
+
+void Events_EnterTargetingMode(object oPlayer, string sTargetingMode, int nValidObjectTypes = OBJECT_TYPE_ALL, int nMouseCursorId = MOUSECURSOR_MAGIC, int nBadTargetCursor = MOUSECURSOR_NOMAGIC)
+{
+    SetLocalString(oPlayer, "ES_TARGETING_MODE", sTargetingMode);
+    EnterTargetingMode(oPlayer, nValidObjectTypes, nMouseCursorId, nBadTargetCursor);
+}
+
+string Events_GetCurrentTargetingMode(object oPlayer)
+{
+    return GetLocalString(oPlayer, "ES_TARGETING_MODE");
 }
 

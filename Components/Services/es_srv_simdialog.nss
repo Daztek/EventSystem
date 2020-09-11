@@ -27,7 +27,6 @@ const string SIMPLE_DIALOG_LOG_TAG                          = "SimpleDialog";
 const string SIMPLE_DIALOG_SCRIPT_NAME                      = "es_srv_simdialog";
 
 const string SIMPLE_DIALOG_CONVERSATION                     = "cv_simdialog";
-const int    SIMPLE_DIALOG_NUMBER_OF_OPTIONS                = 13; // If you change this, also add/remove them from the conversation file.
 const int    SIMPLE_DIALOG_LIST_RANGE_SIZE                  = 10;
 const string SIMPLE_DIALOG_BLANK_ENTRY_TEXT                 = "SDBlankEntry";
 
@@ -162,9 +161,11 @@ int SimpleDialog_HandleStartingConditional()
     if (GetIsObjectValid(oConversation))
     {
         int nPage = SimpleDialog_GetCurrentPage(oPlayer);
-        int nNodeType = NWNX_Dialog_GetCurrentNodeType();
+        //int nNodeType = NWNX_Dialog_GetCurrentNodeType();
+        string sNodeType = GetScriptParam("NODE_TYPE");
 
-        if (nNodeType == NWNX_DIALOG_NODE_TYPE_STARTING_NODE || nNodeType == NWNX_DIALOG_NODE_TYPE_ENTRY_NODE)
+        //if (nNodeType == NWNX_DIALOG_NODE_TYPE_STARTING_NODE || nNodeType == NWNX_DIALOG_NODE_TYPE_ENTRY_NODE)
+        if (sNodeType == "HEADER")
         {
             string sText = SimpleDialog_GetPageText(oConversation, nPage);
 
@@ -195,14 +196,14 @@ int SimpleDialog_HandleStartingConditional()
             }
         }
         else
-        if (nNodeType == NWNX_DIALOG_NODE_TYPE_REPLY_NODE)
+        //if (nNodeType == NWNX_DIALOG_NODE_TYPE_REPLY_NODE)
         {
-            int nOption = NWNX_Dialog_GetCurrentNodeIndex() + 1;
-            string sText = SimpleDialog_GetOptionText(oConversation, nPage, nOption);
+            string sOption = GetScriptParam("NODE_ID");
+            string sText = SimpleDialog_GetOptionText(oConversation, nPage, StringToInt(sOption));
 
             if (sText != "")
             {
-                int bConditionalEnabled = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + IntToString(nOption));
+                int bConditionalEnabled = GetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + sOption);
 
                 if (bConditionalEnabled)
                 {
@@ -212,7 +213,7 @@ int SimpleDialog_HandleStartingConditional()
                     Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
                     Events_PushEventData("PLAYER", ObjectToString(oPlayer));
                     Events_PushEventData("PAGE", IntToString(nPage));
-                    Events_PushEventData("OPTION", IntToString(nOption));
+                    Events_PushEventData("OPTION", sOption);
                     Events_SignalEvent(SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oSelf);
 
                     string sOverrideText = GetLocalString(oSelf, SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT);
@@ -237,13 +238,11 @@ void SimpleDialog_HandleActionTaken()
 {
     object oSelf = OBJECT_SELF;
     object oPlayer = GetPCSpeaker();
-    string sConversationTag = SimpleDialog_GetCurrentConversation(oPlayer);
-    int nOption = SIMPLE_DIALOG_NUMBER_OF_OPTIONS - NWNX_Dialog_GetCurrentNodeID();
 
-    Events_PushEventData("CONVERSATION_TAG", sConversationTag);
+    Events_PushEventData("CONVERSATION_TAG", SimpleDialog_GetCurrentConversation(oPlayer));
     Events_PushEventData("PLAYER", ObjectToString(oPlayer));
     Events_PushEventData("PAGE", IntToString(SimpleDialog_GetCurrentPage(oPlayer)));
-    Events_PushEventData("OPTION", IntToString(nOption));
+    Events_PushEventData("OPTION", GetScriptParam("NODE_ID"));
 
     Events_SignalEvent(SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oSelf);
 }

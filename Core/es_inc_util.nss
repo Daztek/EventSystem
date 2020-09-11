@@ -142,20 +142,27 @@ object ES_Util_CreateDataObject(string sTag, int bDestroyExisting = TRUE)
     if (bDestroyExisting)
         ES_Util_DestroyDataObject(sTag);
 
-    return ES_Util_CreateWaypoint(GetStartingLocation(), "ESDataObject_" + sTag);
+    object oDataObject = ES_Util_CreateWaypoint(GetStartingLocation(), "ESDataObject_" + sTag);
+
+    SetLocalObject(GetModule(), "ESDataObject_" + sTag, oDataObject);
+
+    return oDataObject;
 }
 
 void ES_Util_DestroyDataObject(string sTag)
 {
-    object oDataObject = GetObjectByTag("ESDataObject_" + sTag);
+    object oDataObject = GetLocalObject(GetModule(), "ESDataObject_" + sTag);
 
     if (GetIsObjectValid(oDataObject))
+    {
+        DeleteLocalObject(GetModule(), "ESDataObject_" + sTag);
         DestroyObject(oDataObject);
+    }
 }
 
 object ES_Util_GetDataObject(string sTag, int bCreateIfNotExists = TRUE)
 {
-    object oDataObject = GetObjectByTag("ESDataObject_" + sTag);
+    object oDataObject = GetLocalObject(GetModule(), "ESDataObject_" + sTag);
 
     return GetIsObjectValid(oDataObject) ? oDataObject : bCreateIfNotExists ? ES_Util_CreateDataObject(sTag) : OBJECT_INVALID;
 }

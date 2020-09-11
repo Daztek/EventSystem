@@ -11,7 +11,6 @@
 //void main() {}
 
 #include "es_inc_core"
-#include "es_cc_sql"
 #include "nwnx_item"
 #include "nwnx_object"
 
@@ -48,7 +47,7 @@ void RandomArmor_CacheArmorParts(string sServiceScript)
 
 void RandomArmor_InsertArmorParts2DA(string sParts2DA)
 {
-    if (SQL_GetTableExists(RANDOM_ARMOR_SCRIPT_NAME + "_" + sParts2DA))
+    if (SqlGetTableExistsCampaign(RANDOM_ARMOR_SCRIPT_NAME, sParts2DA))
     {
         ES_Util_Log(RANDOM_ARMOR_LOG_TAG, "  > Table for '" + sParts2DA + "' already exists, skipping!");
         return;
@@ -56,15 +55,14 @@ void RandomArmor_InsertArmorParts2DA(string sParts2DA)
 
     ES_Util_Log(RANDOM_ARMOR_LOG_TAG, "  > Creating table for '" + sParts2DA + "'");
 
-    string sQuery = "CREATE TABLE IF NOT EXISTS " + RANDOM_ARMOR_SCRIPT_NAME + "_" + sParts2DA + " ( PartNum INTEGER UNIQUE, ACBonus REAL NOT NULL );";
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_ExecutePreparedQuery();
+    string sQuery = "CREATE TABLE IF NOT EXISTS " + sParts2DA + " ( PartNum INTEGER UNIQUE, ACBonus REAL NOT NULL );";
+    sqlquery sql = SqlPrepareQueryCampaign(RANDOM_ARMOR_SCRIPT_NAME, sQuery);
+    SqlStep(sql);
 
     int nIndex;
     int nNumRows = NWNX_Util_Get2DARowCount(sParts2DA);
 
-    sQuery = "INSERT INTO " + RANDOM_ARMOR_SCRIPT_NAME + "_" + sParts2DA + " (PartNum, ACBonus) VALUES (?, ?);";
-    NWNX_SQL_PrepareQuery(sQuery);
+    sQuery = "INSERT INTO " + sParts2DA + " (PartNum, ACBonus) VALUES (@PartNum, @ACBonus);";
 
     for (nIndex = 0; nIndex < nNumRows; nIndex++)
     {
@@ -79,9 +77,10 @@ void RandomArmor_InsertArmorParts2DA(string sParts2DA)
 
             ES_Util_Log(RANDOM_ARMOR_LOG_TAG, "    > Inserting Armor Part: Index: '" + IntToString(nIndex) +  "', ACBonus: '" + sACBonus + "'");
 
-            NWNX_SQL_PreparedInt(0, nIndex);
-            NWNX_SQL_PreparedFloat(1, StringToFloat(sACBonus));
-            NWNX_SQL_ExecutePreparedQuery();
+            sql = SqlPrepareQueryCampaign(RANDOM_ARMOR_SCRIPT_NAME, sQuery);
+            SqlBindInt(sql, "@PartNum", nIndex);
+            SqlBindFloat(sql, "@ACBonus", StringToFloat(sACBonus));
+            SqlStep(sql);
         }
     }
 }
@@ -103,7 +102,7 @@ void RandomArmor_PrepareTemplateArmor()
 
 string RandomArmor_GetTableFromArmorModelType(int nArmorModelPart)
 {
-    string sTable = RANDOM_ARMOR_SCRIPT_NAME + "_parts_";
+    string sTable = "parts_";
     switch (nArmorModelPart)
     {
         case ITEM_APPR_ARMOR_MODEL_RFOOT:
@@ -134,19 +133,16 @@ int RandomArmor_GetRandomPartByType(int nArmorModelPart, int nMinPartNum = 0, fl
 {
     int bReturn = 0;
     string sTable = RandomArmor_GetTableFromArmorModelType(nArmorModelPart);
-    string sQuery = "SELECT PartNum FROM " + sTable + " WHERE ACBonus >= ? AND ACBonus <= ? AND PartNum >= ? ORDER BY RANDOM() LIMIT 1;";
+    string sQuery = "SELECT PartNum FROM " + sTable + " WHERE ACBonus >= @MinAC AND ACBonus <= @MaxAC AND PartNum >= @MinPartNum ORDER BY RANDOM() LIMIT 1;";
+    sqlquery sql = SqlPrepareQueryCampaign(RANDOM_ARMOR_SCRIPT_NAME, sQuery);
 
-    NWNX_SQL_PrepareQuery(sQuery);
-    NWNX_SQL_PreparedFloat(0, fMinAC);
-    NWNX_SQL_PreparedFloat(1, fMaxAC);
-    NWNX_SQL_PreparedInt(2, nMinPartNum);
-    NWNX_SQL_ExecutePreparedQuery();
+    SqlBindFloat(sql, "@MinAC", fMinAC);
+    SqlBindFloat(sql, "@MaxAC", fMaxAC);
+    SqlBindInt(sql, "@MinPartNum", nMinPartNum);
 
-    if (NWNX_SQL_ReadyToReadNextRow())
+    if (SqlStep(sql))
     {
-        NWNX_SQL_ReadNextRow();
-
-        bReturn = StringToInt(NWNX_SQL_ReadDataInActiveRow(0));
+        bReturn = SqlGetInt(sql, 0);
     }
 
     return bReturn;

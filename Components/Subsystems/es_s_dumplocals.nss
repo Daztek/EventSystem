@@ -13,14 +13,19 @@
 
 #include "es_inc_core"
 #include "es_cc_events"
+#include "es_srv_chatcom"
 #include "es_srv_mediator"
 
-const string DUMPLOCALS_LOG_TAG         = "DumpLocals";
-const string DUMPLOCALS_SCRIPT_NAME     = "es_s_dumplocals";
+const string DUMPLOCALS_LOG_TAG                     = "DumpLocals";
+const string DUMPLOCALS_SCRIPT_NAME                 = "es_s_dumplocals";
 
-const int DUMPLOCALS_TYPE_OBJECT        = 0;
-const int DUMPLOCALS_TYPE_AREA          = 1;
-const int DUMPLOCALS_TYPE_MODULE        = 2;
+const string DUMPLOCALS_CHATCOMMAND_NAME            = "dumplocals";
+const string DUMPLOCALS_CHATCOMMAND_DESCRIPTION     = "Dump the locals of the targeted object.";
+
+const int DUMPLOCALS_TYPE_OBJECT                    = 0;
+const int DUMPLOCALS_TYPE_AREA                      = 1;
+const int DUMPLOCALS_TYPE_MODULE                    = 2;
+const int DUMPLOCALS_TYPE_CHAT_COMMAND              = 3;
 
 // Dump the locals of oTarget, depending on nType
 void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_INVALID);
@@ -29,20 +34,42 @@ void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_IN
 void DumpLocals_Load(string sSubsystemScript)
 {
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_DUMP_LOCALS_BEFORE");
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_PLAYER_TARGET);
 
     Mediator_RegisterFunction(sSubsystemScript, "DumpLocals_DumpLocals", "oio");
+
+    ChatCommand_Register(sSubsystemScript, "DumpLocals_ChatCommand", CHATCOMMAND_GLOBAL_PREFIX + DUMPLOCALS_CHATCOMMAND_NAME, "", DUMPLOCALS_CHATCOMMAND_DESCRIPTION);
 }
 
 // @EventHandler
 void DumpLocals_EventHandler(string sSubsystemScript, string sEvent)
 {
-    object oDM = OBJECT_SELF;
-    object oTarget = Events_GetEventData_NWNX_Object("TARGET");
-    int nType = Events_GetEventData_NWNX_Int("TYPE");
+    if (sEvent == "NWNX_ON_DM_DUMP_LOCALS_BEFORE")
+    {
+        object oDM = OBJECT_SELF;
+        object oTarget = Events_GetEventData_NWNX_Object("TARGET");
+        int nType = Events_GetEventData_NWNX_Int("TYPE");
 
-    Events_SkipEvent();
+        DumpLocals_DumpLocals(oDM, nType, oTarget);
 
-    DumpLocals_DumpLocals(oDM, nType, oTarget);
+        Events_SkipEvent();
+    }
+    else
+    if (StringToInt(sEvent) == EVENT_SCRIPT_MODULE_ON_PLAYER_TARGET)
+    {
+        object oPlayer = GetLastPlayerToSelectTarget();
+
+        if (Events_GetCurrentTargetingMode(oPlayer) == DUMPLOCALS_SCRIPT_NAME)
+        {
+            DumpLocals_DumpLocals(oPlayer, DUMPLOCALS_TYPE_CHAT_COMMAND, GetTargetingModeSelectedObject());
+        }
+    }
+}
+
+void DumpLocals_ChatCommand(object oPlayer, string sParams, int nVolume)
+{
+    Events_EnterTargetingMode(oPlayer, DUMPLOCALS_SCRIPT_NAME);
+    SetPCChatMessage("");
 }
 
 void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_INVALID)
@@ -68,6 +95,11 @@ void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_IN
             sMessage = "*** Variable Dump *** [Module]";
             break;
         }
+        case DUMPLOCALS_TYPE_CHAT_COMMAND:
+        {
+            sMessage = "*** Variable Dump *** [" + GetName(oTarget) + "] Tag: " + GetTag(oTarget);
+            break;
+        }
     }
 
     if (!GetIsObjectValid(oTarget)) return;
@@ -87,6 +119,10 @@ void DumpLocals_DumpLocals(object oPlayer, int nType, object oTarget = OBJECT_IN
 
             switch (var.type)
             {
+                case NWNX_OBJECT_LOCALVAR_TYPE_UNKNOWN:
+                    sMessage += "\n[UNKNOWN] " + var.key + " = ?";
+                    break;
+
                 case NWNX_OBJECT_LOCALVAR_TYPE_INT:
                     sMessage += "\n[INT] " + var.key + " = " + IntToString(GetLocalInt(oTarget, var.key));
                     break;
