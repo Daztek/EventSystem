@@ -431,6 +431,7 @@ void AreaCreator_HandleTile(object oPlayer, object oTile)
         SetLocalInt(oTile, "TILE_ID", -1);
         DeleteLocalInt(oTile, "TILE_ORIENTATION");
         DeleteLocalInt(oTile, "TILE_HEIGHT");
+        DeleteLocalString(oTile, "TILE_MODEL");
 
         Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
     }
@@ -441,7 +442,10 @@ void AreaCreator_HandleTile(object oPlayer, object oTile)
 
         if (tile.nTileID != -1)
         {
+            string sTileModel = NWNX_Tileset_GetTileModel(AreaCreator_GetTileset(), tile.nTileID);
+
             SetLocalInt(oTile, "TILE_ID", tile.nTileID);
+            SetLocalString(oTile, "TILE_MODEL", sTileModel);
             SetLocalInt(oTile, "TILE_ORIENTATION", tile.nOrientation);
 
             // TEMP
@@ -449,7 +453,6 @@ void AreaCreator_HandleTile(object oPlayer, object oTile)
 
             if (!GetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(tile.nTileID)))
             {
-                string sTileModel = NWNX_Tileset_GetTileModel(AreaCreator_GetTileset(), tile.nTileID);
                 NWNX_Player_SetResManOverride(oPlayer, 2002, AREACREATOR_VISUALEFFECT_DUMMY_NAME + IntToString(tile.nTileID), sTileModel);
                 SetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(tile.nTileID), TRUE);
             }
@@ -826,7 +829,7 @@ object AreaCreator_GetNeighborTile(object oTile, int nDirection)
             if (nTileY == (nCurrentHeight - 1))
                 return OBJECT_INVALID;
             else
-                nTileNum += nCurrentHeight;
+                nTileNum += nCurrentWidth;
             break;
         }
 
@@ -844,7 +847,7 @@ object AreaCreator_GetNeighborTile(object oTile, int nDirection)
             if (nTileY == 0)
                 return OBJECT_INVALID;
             else
-                nTileNum -= nCurrentHeight;
+                nTileNum -= nCurrentWidth;
             break;
         }
 
@@ -996,6 +999,7 @@ void AreaCreator_ClearAllTiles(object oPlayer)
         SetLocalInt(oTile, "TILE_ID", -1);
         DeleteLocalInt(oTile, "TILE_ORIENTATION");
         DeleteLocalInt(oTile, "TILE_HEIGHT");
+        DeleteLocalString(oTile, "TILE_MODEL");
 
         Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
     }
