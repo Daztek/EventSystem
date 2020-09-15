@@ -37,7 +37,6 @@ void MusicPlayer_LoadMusicTracks();
 void MusicPlayer_CreateConversation();
 void MusicPlayer_SpawnPlaceables(string sSubsystemScript);
 
-void MusicPlayer_PlaySoundAndApplySparks(object oMusicPlayer, string sSound);
 int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF);
 void MusicPlayer_DisableMusicPlayer();
 void MusicPlayer_ApplyDisabledEffects(object oMusicPlayer);
@@ -77,12 +76,12 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
                     object oArea = GetArea(oMusicPlayer);
                     if (NWNX_Area_GetMusicIsPlaying(oArea))
                     {
-                        MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_trapdisarm");
+                        Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_trapdisarm");
                         MusicBackgroundStop(oArea);
                     }
                     else
                     {
-                        MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_traparm");
+                        Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_traparm");
                         MusicBackgroundPlay(oArea);
                     }
                     break;
@@ -90,7 +89,7 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
 
                 case 2:// Action - Change Track
                 {
-                    MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_trapsetoff");
+                    Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_trapsetoff");
                     SimpleDialog_SetCurrentPage(oPlayer, 2);
                     break;
                 }
@@ -119,7 +118,7 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
                     object oArea = GetArea(oMusicPlayer);
                     int nTrack = SimpleDialog_GetListSelection(oPlayer, nOption);
 
-                    MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_picklockopen");
+                    Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_picklockopen");
 
                     SetLocalInt(oMusicPlayer, MUSICPLAYER_CURRENT_TRACK, nTrack);
 
@@ -132,19 +131,19 @@ void MusicPlayer_EventHandler(string sSubsystemScript, string sEvent)
                 }
                 case 11:// Action - Next
                 {
-                    MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_quick_add");
+                    Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_quick_add");
                     SimpleDialog_IncrementListRange(oPlayer);
                     break;
                 }
                 case 12:// Action - Previous
                 {
-                    MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_quick_erase");
+                    Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_quick_erase");
                     SimpleDialog_DecrementListRange(oPlayer);
                     break;
                 }
                 case 13:// Action - Back
                 {
-                    MusicPlayer_PlaySoundAndApplySparks(oMusicPlayer, "gui_select");
+                    Effects_PlaySoundAndApplySparks(oMusicPlayer, "gui_select");
                     SimpleDialog_SetCurrentPage(oPlayer, 1);
                     break;
                 }
@@ -346,12 +345,6 @@ void MusicPlayer_SpawnPlaceables(string sSubsystemScript)
 
         oSpawnPoint = GetObjectByTag(MUSICPLAYER_WAYPOINT_TAG, ++nNth);
     }
-}
-
-void MusicPlayer_PlaySoundAndApplySparks(object oMusicPlayer, string sSound)
-{
-    PlaySound(sSound);
-    ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_COM_BLOOD_SPARK_LARGE), oMusicPlayer);
 }
 
 int MusicPlayer_GetIsDisabled(object oMusicPlayer = OBJECT_SELF)
