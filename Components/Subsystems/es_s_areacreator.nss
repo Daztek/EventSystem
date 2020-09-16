@@ -31,15 +31,16 @@ const string AREACREATOR_PREVIEW_GRID_TAG           = "AC_PREVIEW_GRID_START";
 const float AREACREATOR_TILE_SIZE                   = 10.0f;
 const float AREACREATOR_TILE_SCALE                  = 0.25f;
 
+const int AREACREATOR_TILESET_MAX_TILES             = 2000;
 const int AREACREATOR_EFFECT_START                  = 1000;
 const float AREACREATOR_TILE_EFFECT_APPLY_DELAY     = 0.1f;
 const string AREACREATOR_VISUALEFFECT_DUMMY_NAME    = "dummy_tile_";
 
-const int AREACREATOR_TILES_MAX_WIDTH               = 8;
-const int AREACREATOR_TILES_MAX_HEIGHT              = 8;
+const int AREACREATOR_TILES_MAX_WIDTH               = 16;
+const int AREACREATOR_TILES_MAX_HEIGHT              = 16;
 
-const int AREACREATOR_TILES_DEFAULT_WIDTH           = 4;
-const int AREACREATOR_TILES_DEFAULT_HEIGHT          = 4;
+const int AREACREATOR_TILES_DEFAULT_WIDTH           = 8;
+const int AREACREATOR_TILES_DEFAULT_HEIGHT          = 8;
 
 const int AREACREATOR_PREVIEW_WIDTH                 = 5;
 const int AREACREATOR_PREVIEW_HEIGHT                = 5;
@@ -51,6 +52,7 @@ const string AREACREATOR_PREVIEW_TILE_TAG           = "AC_PREVIEW_TILE";
 const string AREACREATOR_PREVIEW_LEVER_TAG          = "AC_PREVIEW_LEVER";
 
 const string AREACREATOR_TILESET_NAME               = TILESET_RESREF_RURAL;
+const string AREACREATOR_INVALID_TILE_EDGE          = "";
 
 void AreaCreator_CreateTiles(string sSubsystemScript);
 void AreaCreator_CreatePylons(string sSubsystemScript);
@@ -690,8 +692,8 @@ void AreaCreator_SetTileset(string sTileset)
     object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
     struct NWNX_Tileset_TilesetInfo tsi = NWNX_Tileset_GetTilesetInfo(sTileset);
 
-    if (tsi.nNumTileData > 500)
-        ES_Util_Log(AREACREATOR_LOG_TAG , "WARNING: Tileset '" + sTileset + "' has more than 500 Tiles!");
+    if (tsi.nNumTileData > AREACREATOR_TILESET_MAX_TILES)
+        ES_Util_Log(AREACREATOR_LOG_TAG , "WARNING: Tileset '" + sTileset + "' has more than " + IntToString(AREACREATOR_TILESET_MAX_TILES) + " tiles!");
 
     SetLocalString(oDataObject, "TILESET_NAME", sTileset);
     SetLocalInt(oDataObject, "TILESET_NUM_TILE_DATA", tsi.nNumTileData);
@@ -820,7 +822,7 @@ object AreaCreator_GetNeighborTile(object oTile, int nDirection)
     int nTileX = nTileNum % nCurrentWidth;
     int nTileY = nTileNum / nCurrentWidth;
 
-    PrintString("X=" + IntToString(nTileX) + ", Y=" + IntToString(nTileY));
+    //PrintString("X=" + IntToString(nTileX) + ", Y=" + IntToString(nTileY));
 
     switch (nDirection)
     {
@@ -886,9 +888,51 @@ struct NWNX_Tileset_TileEdgesAndCorners AreaCreator_GetNeighborEdgesAndCorners(o
     {
         int nTileID = GetLocalInt(oNeightbor, "TILE_ID");
         int nOrientation = GetLocalInt(oNeightbor, "TILE_ORIENTATION");
+        int nHeight = GetLocalInt(oNeightbor, "TILE_HEIGHT");
 
         if (nTileID != -1)
             str = WangTiles_GetCornersAndEdgesByOrientation(AreaCreator_GetTileset(), nTileID, nOrientation);
+
+        // HACK
+        if (AreaCreator_GetTileset() == TILESET_RESREF_RURAL && nHeight == 1)
+            str = WangTiles_ReplaceTerrainOrCrosser(str, "Grass", "Grass+");
+    }
+    else
+    {
+        switch (nDirection)
+        {
+            case 0:
+            {
+                str.sBottomLeft = AREACREATOR_INVALID_TILE_EDGE;
+                str.sBottom = AREACREATOR_INVALID_TILE_EDGE;
+                str.sBottomRight = AREACREATOR_INVALID_TILE_EDGE;
+                break;
+            }
+
+            case 1:
+            {
+                str.sTopLeft = AREACREATOR_INVALID_TILE_EDGE;
+                str.sLeft = AREACREATOR_INVALID_TILE_EDGE;
+                str.sBottomLeft = AREACREATOR_INVALID_TILE_EDGE;
+                break;
+            }
+
+            case 2:
+            {
+                str.sTopLeft = AREACREATOR_INVALID_TILE_EDGE;
+                str.sTop = AREACREATOR_INVALID_TILE_EDGE;
+                str.sTopRight = AREACREATOR_INVALID_TILE_EDGE;
+                break;
+            }
+
+            case 3:
+            {
+                str.sTopRight = AREACREATOR_INVALID_TILE_EDGE;
+                str.sRight = AREACREATOR_INVALID_TILE_EDGE;
+                str.sBottomRight = AREACREATOR_INVALID_TILE_EDGE;
+                break;
+            }
+        }
     }
 
     return str;
@@ -946,6 +990,8 @@ struct WangTiles_Tile AreaCreator_GetRandomTile(object oTile)
 
 void AreaCreator_GenerateRandomArea(object oPlayer)
 {
+    NWNX_Util_SetInstructionLimit(524288 * 4);
+
     object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
     float fTileHeightTransition = GetLocalFloat(oDataObject, "TILESET_HEIGHT_TRANSITION");
     int nNumTiles = ObjectArray_Size(oDataObject, "CURRENT_TILES");
@@ -966,6 +1012,7 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
 
             SetLocalInt(oTile, "TILE_ID", tile.nTileID);
             SetLocalInt(oTile, "TILE_ORIENTATION", tile.nOrientation);
+            SetLocalInt(oTile, "TILE_HEIGHT", tile.nHeight);
             SetLocalString(oTile, "TILE_MODEL", sTileModel);
 
             // TEMP
@@ -979,11 +1026,13 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
             // ***
 
             vector vTranslate = Vector(0.0f, 0.0f, 1.0f + (GetLocalInt(oTile, "TILE_HEIGHT") * (fTileHeightTransition * AREACREATOR_TILE_SCALE)));
-            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_BREACH, FALSE, 1.0f, vTranslate), oTile);
+            ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_DAZED_S, FALSE, 1.0f, vTranslate), oTile);
 
             AreaCreator_UpdateTile(oTile);
         }
     }
+
+    NWNX_Util_SetInstructionLimit(-1);
 }
 
 void AreaCreator_ClearAllTiles(object oPlayer)

@@ -20,10 +20,11 @@ struct WangTiles_Tile
 {
     int nTileID;
     int nOrientation;
+    int nHeight;
 };
 
 void WangTiles_CreateTable(string sTileset);
-void WangTiles_InsertTile(string sTileset, int nTileID, int nOrientation, struct NWNX_Tileset_TileEdgesAndCorners str);
+void WangTiles_InsertTile(string sTileset, int nTileID, int nOrientation, int nHeight, struct NWNX_Tileset_TileEdgesAndCorners str);
 struct NWNX_Tileset_TileEdgesAndCorners WangTiles_RotateStruct(struct NWNX_Tileset_TileEdgesAndCorners str);
 struct NWNX_Tileset_TileEdgesAndCorners WangTiles_GetCornersAndEdgesByOrientation(string sTileset, int nTileID, int nOrientation);
 void WangTiles_ProcessTile(string sTileset, int nTileID);
@@ -41,6 +42,7 @@ void WangTiles_CreateTable(string sTileset)
     string sQuery = "CREATE TABLE IF NOT EXISTS " + WANGTILES_SCRIPT_NAME + "_" + sTileset + " (" +
                     "tileID INTEGER NOT NULL, " +
                     "orientation INTEGER NOT NULL, " +
+                    "height INTEGER NOT NULL, " +
                     "tl TEXT NOT NULL, " +
                     "t TEXT NOT NULL, " +
                     "tr TEXT NOT NULL, " +
@@ -49,19 +51,20 @@ void WangTiles_CreateTable(string sTileset)
                     "b TEXT NOT NULL, " +
                     "bl TEXT NOT NULL, " +
                     "l TEXT NOT NULL, " +
-                    "PRIMARY KEY(tileID, orientation));";
+                    "PRIMARY KEY(tileID, orientation, height));";
     sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlStep(sql);
 }
 
-void WangTiles_InsertTile(string sTileset, int nTileID, int nOrientation, struct NWNX_Tileset_TileEdgesAndCorners str)
+void WangTiles_InsertTile(string sTileset, int nTileID, int nOrientation, int nHeight, struct NWNX_Tileset_TileEdgesAndCorners str)
 {
-    string sQuery = "REPLACE INTO " + WANGTILES_SCRIPT_NAME + "_" + sTileset + "(tileID, orientation, tl, t, tr, r, br, b, bl, l) " +
-                    "VALUES(@tileID, @orientation, @tl, @t, @tr, @r, @br, @b, @bl, @l);";
+    string sQuery = "REPLACE INTO " + WANGTILES_SCRIPT_NAME + "_" + sTileset + "(tileID, orientation, height, tl, t, tr, r, br, b, bl, l) " +
+                    "VALUES(@tileID, @orientation, @height, @tl, @t, @tr, @r, @br, @b, @bl, @l);";
     sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
 
     SqlBindInt(sql, "@tileID", nTileID);
     SqlBindInt(sql, "@orientation", nOrientation);
+    SqlBindInt(sql, "@height", nHeight);
 
     SqlBindString(sql, "@tl", str.sTopLeft);
     SqlBindString(sql, "@t", str.sTop);
@@ -159,6 +162,20 @@ int WangTiles_GetHasTerrainOrCrosser(struct NWNX_Tileset_TileEdgesAndCorners str
             str.sLeft == sType);
 }
 
+struct NWNX_Tileset_TileEdgesAndCorners WangTiles_ReplaceTerrainOrCrosser(struct NWNX_Tileset_TileEdgesAndCorners str, string sOld, string sNew)
+{
+    if (str.sTopLeft == sOld) str.sTopLeft = sNew;
+    if (str.sTop == sOld) str.sTop = sNew;
+    if (str.sTopRight == sOld) str.sTopRight = sNew;
+    if (str.sRight == sOld) str.sRight = sNew;
+    if (str.sBottomRight == sOld) str.sBottomRight = sNew;
+    if (str.sBottom == sOld) str.sBottom = sNew;
+    if (str.sBottomLeft == sOld) str.sBottomLeft = sNew;
+    if (str.sLeft == sOld) str.sLeft = sNew;
+
+    return str;
+}
+
 void WangTiles_ProcessTile(string sTileset, int nTileID)
 {
     struct NWNX_Tileset_TileEdgesAndCorners str = WangTiles_GetTileEdgesAndCorners(sTileset, nTileID);
@@ -166,15 +183,38 @@ void WangTiles_ProcessTile(string sTileset, int nTileID)
     if (sTileset == TILESET_RESREF_RURAL)
     {
         if (WangTiles_GetHasTerrainOrCrosser(str, "Wall1") ||
-            WangTiles_GetHasTerrainOrCrosser(str, "Wall2"))
+            WangTiles_GetHasTerrainOrCrosser(str, "Wall2") ||
+            (WangTiles_GetHasTerrainOrCrosser(str, "Water") && WangTiles_GetHasTerrainOrCrosser(str, "Road")))
             return;
     }
 
     int nOrientation;
     for (nOrientation = 0; nOrientation < 4; nOrientation++)
     {
-        WangTiles_InsertTile(sTileset, nTileID, nOrientation, str);
+        WangTiles_InsertTile(sTileset, nTileID, nOrientation, 0, str);
         str = WangTiles_RotateStruct(str);
+    }
+
+    if (sTileset == TILESET_RESREF_RURAL)
+    {
+        if ((WangTiles_GetHasTerrainOrCrosser(str, "Stream") &&
+                !WangTiles_GetHasTerrainOrCrosser(str, "Grass+") &&
+                !WangTiles_GetHasTerrainOrCrosser(str, "Trees") &&
+                !WangTiles_GetHasTerrainOrCrosser(str, "Water")) ||
+            (WangTiles_GetHasTerrainOrCrosser(str, "Road") &&
+                !WangTiles_GetHasTerrainOrCrosser(str, "Grass+") &&
+                !WangTiles_GetHasTerrainOrCrosser(str, "Trees") &&
+                !WangTiles_GetHasTerrainOrCrosser(str, "Water")) ||
+            nTileID == 120)
+        {
+            str = WangTiles_ReplaceTerrainOrCrosser(WangTiles_GetTileEdgesAndCorners(sTileset, nTileID), "Grass", "Grass+");
+
+            for (nOrientation = 0; nOrientation < 4; nOrientation++)
+            {
+                WangTiles_InsertTile(sTileset, nTileID, nOrientation, 1, str);
+                str = WangTiles_RotateStruct(str);
+            }
+        }
     }
 }
 
@@ -189,8 +229,7 @@ void WangTiles_ProcessTileset(string sTileset)
     {
         if (sTileset == TILESET_RESREF_RURAL)
         {
-            if (nTileID == 127 ||
-                nTileID == 128 ||
+            if (nTileID == 127 || nTileID == 128 ||
                 (nTileID >= 132 && nTileID <= 180) ||
                 (nTileID >= 213 && nTileID <= 230) ||
                 (nTileID >= 245 && nTileID <= 246) ||
@@ -239,7 +278,7 @@ struct WangTiles_Tile WangTiles_GetRandomMatchingTile(string sTileset, struct NW
 {
     struct WangTiles_Tile tile;
 
-    string sQuery = "SELECT tileID, orientation FROM " + WANGTILES_SCRIPT_NAME + "_" + sTileset + " " +
+    string sQuery = "SELECT tileID, orientation, height FROM " + WANGTILES_SCRIPT_NAME + "_" + sTileset + " " +
                     GetWhereClause(str) +
                     " ORDER BY RANDOM() LIMIT 1;";
 
@@ -273,14 +312,16 @@ struct WangTiles_Tile WangTiles_GetRandomMatchingTile(string sTileset, struct NW
     {
         tile.nTileID = SqlGetInt(sql, 0);
         tile.nOrientation = SqlGetInt(sql, 1);
+        tile.nHeight = SqlGetInt(sql, 2);
     }
     else
     {
         tile.nTileID = -1;
         tile.nOrientation = -1;
+        tile.nHeight = -1;
     }
 
-    PrintString("TileID: " + IntToString(tile.nTileID) + ", Orientation: " + IntToString(tile.nOrientation));
+    PrintString("TileID: " + IntToString(tile.nTileID) + ", Orientation: " + IntToString(tile.nOrientation) + ", Height: " + IntToString(tile.nHeight));
 
     return tile;
 }
