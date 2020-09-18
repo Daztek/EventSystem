@@ -276,8 +276,12 @@ void MusicPlayer_LoadMusicTracks()
 
     for (nTrack = 1; nTrack <= nNumTracks; nTrack++)
     {
-        SetLocalString(oDataObject, MUSICPLAYER_TRACK + IntToString(nTrack),
-            GetStringByStrRef(StringToInt(Get2DAString("ambientmusic", "Description", nTrack))));
+        string sTrackName = GetStringByStrRef(StringToInt(Get2DAString("ambientmusic", "Description", nTrack)));
+
+        if (sTrackName == GetStringByStrRef(0))
+            sTrackName = Get2DAString("ambientmusic", "DisplayName", nTrack);
+
+        SetLocalString(oDataObject, MUSICPLAYER_TRACK + IntToString(nTrack), sTrackName);
     }
 
     ES_Util_Log(MUSICPLAYER_LOG_TAG, "* Loaded '" + IntToString(nNumTracks) + "' Music Tracks");

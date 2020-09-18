@@ -94,7 +94,7 @@ struct NWNX_Tileset_TileEdgesAndCorners WangTiles_RotateStruct(struct NWNX_Tiles
     return strRetval;
 }
 
-string WangTiles_HandleEdgeCases(string sTileset, string sEdge, string sCorner1, string sCorner2)
+string WangTiles_HandleEdgeCase(string sTileset, string sEdge, string sCorner1, string sCorner2)
 {
     if (sEdge != "")
         return sEdge;
@@ -117,6 +117,18 @@ string WangTiles_HandleEdgeCases(string sTileset, string sEdge, string sCorner1,
             else if ((sCorner1 == "Grass" && sCorner2 == "Water") || (sCorner1 == "Water" && sCorner2 == "Grass"))
                 sEdge = "Grass";
         }
+        else
+        if (sTileset == TILESET_RESREF_CRYPT)
+        {
+            if (sCorner1 == sCorner2)
+                sEdge = sCorner1;
+            else if ((sCorner1 == "Wall" && sCorner2 == "Floor") || (sCorner1 == "Floor" && sCorner2 == "Wall"))
+                sEdge = "Floor";
+            else if ((sCorner1 == "Wall" && sCorner2 == "Pit") || (sCorner1 == "Pit" && sCorner2 == "Wall"))
+                sEdge = "Pit";
+            else if ((sCorner1 == "Floor" && sCorner2 == "Pit") || (sCorner1 == "Pit" && sCorner2 == "Floor"))
+                sEdge = "Pit";
+        }
     }
 
     return sEdge;
@@ -126,10 +138,10 @@ struct NWNX_Tileset_TileEdgesAndCorners WangTiles_GetTileEdgesAndCorners(string 
 {
     struct NWNX_Tileset_TileEdgesAndCorners str = NWNX_Tileset_GetTileEdgesAndCorners(sTileset, nTileID);
 
-    str.sTop = WangTiles_HandleEdgeCases(sTileset, str.sTop, str.sTopLeft, str.sTopRight);
-    str.sRight = WangTiles_HandleEdgeCases(sTileset, str.sRight, str.sTopRight, str.sBottomRight);
-    str.sBottom = WangTiles_HandleEdgeCases(sTileset, str.sBottom, str.sBottomRight, str.sBottomLeft);
-    str.sLeft = WangTiles_HandleEdgeCases(sTileset, str.sLeft, str.sBottomLeft, str.sTopLeft);
+    str.sTop = WangTiles_HandleEdgeCase(sTileset, str.sTop, str.sTopLeft, str.sTopRight);
+    str.sRight = WangTiles_HandleEdgeCase(sTileset, str.sRight, str.sTopRight, str.sBottomRight);
+    str.sBottom = WangTiles_HandleEdgeCase(sTileset, str.sBottom, str.sBottomRight, str.sBottomLeft);
+    str.sLeft = WangTiles_HandleEdgeCase(sTileset, str.sLeft, str.sBottomLeft, str.sTopLeft);
 
     return str;
 }
@@ -180,6 +192,8 @@ void WangTiles_ProcessTile(string sTileset, int nTileID)
 {
     struct NWNX_Tileset_TileEdgesAndCorners str = WangTiles_GetTileEdgesAndCorners(sTileset, nTileID);
 
+    // ***
+    // Terrain or Crosser types to skip outright
     if (sTileset == TILESET_RESREF_RURAL)
     {
         if (WangTiles_GetHasTerrainOrCrosser(str, "Wall1") ||
@@ -187,6 +201,7 @@ void WangTiles_ProcessTile(string sTileset, int nTileID)
             (WangTiles_GetHasTerrainOrCrosser(str, "Water") && WangTiles_GetHasTerrainOrCrosser(str, "Road")))
             return;
     }
+    // ***
 
     int nOrientation;
     for (nOrientation = 0; nOrientation < 4; nOrientation++)
@@ -195,6 +210,7 @@ void WangTiles_ProcessTile(string sTileset, int nTileID)
         str = WangTiles_RotateStruct(str);
     }
 
+    // Tiles that can be placed at Grass+ height
     if (sTileset == TILESET_RESREF_RURAL)
     {
         if ((WangTiles_GetHasTerrainOrCrosser(str, "Stream") &&
@@ -227,15 +243,32 @@ void WangTiles_ProcessTileset(string sTileset)
     int nTileID;
     for (nTileID = 0; nTileID < str.nNumTileData; nTileID++)
     {
+        // ***
+        // Tiles to outright skip, groups etc
         if (sTileset == TILESET_RESREF_RURAL)
         {
-            if (nTileID == 127 || nTileID == 128 ||
-                (nTileID >= 132 && nTileID <= 180) ||
+            if ( nTileID == 61 || nTileID == 113 || nTileID == 117 || nTileID == 118 ||
+                 nTileID == 127 || nTileID == 128 || nTileID == 242 ||
+                (nTileID >= 132 && nTileID <= 182) ||
                 (nTileID >= 213 && nTileID <= 230) ||
+                (nTileID >= 233 && nTileID <= 240) ||
                 (nTileID >= 245 && nTileID <= 246) ||
                 (nTileID >= 249 && nTileID <= 282))
                 continue;
         }
+        else
+        if (sTileset == TILESET_RESREF_CRYPT)
+        {
+            if ((nTileID >= 72 && nTileID <= 83) ||
+                (nTileID >= 84 && nTileID <= 87) ||
+                (nTileID >= 88 && nTileID <= 89) ||
+                (nTileID >= 90 && nTileID <= 93) ||
+                (nTileID >= 94 && nTileID <= 100) ||
+                (nTileID >= 161 && nTileID <= 162) ||
+                (nTileID >= 166 && nTileID <= 168))
+                continue;
+        }
+        // ***
 
         WangTiles_ProcessTile(sTileset, nTileID);
     }
@@ -245,28 +278,28 @@ string GetWhereClause(struct NWNX_Tileset_TileEdgesAndCorners str)
 {
     string sWhere = "WHERE ";
 
-    if (str.sTopLeft != "IGNORE")
+    if (str.sTopLeft != "")
         sWhere += "tl=@tl AND ";
 
-    if (str.sTop != "IGNORE")
+    if (str.sTop != "")
         sWhere += "t=@t AND ";
 
-    if (str.sTopRight != "IGNORE")
+    if (str.sTopRight != "")
         sWhere += "tr=@tr AND ";
 
-    if (str.sRight != "IGNORE")
+    if (str.sRight != "")
         sWhere += "r=@r AND ";
 
-    if (str.sBottomRight != "IGNORE")
+    if (str.sBottomRight != "")
         sWhere += "br=@br AND ";
 
-    if (str.sBottom != "IGNORE")
+    if (str.sBottom != "")
         sWhere += "b=@b AND ";
 
-    if (str.sBottomLeft != "IGNORE")
+    if (str.sBottomLeft != "")
         sWhere += "bl=@bl AND ";
 
-    if (str.sLeft != "IGNORE")
+    if (str.sLeft != "")
         sWhere += "l=@l AND ";
 
     sWhere = GetStringLeft(sWhere, GetStringLength(sWhere) - 4);
@@ -284,28 +317,28 @@ struct WangTiles_Tile WangTiles_GetRandomMatchingTile(string sTileset, struct NW
 
     sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
 
-    if (str.sTopLeft != "IGNORE")
+    if (str.sTopLeft != "")
         SqlBindString(sql, "@tl", str.sTopLeft);
 
-    if (str.sTop != "IGNORE")
+    if (str.sTop != "")
         SqlBindString(sql, "@t", str.sTop);
 
-    if (str.sTopRight != "IGNORE")
+    if (str.sTopRight != "")
         SqlBindString(sql, "@tr", str.sTopRight);
 
-    if (str.sRight != "IGNORE")
+    if (str.sRight != "")
         SqlBindString(sql, "@r", str.sRight);
 
-    if (str.sBottomRight != "IGNORE")
+    if (str.sBottomRight != "")
         SqlBindString(sql, "@br", str.sBottomRight);
 
-    if (str.sBottom != "IGNORE")
+    if (str.sBottom != "")
         SqlBindString(sql, "@b", str.sBottom);
 
-    if (str.sBottomLeft != "IGNORE")
+    if (str.sBottomLeft != "")
         SqlBindString(sql, "@bl", str.sBottomLeft);
 
-    if (str.sLeft != "IGNORE")
+    if (str.sLeft != "")
         SqlBindString(sql, "@l", str.sLeft);
 
     if (SqlStep(sql))
