@@ -236,6 +236,10 @@ void WangTiles_ProcessTile(string sTileset, int nTileID)
 
 void WangTiles_ProcessTileset(string sTileset)
 {
+    object oDataObject = ES_Util_GetDataObject(WANGTILES_SCRIPT_NAME);
+    if (GetLocalInt(oDataObject, "WT_" + sTileset))
+        return;
+
     WangTiles_CreateTable(sTileset);
 
     struct NWNX_Tileset_TilesetInfo str = NWNX_Tileset_GetTilesetInfo(sTileset);
@@ -272,6 +276,8 @@ void WangTiles_ProcessTileset(string sTileset)
 
         WangTiles_ProcessTile(sTileset, nTileID);
     }
+
+    SetLocalInt(oDataObject, "WT_" + sTileset, TRUE);
 }
 
 string GetWhereClause(struct NWNX_Tileset_TileEdgesAndCorners str)
@@ -354,7 +360,7 @@ struct WangTiles_Tile WangTiles_GetRandomMatchingTile(string sTileset, struct NW
         tile.nHeight = -1;
     }
 
-    PrintString("TileID: " + IntToString(tile.nTileID) + ", Orientation: " + IntToString(tile.nOrientation) + ", Height: " + IntToString(tile.nHeight));
+    //PrintString("TileID: " + IntToString(tile.nTileID) + ", Orientation: " + IntToString(tile.nOrientation) + ", Height: " + IntToString(tile.nHeight));
 
     return tile;
 }

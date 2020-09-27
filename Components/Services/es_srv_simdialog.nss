@@ -63,6 +63,8 @@ const string SIMPLE_DIALOG_CONDITIONAL_OVERRIDE_TEXT        = "SDConditionalOver
 // - PLAYER           -> object
 // - ABORTED          -> int
 void SimpleDialog_SubscribeEvent(string sSubsystemScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE);
+// Returns TRUE if sEvent is a SimpleDialog event
+int SimpleDialog_GetIsDialogEvent(string sEvent);
 
 // Sets the result of a conditional check in a SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION event
 void SimpleDialog_SetResult(int bResult);
@@ -161,12 +163,11 @@ int SimpleDialog_HandleStartingConditional()
     if (GetIsObjectValid(oConversation))
     {
         int nPage = SimpleDialog_GetCurrentPage(oPlayer);
-        //int nNodeType = NWNX_Dialog_GetCurrentNodeType();
         string sNodeType = GetScriptParam("NODE_TYPE");
 
-        //if (nNodeType == NWNX_DIALOG_NODE_TYPE_STARTING_NODE || nNodeType == NWNX_DIALOG_NODE_TYPE_ENTRY_NODE)
         if (sNodeType == "HEADER")
         {
+
             string sText = SimpleDialog_GetPageText(oConversation, nPage);
 
             if (sText != "")
@@ -196,7 +197,6 @@ int SimpleDialog_HandleStartingConditional()
             }
         }
         else
-        //if (nNodeType == NWNX_DIALOG_NODE_TYPE_REPLY_NODE)
         {
             string sOption = GetScriptParam("NODE_ID");
             string sText = SimpleDialog_GetOptionText(oConversation, nPage, StringToInt(sOption));
@@ -270,6 +270,11 @@ void SimpleDialog_HandleConversationEnd(int bAborted)
 void SimpleDialog_SubscribeEvent(string sSubsystemScript, string sSimpleDialogEvent, int bDispatchListMode = FALSE)
 {
     Events_SubscribeEvent(sSubsystemScript, sSimpleDialogEvent, bDispatchListMode);
+}
+
+int SimpleDialog_GetIsDialogEvent(string sEvent)
+{
+    return GetStringLeft(sEvent, GetStringLength("SIMPLE_DIALOG_EVENT_")) == "SIMPLE_DIALOG_EVENT_";
 }
 
 /* Conditional Event Related Functions */

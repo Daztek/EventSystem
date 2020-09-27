@@ -16,7 +16,8 @@ int StringArray_Size(object oObject, string sArrayName);
 // Get the string at nIndex of sArrayName
 string StringArray_At(object oObject, string sArrayName, int nIndex);
 // Delete sArrayName
-void StringArray_Clear(object oObject, string sArrayName);
+// If bFast is TRUE, only set the array size to 0
+void StringArray_Clear(object oObject, string sArrayName, int bFast = FALSE);
 // Returns the index of sValue if it exists in sArrayName or -1 if not
 int StringArray_Contains(object oObject, string sArrayName, string sValue);
 // Delete nIndex from sArrayName on oObject
@@ -49,18 +50,23 @@ string StringArray_At(object oObject, string sArrayName, int nIndex)
     return GetLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
 }
 
-void StringArray_Clear(object oObject, string sArrayName)
+void StringArray_Clear(object oObject, string sArrayName, int bFast = FALSE)
 {
-    int nSize = StringArray_Size(oObject, sArrayName), nIndex;
-
-    if (nSize)
-    {
-        for (nIndex = 0; nIndex < nSize; nIndex++)
-        {
-            DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
-        }
-
+    if (bFast)
         DeleteLocalInt(oObject, "SA!NUM!" + sArrayName);
+    else
+    {
+        int nSize = StringArray_Size(oObject, sArrayName), nIndex;
+
+        if (nSize)
+        {
+            for (nIndex = 0; nIndex < nSize; nIndex++)
+            {
+                DeleteLocalString(oObject, "SA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+            }
+
+            DeleteLocalInt(oObject, "SA!NUM!" + sArrayName);
+        }
     }
 }
 
@@ -127,7 +133,8 @@ int ObjectArray_Size(object oObject, string sArrayName);
 // Get the object at nIndex of sArrayName
 object ObjectArray_At(object oObject, string sArrayName, int nIndex);
 // Delete sArrayName
-void ObjectArray_Clear(object oObject, string sArrayName);
+// If bFast is TRUE, only set the array size to 0
+void ObjectArray_Clear(object oObject, string sArrayName, int bFast = FALSE);
 // Returns the index of oValue if it exists in sArrayName or -1 if not
 int ObjectArray_Contains(object oObject, string sArrayName, object oValue);
 // Delete nIndex from sArrayName on oObject
@@ -160,20 +167,24 @@ object ObjectArray_At(object oObject, string sArrayName, int nIndex)
     return GetLocalObject(oObject, "OA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
 }
 
-void ObjectArray_Clear(object oObject, string sArrayName)
+void ObjectArray_Clear(object oObject, string sArrayName, int bFast = FALSE)
 {
-    int nSize = ObjectArray_Size(oObject, sArrayName), nIndex;
-
-    if (nSize)
-    {
-        for (nIndex = 0; nIndex < nSize; nIndex++)
-        {
-            DeleteLocalString(oObject, "OA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
-        }
-
+    if (bFast)
         DeleteLocalInt(oObject, "OA!NUM!" + sArrayName);
-    }
+    else
+    {
+        int nSize = ObjectArray_Size(oObject, sArrayName), nIndex;
 
+        if (nSize)
+        {
+            for (nIndex = 0; nIndex < nSize; nIndex++)
+            {
+                DeleteLocalString(oObject, "OA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+            }
+
+            DeleteLocalInt(oObject, "OA!NUM!" + sArrayName);
+        }
+    }
 }
 
 int ObjectArray_Contains(object oObject, string sArrayName, object oValue)

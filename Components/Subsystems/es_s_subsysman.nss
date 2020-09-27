@@ -12,12 +12,9 @@
 
 #include "es_inc_core"
 #include "es_cc_events"
-#include "es_cc_concom"
 
 const string SUBSYSTEM_MANAGER_LOG_TAG      = "SubsystemManager";
 const string SUBSYSTEM_MANAGER_SCRIPT_NAME  = "es_s_subsysman";
-
-const float SUBSYSTEM_MANAGER_IGNORE_TIME   = 2.5f;
 
 // @Load
 void SubsystemManager_Load(string sSubsystemScript)
@@ -45,12 +42,6 @@ void SubsystemManager_EventHandler(string sSubsystemScript, string sEvent)
 
                 if (GetIsObjectValid(oComponent))
                 {
-                    if (GetLocalInt(oDataObject, sResRef))
-                        return;
-
-                    SetLocalInt(oDataObject, sResRef, TRUE);
-                    DelayCommand(SUBSYSTEM_MANAGER_IGNORE_TIME, DeleteLocalInt(oDataObject, sResRef));
-
                     string sScriptFlags = GetLocalString(oComponent, "Flags");
 
                     if (FindSubString(sScriptFlags, "HotSwap") != -1)

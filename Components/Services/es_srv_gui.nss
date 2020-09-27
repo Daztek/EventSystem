@@ -19,7 +19,7 @@ const string GUI_SCRIPT_NAME                            = "es_srv_gui";
 const int GUI_ID_START                                  = 1000;
 
 const string GUI_FONT_TEXT_NAME                         = "fnt_es_text";
-
+const string GUI_FONT_ICON_32X32                        = "fnt_es_icon32";
 const string GUI_FONT_GUI_NAME                          = "fnt_es_gui";
 const string GUI_FONT_GUI_GLYPH_WINDOW_TOP_LEFT         = "a";
 const string GUI_FONT_GUI_GLYPH_WINDOW_TOP_RIGHT        = "c";

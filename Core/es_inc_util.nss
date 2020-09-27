@@ -534,7 +534,7 @@ void SetLocalVector(object oObject, string sVarName, vector vValue)
 
 object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0)
 {
-    if (!GetIsObjectValid(oArea))
+    if (sTag == "" || !GetIsObjectValid(oArea))
         return OBJECT_INVALID;
 
     object oObject;

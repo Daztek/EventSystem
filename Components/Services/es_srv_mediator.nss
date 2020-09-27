@@ -196,7 +196,7 @@ string Mediator_SetFunctionVariables(string sArguments)
         if (sType == "o:")
         {
             sParameters += "o";
-            SetLocalObject(oDataObject, sVarName, NWNX_Object_StringToObject(sValue));
+            SetLocalObject(oDataObject, sVarName, StringToObject(sValue));
         }
         else
         if (sType == "s:")

@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[Player Tileset]
+        @NWNX[Player Tileset Visibility]
 
     Description:
 */
@@ -14,45 +14,65 @@
 #include "es_cc_events"
 #include "es_cc_profiler"
 #include "es_srv_chatcom"
+#include "es_srv_gui"
 #include "es_srv_toolbox"
 #include "es_srv_wangtiles"
+#include "es_srv_simdialog"
 
 #include "nwnx_player"
 #include "nwnx_tileset"
+#include "nwnx_visibility"
 
 const string AREACREATOR_LOG_TAG                    = "AreaCreator";
 const string AREACREATOR_SCRIPT_NAME                = "es_s_areacreator";
+object AREACREATOR_DATA_OBJECT                      = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
 
 const string AREACREATOR_TEMPLATE_RESREF            = "are_cretemp";
 
-const string AREACREATOR_TILE_GRID_TAG              = "AC_TILE_GRID_START";
-const string AREACREATOR_PREVIEW_GRID_TAG           = "AC_PREVIEW_GRID_START";
+const string AREACREATOR_TILES_WAYPOINT_TAG         = "AC_TILES_WP";
+const string AREACREATOR_PREVIEW_WAYPOINT_TAG       = "AC_PREVIEW_WP";
 
-const float AREACREATOR_TILE_SIZE                   = 10.0f;
-const float AREACREATOR_TILE_SCALE                  = 0.25f;
+const float AREACREATOR_TILES_TILE_SIZE             = 10.0f;
+const float AREACREATOR_TILES_TILE_SCALE            = 0.25f;
 
-const int AREACREATOR_TILESET_MAX_TILES             = 2000;
-const int AREACREATOR_EFFECT_START                  = 1000;
-const float AREACREATOR_TILE_EFFECT_APPLY_DELAY     = 0.1f;
-const string AREACREATOR_VISUALEFFECT_DUMMY_NAME    = "dummy_tile_";
+const string AREACREATOR_TILES_ARRAY_NAME           = "TILES";
+const string AREACREATOR_PREVIEW_TILES_ARRAY_NAME   = "PREVIEW_TILES";
+const string AREACREATOR_CURRENT_TILES_ARRAY_NAME   = "CURRENT_TILES";
 
-const int AREACREATOR_TILES_MAX_WIDTH               = 16;
-const int AREACREATOR_TILES_MAX_HEIGHT              = 16;
-
-const int AREACREATOR_TILES_DEFAULT_WIDTH           = 8;
-const int AREACREATOR_TILES_DEFAULT_HEIGHT          = 8;
-
-const int AREACREATOR_PREVIEW_WIDTH                 = 5;
-const int AREACREATOR_PREVIEW_HEIGHT                = 5;
-
-const string AREACREATOR_TILE_TAG_PREFIX            = "AC_TILE_";
+const string AREACREATOR_TILES_TILE_TAG             = "AC_TILE";
 const string AREACREATOR_PYLON_TAG_PREFIX           = "AC_PYLON_";
 const string AREACREATOR_CONSOLE_TAG                = "AC_CONSOLE";
 const string AREACREATOR_PREVIEW_TILE_TAG           = "AC_PREVIEW_TILE";
 const string AREACREATOR_PREVIEW_LEVER_TAG          = "AC_PREVIEW_LEVER";
 
-const string AREACREATOR_TILESET_NAME               = /*TILESET_RESREF_CRYPT;*/TILESET_RESREF_RURAL;
-const string AREACREATOR_INVALID_TILE_EDGE          = "Trees";
+const int AREACREATOR_GUI_NUM_IDS                   = 20;
+const int AREACREATOR_TILESET_MAX_TILES             = 2000;
+const int AREACREATOR_VISUALEFFECT_START_ROW        = 1000;
+const string AREACREATOR_VISUALEFFECT_DUMMY_NAME    = "dummy_tile_";
+const float AREACREATOR_TILE_EFFECT_APPLY_DELAY     = 0.1f;
+const int AREACREATOR_MAX_TILE_HEIGHT               = 15;
+
+const int AREACREATOR_TILES_MAX_WIDTH               = 16;
+const int AREACREATOR_TILES_MAX_HEIGHT              = 16;
+const int AREACREATOR_TILES_DEFAULT_WIDTH           = 4;
+const int AREACREATOR_TILES_DEFAULT_HEIGHT          = 4;
+
+const int AREACREATOR_PREVIEW_WIDTH                 = 5;
+const int AREACREATOR_PREVIEW_HEIGHT                = 5;
+
+const int AREACREATOR_MODE_PAINT                    = 0;
+const int AREACREATOR_MODE_CLEAR                    = 1;
+const int AREACREATOR_MODE_ROTATE                   = 2;
+const int AREACREATOR_MODE_HEIGHT                   = 3;
+const int AREACREATOR_MODE_LOCK                     = 4;
+
+// ***
+
+void AreaCreator_SetTileset(string sTileset, string sEdgeTerrainType, int bInitialSet = FALSE);
+string AreaCreator_GetOverrideName();
+string AreaCreator_GetModeName(int nMode);
+void AreaCreator_ApplyVFXAndPlaySoundForArea(object oTarget, int nVisualEffect, string sSound = "");
+void AreaCreator_DeleteAllTileEffectOverrideDataObjects();
 
 void AreaCreator_CreateTiles(string sSubsystemScript);
 void AreaCreator_CreatePylons(string sSubsystemScript);
@@ -60,41 +80,71 @@ void AreaCreator_CreateConsole(string sSubsystemScript);
 void AreaCreator_CreatePreviewTiles(string sSubsystemScript);
 void AreaCreator_CreatePreviewLevers(string sSubsystemScript);
 
-void AreaCreator_HandleTile(object oPlayer, object oTile);
-int AreaCreator_HandlePylon(object oPlayer, object oPylon);
-void AreaCreator_HandlePreviewTile(object oPlayer, object oPreviewTile);
-void AreaCreator_HandlePreviewLever(object oPlayer, object oLever);
+void AreaCreator_HandleAreaOnEnter(object oPlayer, object oArea);
+void AreaCreator_HandleAreaOnExit(object oPlayer, object oArea);
 
+void AreaCreator_UpdateTileGridSize();
+void AreaCreator_SetTileGridSize(int nWidth, int nHeight);
+void AreaCreator_ClearAllTiles(int bClearLocked = FALSE, int bUpdateCustomTileData = FALSE);
+
+void AreaCreator_HandleTile(object oPlayer, object oTile);
+void AreaCreator_UpdateTile(object oTile);
+void AreaCreator_ClearTile(object oTile, int bClearLock, int bUpdateCustomTileData);
+void AreaCreator_RotateTile(object oTile);
+void AreaCreator_LockTile(object oTile);
+
+void AreaCreator_SetPylonState(string sType, int nPylonNum);
+int AreaCreator_HandlePylon(object oPlayer, object oPylon);
+
+void AreaCreator_DrawStaticGUI(object oPlayer);
+void AreaCreator_UpdateGUIPreviewTilesRange(object oPlayer, int nRange, int nNumTilesetTiles);
+void AreaCreator_UpdateGUIPreviewTilesRangeForArea(int nRange, int nNumTilesetTiles);
+void AreaCreator_UpdateGUISelectedTile(object oPlayer);
+void AreaCreator_ResetGUISelectedTileForArea();
+void AreaCreator_UpdateGUISelectedTileHeight(object oPlayer);
+void AreaCreator_UpdateGUISelectedMode(object oPlayer);
+
+void AreaCreator_HandlePreviewLever(object oPlayer, object oLever);
+void AreaCreator_HandlePreviewTile(object oPlayer, object oPreviewTile);
+void AreaCreator_UpdatePreviewTiles();
+void AreaCreator_ClearPreviewTiles();
+
+void AreaCreator_UpdateTileEffectOverrides(object oPlayer, int bCheckPreviewTiles, int bCheckTiles);
+void AreaCreator_UpdateTileEffectOverridesForArea(int bCheckPreviewTiles, int bCheckTiles);
+void AreaCreator_SetTileEffectOverride(object oPlayer, object oOverrideDataObject, int nTileID, string sTileModel);
+void AreaCreator_SetTileEffectOverrideForArea(int nTileID, string sTileModel);
+
+void AreaCreator_SetCustomAreaData();
 void AreaCreator_SetCustomTileData(object oTile);
 void AreaCreator_UpdateAllCustomTileData();
-void AreaCreator_UpdateTile(object oTile);
-void AreaCreator_SetPylonState(string sType, int nPylonNum);
-void AreaCreator_UpdateTileGridSize();
-string AreaCreator_GetTileset();
-string AreaCreator_GetOverrideName();
-void AreaCreator_SetCustomAreaData();
-void AreaCreator_SetTileset(string sTileset);
-void AreaCreator_ApplyEffect_PreviewTile(object oPreviewTile);
-void AreaCreator_UpdatePreviewTiles();
-void AreaCreator_SetTileEffectOverrides(object oPlayer, int bCheckPreviewTiles, int bCheckTiles);
 
-struct WangTiles_Tile AreaCreator_GetRandomTile(object oTile);
+void AreaCreator_CreateConversation(string sSubsystemScript);
+void AreaCreator_StartConversation(object oPlayer, object oPlaceable);
+void AreaCreator_HandleConversation(string sEvent);
+
+object AreaCreator_GetNeighborTile(object oTile, int nDirection);
+struct NWNX_Tileset_TileEdgesAndCorners AreaCreator_GetNeighborEdgesAndCorners(object oTile, int nDirection);
+string AreaCreator_HandleCornerConflict(string sCorner1, string sCorner2);
+struct WangTiles_Tile AreaCreator_GetRandomMatchingTile(object oTile);
 void AreaCreator_GenerateRandomArea(object oPlayer);
-void AreaCreator_ClearAllTiles(object oPlayer);
-void AreaCreator_LockTile(object oTile);
 
 // @Load
 void AreaCreator_Load(string sSubsystemScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
+    object oArea = GetArea(GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG));
 
-    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_USED, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    SetLocalInt(oArea, sSubsystemScript, TRUE);
+
     Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_AREA_ON_ENTER, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_AREA_ON_EXIT, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER);
     Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_CLIENT_EXIT);
-
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_SERVER_SEND_AREA_BEFORE");
-    SetLocalInt(GetArea(GetObjectByTag(AREACREATOR_TILE_GRID_TAG)), sSubsystemScript, TRUE);
-    Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE");
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
+
+    Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_AREA_ON_ENTER), oArea);
+    Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_AREA_ON_EXIT), oArea);
 
     AreaCreator_CreateTiles(sSubsystemScript);
     AreaCreator_CreatePylons(sSubsystemScript);
@@ -102,34 +152,18 @@ void AreaCreator_Load(string sSubsystemScript)
     AreaCreator_CreatePreviewTiles(sSubsystemScript);
     AreaCreator_CreatePreviewLevers(sSubsystemScript);
 
-    AreaCreator_SetTileset(AREACREATOR_TILESET_NAME);
+    AreaCreator_SetTileGridSize(AREACREATOR_TILES_DEFAULT_WIDTH, AREACREATOR_TILES_DEFAULT_HEIGHT);
 
-    AreaCreator_SetPylonState("X", AREACREATOR_TILES_DEFAULT_WIDTH);
-    AreaCreator_SetPylonState("Y", AREACREATOR_TILES_DEFAULT_HEIGHT);
-    AreaCreator_UpdateTileGridSize();
-    AreaCreator_UpdatePreviewTiles();
+    AreaCreator_SetTileset(TILESET_RESREF_RURAL, "Trees", TRUE);
 
-    AreaCreator_SetCustomAreaData();
-
-    NWNX_Tileset_OverrideAreaTiles(AREACREATOR_TEMPLATE_RESREF, AreaCreator_GetOverrideName());
     DestroyArea(GetObjectByTag(AREACREATOR_TEMPLATE_RESREF));
 
-    WangTiles_ProcessTileset(AREACREATOR_TILESET_NAME);
+    GUI_ReserveIDs(sSubsystemScript, AREACREATOR_GUI_NUM_IDS);
 
-    ChatCommand_Register(sSubsystemScript, "AreaCreator_ChatCommand", CHATCOMMAND_GLOBAL_PREFIX + "ac", "", "Area Creation Stuff!");
-}
+    AreaCreator_CreateConversation(sSubsystemScript);
 
-// @Test
-void AreaCreator_Test(string sSubsystemScript)
-{
-    object oObject = GetObjectByTag(AREACREATOR_TILE_GRID_TAG);
-    Test_Assert("Waypoint With Tag '" + AREACREATOR_TILE_GRID_TAG + "' Exists", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
-
-    oObject = GetObjectByTag(AREACREATOR_PREVIEW_GRID_TAG);
-    Test_Assert("Waypoint With Tag '" + AREACREATOR_PREVIEW_GRID_TAG + "' Exists", (GetIsObjectValid(oObject) && NWNX_Object_GetInternalObjectType(oObject) == NWNX_OBJECT_TYPE_INTERNAL_WAYPOINT));
-
-    object oArea = GetObjectByTag(AREACREATOR_TEMPLATE_RESREF);
-    Test_Assert("Template Area With Tag '" + AREACREATOR_TEMPLATE_RESREF + "' Exists", (GetIsObjectValid(oArea) && NWNX_Object_GetInternalObjectType(oArea) == NWNX_OBJECT_TYPE_INTERNAL_AREA));
+    WangTiles_ProcessTileset(TILESET_RESREF_RURAL);
+    WangTiles_ProcessTileset(TILESET_RESREF_CRYPT);
 }
 
 // @EventHandler
@@ -141,50 +175,16 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
         object oArea = Events_GetEventData_NWNX_Object("AREA");
 
         if (GetLocalInt(oArea, sSubsystemScript))
-            AreaCreator_SetTileEffectOverrides(oPlayer, TRUE, TRUE);
-    }
-    else if (sEvent == "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE")
-    {
-        object oPlayer = OBJECT_SELF;
-
-        if (GetLocalInt(GetArea(oPlayer), sSubsystemScript))
         {
-            int nMode = GetLocalInt(oPlayer, "CURRENT_MODE") + 1;
-
-            if (nMode > 3)
-                nMode = 0;
-
-            SetLocalInt(oPlayer, "CURRENT_MODE", nMode);
-
-            string sMode;
-
-            switch (nMode)
-            {
-                case 0: sMode = "Default"; break;
-                case 1: sMode = "Clear"; break;
-                case 2: sMode = "Lock"; break;
-                case 3: sMode = "Wang"; break;
-            }
-
-            PostString(oPlayer, "Current Mode: " + sMode, 1, 3, SCREEN_ANCHOR_TOP_LEFT, 0.0f, 0xFFFFFFFF, 0xFFFFFFFF, 2);
+            AreaCreator_UpdateTileEffectOverrides(oPlayer, TRUE, TRUE);
         }
-
     }
+    else if (SimpleDialog_GetIsDialogEvent(sEvent))
+        AreaCreator_HandleConversation(sEvent);
     else
     {
         switch (StringToInt(sEvent))
         {
-            case EVENT_SCRIPT_PLACEABLE_ON_USED:
-            {
-                object oPlayer = GetLastUsedBy();
-                object oPlaceable = OBJECT_SELF;
-
-                if (GetTag(oPlaceable) == AREACREATOR_CONSOLE_TAG)
-                    FloatingTextStringOnCreature("Area Creation Console!", oPlayer, FALSE);
-
-                break;
-            }
-
             case EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK:
             {
                 object oPlayer = GetPlaceableLastClickedBy();
@@ -193,7 +193,7 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
 
                 AssignCommand(oPlayer, ClearAllActions());
 
-                if (GetLocalInt(oPlaceable, "PYLON_NUM"))
+                if (GetStringLeft(sTag, GetStringLength(AREACREATOR_PYLON_TAG_PREFIX)) == AREACREATOR_PYLON_TAG_PREFIX)
                 {
                     if (AreaCreator_HandlePylon(oPlayer, oPlaceable))
                     {
@@ -202,14 +202,46 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
                         AreaCreator_UpdateAllCustomTileData();
                     }
                 }
-                else
-                if (GetStringLeft(sTag, GetStringLength(AREACREATOR_TILE_TAG_PREFIX)) == AREACREATOR_TILE_TAG_PREFIX)
-                    AreaCreator_HandleTile(oPlayer, oPlaceable);
-                if (sTag == AREACREATOR_PREVIEW_TILE_TAG)
-                    AreaCreator_HandlePreviewTile(oPlayer, oPlaceable);
                 else if (sTag == AREACREATOR_PREVIEW_LEVER_TAG)
                     AreaCreator_HandlePreviewLever(oPlayer, oPlaceable);
+                else if (sTag == AREACREATOR_PREVIEW_TILE_TAG)
+                    AreaCreator_HandlePreviewTile(oPlayer, oPlaceable);
+                else if (sTag == AREACREATOR_TILES_TILE_TAG)
+                    AreaCreator_HandleTile(oPlayer, oPlaceable);
+                else if (sTag == AREACREATOR_CONSOLE_TAG)
+                    AreaCreator_StartConversation(oPlayer, oPlaceable);
 
+                break;
+            }
+
+            case EVENT_SCRIPT_AREA_ON_ENTER:
+            {
+                object oPlayer = GetEnteringObject();
+                object oArea = OBJECT_SELF;
+
+                if (GetIsPC(oPlayer))
+                    AreaCreator_HandleAreaOnEnter(oPlayer, oArea);
+
+                break;
+            }
+
+            case EVENT_SCRIPT_AREA_ON_EXIT:
+            {
+                object oPlayer = GetExitingObject();
+                object oArea = OBJECT_SELF;
+
+                if (GetIsPC(oPlayer))
+                    AreaCreator_HandleAreaOnExit(oPlayer, oArea);
+
+                break;
+            }
+
+            case EVENT_SCRIPT_MODULE_ON_CLIENT_ENTER:
+            {
+                object oPlayer = GetEnteringObject();
+
+                // Preload the icon texture because stuff is dumb.
+                PostString(oPlayer, "a", 0, 0, SCREEN_ANCHOR_TOP_LEFT, 0.1f, 0xFFFFFF00, 0xFFFFFF00, 0, GUI_FONT_ICON_32X32);
                 break;
             }
 
@@ -224,78 +256,186 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
     }
 }
 
-void AreaCreator_ChatCommand(object oPlayer, string sParams, int nVolume)
+// *** Helper Functions
+int AreaCreator_Tile_GetTileID(object oTile)                                { return GetLocalInt(oTile, "TILE_ID"); }
+void AreaCreator_Tile_SetTileID(object oTile, int nTileID)                  { SetLocalInt(oTile, "TILE_ID", nTileID); }
+string AreaCreator_Tile_GetTileModel(object oTile)                          { return GetLocalString(oTile, "TILE_MODEL"); }
+void AreaCreator_Tile_SetTileModel(object oTile, string sModel)             { SetLocalString(oTile, "TILE_MODEL", sModel); }
+int AreaCreator_Tile_GetTileNum(object oTile)                               { return GetLocalInt(oTile, "TILE_NUM"); }
+void AreaCreator_Tile_SetTileNum(object oTile, int nNum)                    { SetLocalInt(oTile, "TILE_NUM", nNum); }
+int AreaCreator_Tile_GetTileOrientation(object oTile)                       { return GetLocalInt(oTile, "TILE_ORIENTATION"); }
+void AreaCreator_Tile_SetTileOrientation(object oTile, int nOrientation)    { SetLocalInt(oTile, "TILE_ORIENTATION", nOrientation); }
+int AreaCreator_Tile_GetTileHeight(object oTile)                            { return GetLocalInt(oTile, "TILE_HEIGHT"); }
+void AreaCreator_Tile_SetTileHeight(object oTile, int nHeight)              { SetLocalInt(oTile, "TILE_HEIGHT", nHeight); }
+int AreaCreator_Tile_GetTileLock(object oTile)                              { return GetLocalInt(oTile, "TILE_LOCK"); }
+void AreaCreator_Tile_SetTileLock(object oTile, int bLocked)                { SetLocalInt(oTile, "TILE_LOCK", bLocked); }
+
+int AreaCreator_Player_GetSelectedTileID(object oPlayer)                    { return GetLocalInt(oPlayer, "SELECTED_TILE_ID"); }
+void AreaCreator_Player_SetSelectedTileID(object oPlayer, int nTileID)      { SetLocalInt(oPlayer, "SELECTED_TILE_ID", nTileID); }
+string AreaCreator_Player_GetSelectedTileModel(object oPlayer)              { return GetLocalString(oPlayer, "SELECTED_TILE_MODEL"); }
+void AreaCreator_Player_SetSelectedTileModel(object oPlayer, string sModel) { SetLocalString(oPlayer, "SELECTED_TILE_MODEL", sModel); }
+int AreaCreator_Player_GetSelectedTileHeight(object oPlayer)                { return GetLocalInt(oPlayer, "SELECTED_TILE_HEIGHT"); }
+void AreaCreator_Player_SetSelectedTileHeight(object oPlayer, int nHeight)  { SetLocalInt(oPlayer, "SELECTED_TILE_HEIGHT", nHeight); }
+int AreaCreator_Player_GetSelectedMode(object oPlayer)                      { return GetLocalInt(oPlayer, "SELECTED_MODE"); }
+void AreaCreator_Player_SetSelectedMode(object oPlayer, int nMode)          { SetLocalInt(oPlayer, "SELECTED_MODE", nMode); }
+
+int AreaCreator_GetMaxTiles()                                               { return (AREACREATOR_TILES_MAX_WIDTH * AREACREATOR_TILES_MAX_HEIGHT); }
+int AreaCreator_GetMaxPreviewTiles()                                        { return (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT); }
+int AreaCreator_GetCurrentWidth()                                           { return GetLocalInt(AREACREATOR_DATA_OBJECT, "CURRENT_TILE_WIDTH"); }
+int AreaCreator_GetCurrentHeight()                                          { return GetLocalInt(AREACREATOR_DATA_OBJECT, "CURRENT_TILE_HEIGHT"); }
+
+int AreaCreator_GetPreviewTileRange()                                       { return GetLocalInt(AREACREATOR_DATA_OBJECT, "PREVIEW_TILE_ID_RANGE"); }
+void AreaCreator_SetPreviewTileRange(int nRange)                            { SetLocalInt(AREACREATOR_DATA_OBJECT, "PREVIEW_TILE_ID_RANGE", nRange); }
+
+string AreaCreator_GetTileset()                                             { return GetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_NAME"); }
+int AreaCreator_GetTilesetNumTileData()                                     { return GetLocalInt(AREACREATOR_DATA_OBJECT, "TILESET_NUM_TILE_DATA"); }
+float AreaCreator_GetTilesetHeightTransition()                              { return GetLocalFloat(AREACREATOR_DATA_OBJECT, "TILESET_HEIGHT_TRANSITION"); }
+string AreaCreator_GetTilesetEdgeTerrainType()                              { return GetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE"); }
+
+void AreaCreator_SetTileset(string sTileset, string sEdgeTerrainType, int bInitialSet = FALSE)
 {
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
+    string sOverrideName = AreaCreator_GetOverrideName();
+    struct NWNX_Tileset_TilesetInfo tsi = NWNX_Tileset_GetTilesetInfo(sTileset);
 
-    if (sParams == "c")
+    if (tsi.nNumTileData > AREACREATOR_TILESET_MAX_TILES)
+        ES_Util_Log(AREACREATOR_LOG_TAG , "WARNING: Tileset '" + sTileset + "' has more than " + IntToString(AREACREATOR_TILESET_MAX_TILES) + " tiles! (" + IntToString(tsi.nNumTileData) + ")");
+
+    NWNX_Tileset_OverrideAreaTiles(AREACREATOR_TEMPLATE_RESREF, sOverrideName);
+
+    if (!bInitialSet)
     {
-        object oArea = GetObjectByTag("TEST_CREATION");
-
-        if (GetIsObjectValid(oArea))
-            DestroyArea(oArea);
-
-        oArea = CreateArea(AREACREATOR_TEMPLATE_RESREF, "TEST_CREATION", "My Cool New Area");
+        NWNX_Tileset_DeleteCustomAreaData(sOverrideName);
+        AreaCreator_ClearAllTiles(TRUE);
+        AreaCreator_DeleteAllTileEffectOverrideDataObjects();
     }
-    else if (sParams == "r")
-        AreaCreator_GenerateRandomArea(oPlayer);
-    else if (sParams == "e")
-        AreaCreator_ClearAllTiles(oPlayer);
 
-    SetPCChatMessage("");
+    SetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_NAME", sTileset);
+    SetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE", sEdgeTerrainType);
+    SetLocalInt(AREACREATOR_DATA_OBJECT, "TILESET_NUM_TILE_DATA", tsi.nNumTileData);
+    SetLocalFloat(AREACREATOR_DATA_OBJECT, "TILESET_HEIGHT_TRANSITION", tsi.fHeightTransition);
+    AreaCreator_SetCustomAreaData();
+
+    if (!bInitialSet)
+    {
+        AreaCreator_ResetGUISelectedTileForArea();
+        // Dumb workaround
+        int nTileRange = !AreaCreator_GetPreviewTileRange() ? AreaCreator_GetMaxPreviewTiles() : 0;
+        AreaCreator_SetPreviewTileRange(nTileRange);
+        AreaCreator_UpdateGUIPreviewTilesRangeForArea(nTileRange, AreaCreator_GetTilesetNumTileData());
+    }
+
+    AreaCreator_UpdatePreviewTiles();
+
+    if (!bInitialSet)
+    {
+        AreaCreator_UpdateTileEffectOverridesForArea(TRUE, FALSE);
+    }
 }
 
+string AreaCreator_GetOverrideName()
+{
+    return "AreaTileOverride";
+}
+
+string AreaCreator_GetModeName(int nMode)
+{
+    switch (nMode)
+    {
+        case AREACREATOR_MODE_PAINT:    return "Paint";
+        case AREACREATOR_MODE_CLEAR:    return "Clear";
+        case AREACREATOR_MODE_ROTATE:   return "Rotate";
+        case AREACREATOR_MODE_HEIGHT:   return "Height";
+        case AREACREATOR_MODE_LOCK:     return "Lock";
+    }
+
+    return "Invalid Mode";
+}
+
+void AreaCreator_ApplyVFXAndPlaySoundForArea(object oTarget, int nVisualEffect, string sSound = "")
+{
+    ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(nVisualEffect), oTarget);
+
+    if (sSound != "")
+    {
+        object oArea = GetArea(oTarget);
+        object oPlayer = GetFirstPC();
+
+        while (oPlayer != OBJECT_INVALID)
+        {
+            if (GetArea(oPlayer) == oArea)
+                NWNX_Player_PlaySound(oPlayer, sSound, oTarget);
+
+            oPlayer = GetNextPC();
+        }
+    }
+}
+
+void AreaCreator_DeleteAllTileEffectOverrideDataObjects()
+{
+    object oPlayer = GetFirstPC();
+
+    while (oPlayer != OBJECT_INVALID)
+    {
+        ES_Util_DestroyDataObject("AC_TILE_EFFECT_OVERRIDE_" + GetObjectUUID(oPlayer));
+        oPlayer = GetNextPC();
+    }
+}
+
+// *** Placeable Creation Functions
 void AreaCreator_CreateTiles(string sSubsystemScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
-    object oTileGridStart = GetObjectByTag(AREACREATOR_TILE_GRID_TAG);
-    object oArea = GetArea(oTileGridStart);
-    vector vStartPosition = GetPosition(oTileGridStart);
-    vStartPosition.x += (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE) * 0.5f;
-    vector vPosition = vStartPosition;
-    vPosition.y += (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE) * 0.5f;
-    vPosition.z -= 0.3f;
-    struct Toolbox_PlaceableData pd;
+    object oTilesWaypoint = GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG);
+    object oArea = GetArea(oTilesWaypoint);
 
+    vector vTilesWaypointPosition = GetPosition(oTilesWaypoint);
+    vTilesWaypointPosition.x += (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE) * 0.5f;
+
+    vector vTilePosition = vTilesWaypointPosition;
+    vTilePosition.y += (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE) * 0.5f;
+    vTilePosition.z -= 0.3f;
+
+    struct Toolbox_PlaceableData pd;
     pd.nModel = 76;
     pd.sName = " ";
     pd.sDescription = " ";
-    pd.sTag = AREACREATOR_TILE_TAG_PREFIX;
+    pd.sTag = AREACREATOR_TILES_TILE_TAG;
     pd.bPlot = TRUE;
     pd.bUseable = FALSE;
+    pd.fFacingAdjustment = 90.0f;
     pd.scriptOnClick = TRUE;
-
     string sPlaceableData = Toolbox_GeneratePlaceable(pd);
 
-    int nX, nY, nCount;
+    string sOnClickEventName = Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK);
+
+    int nX, nY;
     for (nY = 0; nY < AREACREATOR_TILES_MAX_HEIGHT; nY++)
     {
         for (nX = 0; nX < AREACREATOR_TILES_MAX_WIDTH; nX++)
         {
-            vPosition.x = vStartPosition.x + (nX * (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE));
-            location locSpawn = Location(oArea, vPosition, 0.0f);
+            vTilePosition.x = vTilesWaypointPosition.x + (nX * (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE));
+
+            location locSpawn = Location(oArea, vTilePosition, 0.0f);
             object oTile = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
 
-            SetLocalInt(oTile, "TILE_COUNT", nCount);
-            SetTag(oTile, AREACREATOR_TILE_TAG_PREFIX + IntToString(nCount++));
-            SetLocalInt(oTile, "TILE_ID", -1);
+            AreaCreator_Tile_SetTileID(oTile, -1);
             SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, -200.0f);
-            ObjectArray_Insert(oDataObject, "TILES", oTile);
+            ObjectArray_Insert(AREACREATOR_DATA_OBJECT, AREACREATOR_TILES_ARRAY_NAME, oTile);
 
-            Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oTile);
+            NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oTile, NWNX_VISIBILITY_ALWAYS_VISIBLE);
+
+            Events_AddObjectToDispatchList(sSubsystemScript, sOnClickEventName, oTile);
         }
 
-        vPosition.y += AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE;
+        vTilePosition.y += AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE;
     }
 }
 
 void AreaCreator_CreatePylons(string sSubsystemScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
-    object oTileGridStart = GetObjectByTag(AREACREATOR_TILE_GRID_TAG);
-    object oArea = GetArea(oTileGridStart);
-    struct Toolbox_PlaceableData pd;
+    object oTilesWaypoint = GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG);
+    object oArea = GetArea(oTilesWaypoint);
 
+    struct Toolbox_PlaceableData pd;
     pd.nModel = 467;
     pd.sName = " ";
     pd.sDescription = " ";
@@ -303,19 +443,20 @@ void AreaCreator_CreatePylons(string sSubsystemScript)
     pd.bPlot = TRUE;
     pd.bUseable = TRUE;
     pd.scriptOnClick = TRUE;
-
     string sPlaceableData = Toolbox_GeneratePlaceable(pd);
 
+    string sOnClickEventName = Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK);
+
     int nX, nY, nCount;
-    vector vStartPosition = GetPosition(oTileGridStart);
-    vStartPosition.x += (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE) * 0.5f;
-    vStartPosition.y -= (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE) * 0.5f;
-    vector vPosition = vStartPosition;
+    vector vTilesWaypointPosition = GetPosition(oTilesWaypoint);
+    vTilesWaypointPosition.x += (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE) * 0.5f;
+    vTilesWaypointPosition.y -= (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE) * 0.5f;
+    vector vPylonPosition = vTilesWaypointPosition;
 
     for (nX = 0; nX < AREACREATOR_TILES_MAX_WIDTH; nX++)
     {
-        vPosition.x = vStartPosition.x + (nX * (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE));
-        location locSpawn = Location(oArea, vPosition, 0.0f);
+        vPylonPosition.x = vTilesWaypointPosition.x + (nX * (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE));
+        location locSpawn = Location(oArea, vPylonPosition, 0.0f);
         object oPylon = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
 
         SetTag(oPylon, AREACREATOR_PYLON_TAG_PREFIX + "X" + IntToString(++nCount));
@@ -323,19 +464,21 @@ void AreaCreator_CreatePylons(string sSubsystemScript)
         SetLocalString(oPylon, "PYLON_TYPE", "X");
         SetLocalInt(oPylon, "PYLON_NUM", nCount);
 
-        Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oPylon);
+        NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oPylon, NWNX_VISIBILITY_ALWAYS_VISIBLE);
+
+        Events_AddObjectToDispatchList(sSubsystemScript, sOnClickEventName, oPylon);
     }
 
     nCount = 0;
-    vStartPosition = GetPosition(oTileGridStart);
-    vStartPosition.x -= (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE) * 0.5f;
-    vStartPosition.y += (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE) * 0.5f;
-    vPosition = vStartPosition;
+    vTilesWaypointPosition = GetPosition(oTilesWaypoint);
+    vTilesWaypointPosition.x -= (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE) * 0.5f;
+    vTilesWaypointPosition.y += (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE) * 0.5f;
+    vPylonPosition = vTilesWaypointPosition;
 
     for (nY = 0; nY < AREACREATOR_TILES_MAX_HEIGHT; nY++)
     {
-        vPosition.y = vStartPosition.y + (nY * (AREACREATOR_TILE_SCALE * AREACREATOR_TILE_SIZE));
-        location locSpawn = Location(oArea, vPosition, 0.0f);
+        vPylonPosition.y = vTilesWaypointPosition.y + (nY * (AREACREATOR_TILES_TILE_SIZE * AREACREATOR_TILES_TILE_SCALE));
+        location locSpawn = Location(oArea, vPylonPosition, 0.0f);
         object oPylon = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
 
         SetTag(oPylon, AREACREATOR_PYLON_TAG_PREFIX + "Y" + IntToString(++nCount));
@@ -343,52 +486,47 @@ void AreaCreator_CreatePylons(string sSubsystemScript)
         SetLocalString(oPylon, "PYLON_TYPE", "Y");
         SetLocalInt(oPylon, "PYLON_NUM", nCount);
 
-        if (nCount <= AREACREATOR_TILES_DEFAULT_HEIGHT)
-        {
-            SetLocalInt(oDataObject, "CURRENT_TILE_HEIGHT", nCount);
-            AssignCommand(oPylon, PlayAnimation(ANIMATION_PLACEABLE_ACTIVATE));
-        }
+        NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oPylon, NWNX_VISIBILITY_ALWAYS_VISIBLE);
 
-        Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oPylon);
+        Events_AddObjectToDispatchList(sSubsystemScript, sOnClickEventName, oPylon);
     }
 }
 
 void AreaCreator_CreateConsole(string sSubsystemScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
-    object oTileGridStart = GetObjectByTag(AREACREATOR_TILE_GRID_TAG);
-    object oArea = GetArea(oTileGridStart);
-    struct Toolbox_PlaceableData pd;
+    object oTilesWaypoint = GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG);
+    object oArea = GetArea(oTilesWaypoint);
 
+    struct Toolbox_PlaceableData pd;
     pd.nModel = 468;
     pd.sName = "Console";
     pd.sDescription = " ";
     pd.sTag = AREACREATOR_CONSOLE_TAG;
     pd.bPlot = TRUE;
     pd.bUseable = TRUE;
-    pd.scriptOnUsed = TRUE;
-
+    pd.scriptOnClick = TRUE;
     string sPlaceableData = Toolbox_GeneratePlaceable(pd);
 
-    vector vPosition = GetPosition(oTileGridStart);
+    vector vPosition = GetPosition(oTilesWaypoint);
     vPosition.x -= 1.0f;
     vPosition.y -= 1.0f;
 
     location locSpawn = Location(oArea, vPosition, 45.0f);
     object oConsole = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
 
-    Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_USED), oConsole);
+    NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oConsole, NWNX_VISIBILITY_ALWAYS_VISIBLE);
+
+    Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oConsole);
 }
 
 void AreaCreator_CreatePreviewTiles(string sSubsystemScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
-    object oPreviewGridStart = GetObjectByTag(AREACREATOR_PREVIEW_GRID_TAG);
-    object oArea = GetArea(oPreviewGridStart);
-    vector vStartPosition = GetPosition(oPreviewGridStart), vPosition = vStartPosition;
-    vPosition.z -= 0.3f;
-    struct Toolbox_PlaceableData pd;
+    object oPreviewWaypoint = GetObjectByTag(AREACREATOR_PREVIEW_WAYPOINT_TAG);
+    object oArea = GetArea(oPreviewWaypoint);
+    vector vPreviewWaypointPosition = GetPosition(oPreviewWaypoint), vPreviewTilePosition = vPreviewWaypointPosition;
+    vPreviewTilePosition.z -= 0.3f;
 
+    struct Toolbox_PlaceableData pd;
     pd.nModel = 76;
     pd.sName = " ";
     pd.sDescription = " ";
@@ -396,38 +534,40 @@ void AreaCreator_CreatePreviewTiles(string sSubsystemScript)
     pd.bPlot = TRUE;
     pd.bUseable = TRUE;
     pd.scriptOnClick = TRUE;
-
+    pd.fFacingAdjustment = 90.0f;
     string sPlaceableData = Toolbox_GeneratePlaceable(pd);
+
+    string sOnClickEventName = Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK);
 
     int nX, nY;
     for (nY = 0; nY < AREACREATOR_PREVIEW_HEIGHT; nY++)
     {
         for (nX = 0; nX < AREACREATOR_PREVIEW_WIDTH; nX++)
         {
-            vPosition.x = vStartPosition.x + (nX * 1.25f);
-            location locSpawn = Location(oArea, vPosition, 0.0f);
+            vPreviewTilePosition.x = vPreviewWaypointPosition.x + (nX * 1.25f);
+            location locSpawn = Location(oArea, vPreviewTilePosition, 0.0f);
             object oPreviewTile = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
 
-            Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oPreviewTile);
+            Events_AddObjectToDispatchList(sSubsystemScript, sOnClickEventName, oPreviewTile);
+
+            NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oPreviewTile, NWNX_VISIBILITY_ALWAYS_VISIBLE);
 
             SetObjectVisualTransform(oPreviewTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, -1.0f);
 
-            ObjectArray_Insert(oDataObject, "PREVIEW_TILES", oPreviewTile);
+            ObjectArray_Insert(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME, oPreviewTile);
         }
 
-        vPosition.y -= 1.25f;
+        vPreviewTilePosition.y -= 1.25f;
     }
 }
 
 void AreaCreator_CreatePreviewLevers(string sSubsystemScript)
 {
-    object oDataObject = ES_Util_GetDataObject(sSubsystemScript);
-    object oPreviewGridStart = GetObjectByTag(AREACREATOR_PREVIEW_GRID_TAG);
-    object oArea = GetArea(oPreviewGridStart);
-    vector vStartPosition = GetPosition(oPreviewGridStart), vPosition;
+    object oPreviewWaypoint = GetObjectByTag(AREACREATOR_PREVIEW_WAYPOINT_TAG);
+    object oArea = GetArea(oPreviewWaypoint);
+    vector vPreviewWaypointPosition = GetPosition(oPreviewWaypoint), vLeverPosition;
 
     struct Toolbox_PlaceableData pd;
-
     pd.nModel = 23;
     pd.sName = " ";
     pd.sDescription = " ";
@@ -435,190 +575,586 @@ void AreaCreator_CreatePreviewLevers(string sSubsystemScript)
     pd.bPlot = TRUE;
     pd.bUseable = TRUE;
     pd.scriptOnClick = TRUE;
-
     string sPlaceableData = Toolbox_GeneratePlaceable(pd);
 
-    vPosition.x = vStartPosition.x + (((AREACREATOR_PREVIEW_WIDTH - 1) * 1.25f) + 1.5f);
-    vPosition.y = vStartPosition.y - (((AREACREATOR_PREVIEW_WIDTH - 1) * 1.25) * 0.5f);
-    location locSpawn = Location(oArea, vPosition, 0.0f);
+    string sOnClickEventName = Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK);
+
+    vLeverPosition.x = vPreviewWaypointPosition.x + (((AREACREATOR_PREVIEW_WIDTH - 1) * 1.25f) + 1.5f);
+    vLeverPosition.y = vPreviewWaypointPosition.y - (((AREACREATOR_PREVIEW_WIDTH - 1) * 1.25) * 0.5f);
+    location locSpawn = Location(oArea, vLeverPosition, 0.0f);
 
     object oLever = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
     SetName(oLever, "Next");
-    Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oLever);
+    NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oLever, NWNX_VISIBILITY_ALWAYS_VISIBLE);
+    Events_AddObjectToDispatchList(sSubsystemScript, sOnClickEventName, oLever);
 
-    vPosition.x = vStartPosition.x - 1.5f;
-    locSpawn = Location(oArea, vPosition, 180.0f);
+    vLeverPosition.x = vPreviewWaypointPosition.x - 1.5f;
+    locSpawn = Location(oArea, vLeverPosition, 180.0f);
 
     oLever = Toolbox_CreatePlaceable(sPlaceableData, locSpawn);
     SetName(oLever, "Previous");
-    Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK), oLever);
+    NWNX_Visibility_SetVisibilityOverride(OBJECT_INVALID, oLever, NWNX_VISIBILITY_ALWAYS_VISIBLE);
+    Events_AddObjectToDispatchList(sSubsystemScript, sOnClickEventName, oLever);
 }
 
-void AreaCreator_HandleTile(object oPlayer, object oTile)
+// *** Area Event Functions
+void AreaCreator_HandleAreaOnEnter(object oPlayer, object oArea)
 {
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    float fTileHeightTransition = GetLocalFloat(oDataObject, "TILESET_HEIGHT_TRANSITION");
-    int nSelectedTileID = GetLocalInt(oPlayer, "SELECTED_TILE");
-    int bUpdate = TRUE;
+    AreaCreator_DrawStaticGUI(oPlayer);
+    AreaCreator_UpdateGUIPreviewTilesRange(oPlayer, AreaCreator_GetPreviewTileRange(), AreaCreator_GetTilesetNumTileData());
+    AreaCreator_UpdateGUISelectedTile(oPlayer);
+    AreaCreator_UpdateGUISelectedTileHeight(oPlayer);
+    AreaCreator_UpdateGUISelectedMode(oPlayer);
 
-    int nCurrentMode = GetLocalInt(oPlayer, "CURRENT_MODE");
+    Events_AddObjectToDispatchList(AREACREATOR_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+}
 
-    if (nCurrentMode)
+void AreaCreator_HandleAreaOnExit(object oPlayer, object oArea)
+{
+    GUI_ClearBySubsystem(oPlayer, AREACREATOR_SCRIPT_NAME);
+
+    Events_RemoveObjectFromDispatchList(AREACREATOR_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+}
+
+// *** Tile Grid Functions
+void AreaCreator_UpdateTileGridSize()
+{
+    int nMaxTiles = AreaCreator_GetMaxTiles();
+    int nWidth = AreaCreator_GetCurrentWidth();
+    int nHeight = AreaCreator_GetCurrentHeight();
+
+    ObjectArray_Clear(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME, TRUE);
+
+    int nTile, nCount;
+    for (nTile = 0; nTile < nMaxTiles; nTile++)
     {
-        switch (nCurrentMode)
+        object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_TILES_ARRAY_NAME, nTile);
+        int nX = nTile % AREACREATOR_TILES_MAX_WIDTH;
+        int nY = nTile / AREACREATOR_TILES_MAX_WIDTH;
+
+        if (nX < nWidth && nY < nHeight)
         {
-            case 1:
-            {
-                SetLocalInt(oTile, "TILE_ID", -1);
-                DeleteLocalInt(oTile, "TILE_ORIENTATION");
-                DeleteLocalInt(oTile, "TILE_HEIGHT");
-                DeleteLocalInt(oTile, "TILE_LOCK");
-                DeleteLocalString(oTile, "TILE_MODEL");
-
-                Effects_RemoveEffectsWithTag(oTile, "TILE_LOCK");
-                Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
-                break;
-            }
-
-            case 2:
-            {
-                AreaCreator_LockTile(oTile);
-                break;
-            }
-
-            case 3:
-            {
-                struct WangTiles_Tile tile = AreaCreator_GetRandomTile(oTile);
-
-                if (tile.nTileID != -1)
-                {
-                    string sTileModel = NWNX_Tileset_GetTileModel(AreaCreator_GetTileset(), tile.nTileID);
-
-                    SetLocalInt(oTile, "TILE_ID", tile.nTileID);
-                    SetLocalString(oTile, "TILE_MODEL", sTileModel);
-                    SetLocalInt(oTile, "TILE_ORIENTATION", tile.nOrientation);
-
-                    // TEMP
-                    object oPlayerDataObject = ES_Util_GetDataObject("AC_TILE_EFFECT_OVERRIDE_" + GetObjectUUID(oPlayer));
-
-                    if (!GetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(tile.nTileID)))
-                    {
-                        NWNX_Player_SetResManOverride(oPlayer, 2002, AREACREATOR_VISUALEFFECT_DUMMY_NAME + IntToString(tile.nTileID), sTileModel);
-                        SetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(tile.nTileID), TRUE);
-                    }
-                    // ***
-
-                    vector vTranslate = Vector(0.0f, 0.0f, 1.0f + (GetLocalInt(oTile, "TILE_HEIGHT") * (fTileHeightTransition * AREACREATOR_TILE_SCALE)));
-                    ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_BREACH, FALSE, 1.0f, vTranslate), oTile);
-                }
-                else
-                    bUpdate = FALSE;
-                break;
-            }
+            ObjectArray_Insert(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME, oTile);
+            AreaCreator_Tile_SetTileNum(oTile, nCount++);
+            SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, -1.0f);
+            SetUseableFlag(oTile, TRUE);
+        }
+        else
+        {
+            SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, -200.0f);
+            SetUseableFlag(oTile, FALSE);
         }
     }
-    else
-    if (GetLocalInt(oTile, "TILE_ID") == nSelectedTileID)
+}
+
+void AreaCreator_SetTileGridSize(int nWidth, int nHeight)
+{
+    AreaCreator_SetPylonState("X", nWidth);
+    AreaCreator_SetPylonState("Y", nHeight);
+    AreaCreator_UpdateTileGridSize();
+}
+
+void AreaCreator_ClearAllTiles(int bClearLocked = FALSE, int bUpdateCustomTileData =  FALSE)
+{
+    int nMaxTiles = AreaCreator_GetMaxTiles();
+
+    int nTile;
+    for (nTile = 0; nTile < nMaxTiles; nTile++)
     {
-        int nOrientation = GetLocalInt(oTile, "TILE_ORIENTATION") + 1;
+        object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_TILES_ARRAY_NAME, nTile);
 
-        if (nOrientation > 3)
-            nOrientation = 0;
+        if (!bClearLocked && AreaCreator_Tile_GetTileLock(oTile))
+            continue;
 
-        SetLocalInt(oTile, "TILE_ORIENTATION", nOrientation);
-        SetLocalInt(oTile, "TILE_HEIGHT", GetLocalInt(oDataObject, "CURRENT_HEIGHT"));
-
-        vector vTranslate = Vector(0.0f, 0.0f, 1.0f + (GetLocalInt(oTile, "TILE_HEIGHT") * (fTileHeightTransition * AREACREATOR_TILE_SCALE)));
-        ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_AC_BONUS, FALSE, 1.0f, vTranslate), oTile);
+        AreaCreator_ClearTile(oTile, bClearLocked, bUpdateCustomTileData);
     }
-    else
+
+    AreaCreator_UpdateAllCustomTileData();
+}
+
+// *** Tile Functions
+void AreaCreator_HandleTile(object oPlayer, object oTile)
+{
+    float fTileHeightTransition = AreaCreator_GetTilesetHeightTransition();
+    int nSelectedTileID = AreaCreator_Player_GetSelectedTileID(oPlayer);
+    int nSelectedTileHeight = AreaCreator_Player_GetSelectedTileHeight(oPlayer);
+    string sSelectedTileModel = AreaCreator_Player_GetSelectedTileModel(oPlayer);
+    int nSelectedMode = AreaCreator_Player_GetSelectedMode(oPlayer);
+    int bUpdateTile;
+
+    switch (nSelectedMode)
     {
-        SetLocalInt(oTile, "TILE_ID", nSelectedTileID);
-        SetLocalString(oTile, "TILE_MODEL", GetLocalString(oPlayer, "SELECTED_TILE_MODEL"));
-        SetLocalInt(oTile, "TILE_HEIGHT", GetLocalInt(oDataObject, "CURRENT_HEIGHT"));
+        case AREACREATOR_MODE_PAINT:
+        {
+            if (AreaCreator_Tile_GetTileID(oTile) == nSelectedTileID)
+            {
+                AreaCreator_RotateTile(oTile);
 
-        vector vTranslate = Vector(0.0f, 0.0f, 1.5f + (GetLocalInt(oTile, "TILE_HEIGHT") * (fTileHeightTransition * AREACREATOR_TILE_SCALE)));
-        ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_MAGBLUE, FALSE, 1.0f, vTranslate), oTile);
+                bUpdateTile = TRUE;
+            }
+            else
+            {
+                AreaCreator_Tile_SetTileID(oTile, nSelectedTileID);
+                AreaCreator_Tile_SetTileModel(oTile, sSelectedTileModel);
+                AreaCreator_Tile_SetTileHeight(oTile, nSelectedTileHeight);
+
+                vector vTranslate = Vector(0.0f, 0.0f, 1.5f + (AreaCreator_Tile_GetTileHeight(oTile) * (fTileHeightTransition * AREACREATOR_TILES_TILE_SCALE)));
+                ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_MAGBLUE, FALSE, 1.0f, vTranslate), oTile);
+
+                bUpdateTile = TRUE;
+            }
+
+            break;
+        }
+
+        case AREACREATOR_MODE_CLEAR:
+        {
+            AreaCreator_ClearTile(oTile, TRUE, FALSE);
+
+            bUpdateTile = TRUE;
+            break;
+        }
+
+        case AREACREATOR_MODE_ROTATE:
+        {
+            AreaCreator_RotateTile(oTile);
+
+            bUpdateTile = TRUE;
+            break;
+        }
+
+        case AREACREATOR_MODE_HEIGHT:
+        {
+            AreaCreator_Tile_SetTileHeight(oTile, nSelectedTileHeight);
+
+            bUpdateTile = TRUE;
+            break;
+        }
+
+        case AREACREATOR_MODE_LOCK:
+            AreaCreator_LockTile(oTile);
+        break;
     }
 
-    if (bUpdate)
+    if (bUpdateTile)
         AreaCreator_UpdateTile(oTile);
+}
+
+void AreaCreator_UpdateTile(object oTile)
+{
+    Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
+
+    int nTileID = AreaCreator_Tile_GetTileID(oTile);
+    int nTileOrientation = AreaCreator_Tile_GetTileOrientation(oTile);
+    int nTileHeight = AreaCreator_Tile_GetTileHeight(oTile);
+    float fTileHeightTransition = AreaCreator_GetTilesetHeightTransition();
+
+    float fOrientation;
+    switch (nTileOrientation)
+    {
+        case 0: fOrientation = 0.0f; break;
+        case 1: fOrientation = 90.0f; break;
+        case 2: fOrientation = 180.0f; break;
+        case 3: fOrientation = 270.0f; break;
+    }
+
+    vector vRotate = Vector(fOrientation, 0.0f, 0.0f);
+    float fHeight = 1.75f + (nTileHeight * (fTileHeightTransition * AREACREATOR_TILES_TILE_SCALE));
+    vector vTranslate = Vector(0.0f, 0.0f, fHeight);
+
+    effect eTile = EffectVisualEffect(AREACREATOR_VISUALEFFECT_START_ROW + nTileID, FALSE, AREACREATOR_TILES_TILE_SCALE, vTranslate, vRotate);
+    eTile = TagEffect(eTile, "TILE_EFFECT");
+
+    AreaCreator_SetCustomTileData(oTile);
+
+    if (nTileID != -1)
+        DelayCommand(AREACREATOR_TILE_EFFECT_APPLY_DELAY, ApplyEffectToObject(DURATION_TYPE_PERMANENT, eTile, oTile));
+}
+
+void AreaCreator_ClearTile(object oTile, int bClearLock, int bUpdateCustomTileData)
+{
+    AreaCreator_Tile_SetTileID(oTile, -1);
+    AreaCreator_Tile_SetTileOrientation(oTile, 0);
+    AreaCreator_Tile_SetTileHeight(oTile, 0);
+    AreaCreator_Tile_SetTileModel(oTile, "");
+
+    Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
+
+    if (bClearLock)
+    {
+        AreaCreator_Tile_SetTileLock(oTile, FALSE);
+        Effects_RemoveEffectsWithTag(oTile, "TILE_LOCK");
+    }
+
+    if (bUpdateCustomTileData)
+        AreaCreator_SetCustomTileData(oTile);
+}
+
+void AreaCreator_RotateTile(object oTile)
+{
+    int nOrientation = AreaCreator_Tile_GetTileOrientation(oTile) + 1;
+
+    if (nOrientation > 3)
+        nOrientation = 0;
+
+    AreaCreator_Tile_SetTileOrientation(oTile, nOrientation);
+
+    vector vTranslate = Vector(0.0f, 0.0f, 1.0f + (AreaCreator_Tile_GetTileHeight(oTile) * (AreaCreator_GetTilesetHeightTransition() * AREACREATOR_TILES_TILE_SCALE)));
+    ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_AC_BONUS, FALSE, 1.0f, vTranslate), oTile);
+}
+
+void AreaCreator_LockTile(object oTile)
+{
+    if (AreaCreator_Tile_GetTileLock(oTile))
+    {
+        AreaCreator_Tile_SetTileLock(oTile, FALSE);
+        Effects_RemoveEffectsWithTag(oTile, "TILE_LOCK");
+    }
+    else
+    {
+        AreaCreator_Tile_SetTileLock(oTile, TRUE);
+        ApplyEffectToObject(DURATION_TYPE_PERMANENT, TagEffect(EffectVisualEffect(VFX_DUR_GLOW_WHITE), "TILE_LOCK"), oTile);
+    }
+}
+
+// *** Pylon Functions
+void AreaCreator_SetPylonState(string sType, int nPylonNum)
+{
+    string sCurrentXYVarName = sType == "X" ? "CURRENT_TILE_WIDTH" : "CURRENT_TILE_HEIGHT";
+    int nCount;
+    object oOtherPylon;
+    while ((oOtherPylon = GetObjectByTag(AREACREATOR_PYLON_TAG_PREFIX + sType + IntToString(++nCount))) != OBJECT_INVALID)
+    {
+        int nOtherPylonNum = GetLocalInt(oOtherPylon, "PYLON_NUM");
+
+        AssignCommand(oOtherPylon, PlayAnimation(nOtherPylonNum <= nPylonNum ? ANIMATION_PLACEABLE_ACTIVATE : ANIMATION_PLACEABLE_DEACTIVATE));
+    }
+
+    SetLocalInt(AREACREATOR_DATA_OBJECT, sCurrentXYVarName, nPylonNum);
 }
 
 int AreaCreator_HandlePylon(object oPlayer, object oPylon)
 {
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
     int bReturn;
     string sType = GetLocalString(oPylon, "PYLON_TYPE");
     int nPylonNum = GetLocalInt(oPylon, "PYLON_NUM");
     string sCurrentXYVarName = sType == "X" ? "CURRENT_TILE_WIDTH" : "CURRENT_TILE_HEIGHT";
-    int nCurrentXY = GetLocalInt(oDataObject, sCurrentXYVarName);
+    int nCurrentXY = GetLocalInt(AREACREATOR_DATA_OBJECT, sCurrentXYVarName);
 
     if (nPylonNum != nCurrentXY)
     {
-        NWNX_Player_PlaySound(oPlayer, "gui_traparm");
-        Effects_PlaySoundAndApplySparks(oPylon, "");
-
+        AreaCreator_ApplyVFXAndPlaySoundForArea(oPylon, VFX_COM_BLOOD_SPARK_LARGE, "gui_traparm");
         AreaCreator_SetPylonState(sType, nPylonNum);
-
         bReturn = TRUE;
     }
 
     return bReturn;
 }
 
+// *** GUI Functions
+const int AREACREATOR_GUI_ID_PREVIEW_TILES_RANGE    = 0;
+const int AREACREATOR_GUI_ID_SELECTED_TILE_NAME     = 1;
+const int AREACREATOR_GUI_ID_SELECTED_TILE_ID       = 2;
+const int AREACREATOR_GUI_ID_SELECTED_TILE_HEIGHT   = 3;
+const int AREACREATOR_GUI_ID_SELECTED_MODE          = 4;
+
+const int AREA_CREATOR_GUI_X_PADDING                = 36;
+const int AREA_CREATOR_GUI_Y_PADDING                = 0;
+
+void AreaCreator_DrawStaticGUI(object oPlayer)
+{
+    int nID = GUI_GetEndID(AREACREATOR_SCRIPT_NAME);
+
+    // Window
+    nID -= GUI_DrawWindow(oPlayer, nID, SCREEN_ANCHOR_TOP_LEFT, AREA_CREATOR_GUI_X_PADDING, AREA_CREATOR_GUI_Y_PADDING, 30, 6, 0.0f, FALSE);
+
+    PostString(oPlayer, "a", AREA_CREATOR_GUI_X_PADDING + 1, AREA_CREATOR_GUI_Y_PADDING + 1, SCREEN_ANCHOR_TOP_LEFT, 0.0f, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID--, GUI_FONT_ICON_32X32);
+}
+
+void AreaCreator_UpdateGUIPreviewTilesRange(object oPlayer, int nRange, int nNumTilesetTiles)
+{
+    int nID = GUI_GetStartID(AREACREATOR_SCRIPT_NAME) + AREACREATOR_GUI_ID_PREVIEW_TILES_RANGE;
+    int nTextColor = GUI_COLOR_WHITE;
+    int nEnd = nRange + AreaCreator_GetMaxPreviewTiles() - 1;
+
+    string sText = "Preview Tiles: " + IntToString(nRange) + "-" + IntToString(nNumTilesetTiles < nEnd ? (nNumTilesetTiles - 1) : nEnd) + " of " + IntToString(nNumTilesetTiles);
+
+    PostString(oPlayer, sText, AREA_CREATOR_GUI_X_PADDING + 1, AREA_CREATOR_GUI_Y_PADDING + 4, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nID, GUI_FONT_TEXT_NAME);
+}
+
+void AreaCreator_UpdateGUIPreviewTilesRangeForArea(int nRange, int nNumTilesetTiles)
+{
+    object oArea = GetArea(GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG));
+    object oPlayer = GetFirstPC();
+
+    while (oPlayer != OBJECT_INVALID)
+    {
+        if (GetArea(oPlayer) == oArea)
+            AreaCreator_UpdateGUIPreviewTilesRange(oPlayer, nRange, nNumTilesetTiles);
+
+        oPlayer = GetNextPC();
+    }
+}
+
+void AreaCreator_UpdateGUISelectedTile(object oPlayer)
+{
+    int nID = GUI_GetStartID(AREACREATOR_SCRIPT_NAME);
+    int nSelectedTileNameID = nID + AREACREATOR_GUI_ID_SELECTED_TILE_NAME;
+    int nSelectedTileIDID = nID + AREACREATOR_GUI_ID_SELECTED_TILE_ID;
+    int nTextColor = GUI_COLOR_WHITE;
+    int nTileID = AreaCreator_Player_GetSelectedTileID(oPlayer);
+    string sTileset = AreaCreator_GetTileset();
+    string sMinimapTexture = NWNX_Tileset_GetTileMinimapTexture(sTileset, nTileID);
+    string sSelectedTileNameText = "TileName: " + NWNX_Tileset_GetTileModel(sTileset, nTileID);
+    string SelectedTileIDText = "TileID: " + IntToString(nTileID);
+
+    PostString(oPlayer, sSelectedTileNameText, AREA_CREATOR_GUI_X_PADDING + 5, AREA_CREATOR_GUI_Y_PADDING + 1, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nSelectedTileNameID, GUI_FONT_TEXT_NAME);
+    PostString(oPlayer, SelectedTileIDText, AREA_CREATOR_GUI_X_PADDING + 5, AREA_CREATOR_GUI_Y_PADDING + 2, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nSelectedTileIDID, GUI_FONT_TEXT_NAME);
+    SetTextureOverride(GUI_FONT_ICON_32X32, sMinimapTexture, oPlayer);
+}
+
+void AreaCreator_ResetGUISelectedTileForArea()
+{
+    object oArea = GetArea(GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG));
+    object oPlayer = GetFirstPC();
+
+    while (oPlayer != OBJECT_INVALID)
+    {
+        if (GetArea(oPlayer) == oArea)
+        {
+            AreaCreator_Player_SetSelectedTileID(oPlayer, 0);
+            AreaCreator_Player_SetSelectedTileModel(oPlayer, NWNX_Tileset_GetTileModel(AreaCreator_GetTileset(), 0));
+            AreaCreator_UpdateGUISelectedTile(oPlayer);
+        }
+
+        oPlayer = GetNextPC();
+    }
+}
+
+void AreaCreator_UpdateGUISelectedTileHeight(object oPlayer)
+{
+    int nID = GUI_GetStartID(AREACREATOR_SCRIPT_NAME) + AREACREATOR_GUI_ID_SELECTED_TILE_HEIGHT;
+    int nTextColor = GUI_COLOR_WHITE;
+    int nSelectedTileHeight = AreaCreator_Player_GetSelectedTileHeight(oPlayer);
+
+    string sText = "Tile Height: " + IntToString(nSelectedTileHeight);
+
+    PostString(oPlayer, sText, AREA_CREATOR_GUI_X_PADDING + 1, AREA_CREATOR_GUI_Y_PADDING + 5, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nID, GUI_FONT_TEXT_NAME);
+}
+
+void AreaCreator_UpdateGUISelectedMode(object oPlayer)
+{
+    int nID = GUI_GetStartID(AREACREATOR_SCRIPT_NAME) + AREACREATOR_GUI_ID_SELECTED_MODE;
+    int nTextColor = GUI_COLOR_WHITE;
+    int nSelectedMode = AreaCreator_Player_GetSelectedMode(oPlayer);
+
+    string sText = "Mode: " + AreaCreator_GetModeName(nSelectedMode);
+
+    PostString(oPlayer, sText, AREA_CREATOR_GUI_X_PADDING + 1, AREA_CREATOR_GUI_Y_PADDING + 6, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nID, GUI_FONT_TEXT_NAME);
+}
+
+// *** Tile Preview Functions
+void AreaCreator_HandlePreviewLever(object oPlayer, object oLever)
+{
+    int nNumPreviewTiles = AreaCreator_GetMaxPreviewTiles();
+    int nRange = AreaCreator_GetPreviewTileRange();
+    int nNumTileData = AreaCreator_GetTilesetNumTileData();
+    int nNewRange, bUpdate;
+
+    if (GetName(oLever) == "Next")
+    {
+        int nMax = floor(IntToFloat(nNumTileData) / nNumPreviewTiles) * nNumPreviewTiles;
+
+        nNewRange = nRange + nNumPreviewTiles;
+        bUpdate = nNewRange <= nMax;
+    }
+    else
+    {
+        nNewRange = nRange - nNumPreviewTiles;
+        bUpdate = nNewRange >= 0;
+    }
+
+    if (bUpdate)
+    {
+        AreaCreator_ApplyVFXAndPlaySoundForArea(oLever, VFX_COM_BLOOD_SPARK_LARGE, "gui_quick_erase");
+        AreaCreator_SetPreviewTileRange(nNewRange);
+        AreaCreator_UpdateGUIPreviewTilesRangeForArea(nNewRange, nNumTileData);
+        AreaCreator_UpdatePreviewTiles();
+        AreaCreator_UpdateTileEffectOverridesForArea(TRUE, FALSE);
+    }
+}
+
 void AreaCreator_HandlePreviewTile(object oPlayer, object oPreviewTile)
 {
-    SetLocalInt(oPlayer, "SELECTED_TILE", GetLocalInt(oPreviewTile, "TILE_ID"));
-    SetLocalString(oPlayer, "SELECTED_TILE_MODEL", GetLocalString(oPreviewTile, "TILE_MODEL"));
+    AreaCreator_Player_SetSelectedTileID(oPlayer, AreaCreator_Tile_GetTileID(oPreviewTile));
+    AreaCreator_Player_SetSelectedTileModel(oPlayer, AreaCreator_Tile_GetTileModel(oPreviewTile));
+
+    AreaCreator_UpdateGUISelectedTile(oPlayer);
 
     ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_HEAD_SONIC, FALSE, 1.0f, [0.0f, 0.0f, 1.25f]), oPreviewTile);
 }
 
-void AreaCreator_HandlePreviewLever(object oPlayer, object oLever)
+void AreaCreator_ApplyPreviewTileEffect(object oPreviewTile)
 {
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
+    Effects_RemoveEffectsWithTag(oPreviewTile, "TILE_EFFECT_PREVIEW");
 
-    if (GetName(oLever) == "Next")
+    int nTileID = AreaCreator_Tile_GetTileID(oPreviewTile);
+
+    effect eTileEffect = EffectVisualEffect(AREACREATOR_VISUALEFFECT_START_ROW + nTileID, FALSE, 0.1f, [0.0f, 0.0f, 1.75f]);
+    eTileEffect = TagEffect(eTileEffect, "TILE_EFFECT_PREVIEW");
+
+    DelayCommand(AREACREATOR_TILE_EFFECT_APPLY_DELAY, ApplyEffectToObject(DURATION_TYPE_PERMANENT, eTileEffect, oPreviewTile));
+}
+
+void AreaCreator_UpdatePreviewTiles()
+{
+    string sTileset = AreaCreator_GetTileset();
+    int nRange = AreaCreator_GetPreviewTileRange();
+    int nNumPreviewTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME);
+
+    int nPreviewTile;
+    for (nPreviewTile = 0; nPreviewTile < nNumPreviewTiles; nPreviewTile++)
     {
-        int nNumTileData = GetLocalInt(oDataObject, "TILESET_NUM_TILE_DATA");
-        int nMax = floor(IntToFloat(nNumTileData) / (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT)) * (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT);
-        int nCurrent = GetLocalInt(oDataObject, "TILE_ID_RANGE") + (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT);
+        object oPreviewTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME, nPreviewTile);
+        int nTileID = nRange + nPreviewTile;
+        string sTileModel = NWNX_Tileset_GetTileModel(sTileset, nTileID);
 
-        if (nCurrent <= nMax)
+        AreaCreator_Tile_SetTileID(oPreviewTile, nTileID);
+        AreaCreator_Tile_SetTileModel(oPreviewTile, sTileModel);
+
+        if (sTileModel != "")
         {
-            Effects_PlaySoundAndApplySparks(oLever, "gui_quick_add");
+            SetName(oPreviewTile, "[" + IntToString(nTileID) + "] " + sTileModel);
 
-            SetLocalInt(oDataObject, "TILE_ID_RANGE", nCurrent);
-            AreaCreator_UpdatePreviewTiles();
-            // TEMP
-            AreaCreator_SetTileEffectOverrides(oPlayer, TRUE, FALSE);
-            PostString(oPlayer, "Preview Tiles: " + IntToString(nCurrent) + "-" + IntToString(nCurrent + (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT) - 1), 1, 4, SCREEN_ANCHOR_TOP_LEFT, 0.0f, 0xFFFFFFFF, 0xFFFFFFFF, 1);
+            AreaCreator_ApplyPreviewTileEffect(oPreviewTile);
+
+            SetUseableFlag(oPreviewTile, TRUE);
         }
-    }
-    else
-    {
-        int nCurrent = GetLocalInt(oDataObject, "TILE_ID_RANGE") - (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT);
-
-        if (nCurrent >= 0)
+        else
         {
-            Effects_PlaySoundAndApplySparks(oLever, "gui_quick_erase");
-
-            SetLocalInt(oDataObject, "TILE_ID_RANGE", nCurrent);
-            AreaCreator_UpdatePreviewTiles();
-            // TEMP
-            AreaCreator_SetTileEffectOverrides(oPlayer, TRUE, FALSE);
-            PostString(oPlayer, "Preview Tiles: " + IntToString(nCurrent) + "-" + IntToString(nCurrent + (AREACREATOR_PREVIEW_WIDTH * AREACREATOR_PREVIEW_HEIGHT) - 1), 1, 4, SCREEN_ANCHOR_TOP_LEFT, 0.0f, 0xFFFFFFFF, 0xFFFFFFFF, 1);
+            SetUseableFlag(oPreviewTile, FALSE);
+            Effects_RemoveEffectsWithTag(oPreviewTile, "TILE_EFFECT_PREVIEW");
         }
     }
 }
 
+void AreaCreator_ClearPreviewTiles()
+{
+    int nNumPreviewTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME);
+
+    int nPreviewTile;
+    for (nPreviewTile = 0; nPreviewTile < nNumPreviewTiles; nPreviewTile++)
+    {
+        object oPreviewTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME, nPreviewTile);
+
+        AreaCreator_Tile_SetTileID(oPreviewTile, 0);
+        AreaCreator_Tile_SetTileModel(oPreviewTile, "");
+        SetUseableFlag(oPreviewTile, TRUE);
+        Effects_RemoveEffectsWithTag(oPreviewTile, "TILE_EFFECT_PREVIEW");
+    }
+}
+
+// *** Tile Effect Model Override Functions
+void AreaCreator_UpdateTileEffectOverrides(object oPlayer, int bCheckPreviewTiles, int bCheckTiles)
+{
+    object oPlayerDataObject = ES_Util_GetDataObject("AC_TILE_EFFECT_OVERRIDE_" + GetObjectUUID(oPlayer));
+
+    if (bCheckPreviewTiles)
+    {
+        int nRange = AreaCreator_GetPreviewTileRange();
+        int nNumPreviewTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME);
+
+        int nPreviewTile;
+        for (nPreviewTile = 0; nPreviewTile < nNumPreviewTiles; nPreviewTile++)
+        {
+            object oPreviewTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_PREVIEW_TILES_ARRAY_NAME, nPreviewTile);
+
+            if (GetUseableFlag(oPreviewTile))
+            {
+                int nTileID = AreaCreator_Tile_GetTileID(oPreviewTile);
+                string sTileModel = AreaCreator_Tile_GetTileModel(oPreviewTile);
+
+                AreaCreator_SetTileEffectOverride(oPlayer, oPlayerDataObject, nTileID, sTileModel);
+            }
+        }
+    }
+
+    if (bCheckTiles)
+    {
+        int nMaxTiles = AreaCreator_GetMaxTiles();
+        int nTile;
+        for (nTile = 0; nTile < nMaxTiles; nTile++)
+        {
+            object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_TILES_ARRAY_NAME, nTile);
+
+            int nTileID = AreaCreator_Tile_GetTileID(oTile);
+            string sTileModel = AreaCreator_Tile_GetTileModel(oTile);
+
+            if (nTileID != -1)
+            {
+                AreaCreator_SetTileEffectOverride(oPlayer, oPlayerDataObject, nTileID, sTileModel);
+            }
+        }
+    }
+}
+
+void AreaCreator_UpdateTileEffectOverridesForArea(int bCheckPreviewTiles, int bCheckTiles)
+{
+    object oArea = GetArea(GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG));
+    object oPlayer = GetFirstPC();
+
+    while (oPlayer != OBJECT_INVALID)
+    {
+        if (GetArea(oPlayer) == oArea)
+            DelayCommand(0.0f, AreaCreator_UpdateTileEffectOverrides(oPlayer, bCheckPreviewTiles, bCheckTiles));
+
+        oPlayer = GetNextPC();
+    }
+}
+
+void AreaCreator_SetTileEffectOverride(object oPlayer, object oOverrideDataObject, int nTileID, string sTileModel)
+{
+    if (!GetLocalInt(oOverrideDataObject, "TILE_ID_" + IntToString(nTileID)))
+    {
+        NWNX_Player_SetResManOverride(oPlayer, 2002, AREACREATOR_VISUALEFFECT_DUMMY_NAME + IntToString(nTileID), sTileModel);
+        SetLocalInt(oOverrideDataObject, "TILE_ID_" + IntToString(nTileID), TRUE);
+    }
+}
+
+void AreaCreator_SetTileEffectOverrideForArea(int nTileID, string sTileModel)
+{
+    object oArea = GetArea(GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG));
+    object oPlayer = GetFirstPC();
+
+    while (oPlayer != OBJECT_INVALID)
+    {
+        if (GetArea(oPlayer) == oArea)
+        {
+            object oPlayerDataObject = ES_Util_GetDataObject("AC_TILE_EFFECT_OVERRIDE_" + GetObjectUUID(oPlayer));
+            AreaCreator_SetTileEffectOverride(oPlayer, oPlayerDataObject, nTileID, sTileModel);
+        }
+
+        oPlayer = GetNextPC();
+    }
+}
+
+// *** Custom Area/Tile Data Functions
+void AreaCreator_SetCustomAreaData()
+{
+    string sOverrideName = AreaCreator_GetOverrideName();
+    string sTileset = AreaCreator_GetTileset();
+    int nWidth = AreaCreator_GetCurrentWidth();
+    int nHeight = AreaCreator_GetCurrentHeight();
+
+    NWNX_Tileset_SetCustomAreaData(sOverrideName, sTileset, nWidth, nHeight);
+}
+
 void AreaCreator_SetCustomTileData(object oTile)
 {
-    int nTileNum = GetLocalInt(oTile, "TILE_NUM");
-    int nTileID = GetLocalInt(oTile, "TILE_ID");
-    int nTileOrientation = GetLocalInt(oTile, "TILE_ORIENTATION");
-    int nTileHeight = GetLocalInt(oTile, "TILE_HEIGHT");
+    int nTileNum = AreaCreator_Tile_GetTileNum(oTile);
+    int nTileID = AreaCreator_Tile_GetTileID(oTile);
+    int nTileOrientation = AreaCreator_Tile_GetTileOrientation(oTile);
+    int nTileHeight = AreaCreator_Tile_GetTileHeight(oTile);
 
     struct NWNX_Tileset_CustomTileData ctd;
     ctd.nTileID = nTileID;
@@ -638,238 +1174,227 @@ void AreaCreator_SetCustomTileData(object oTile)
 
 void AreaCreator_UpdateAllCustomTileData()
 {
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    int nMaxTiles = AREACREATOR_TILES_MAX_WIDTH * AREACREATOR_TILES_MAX_HEIGHT;
-    int nTile;
+    int nMaxTiles = AreaCreator_GetMaxTiles();
 
     NWNX_Tileset_DeleteCustomTileData(AreaCreator_GetOverrideName(), -1);
 
+    int nTile;
     for (nTile = 0; nTile < nMaxTiles; nTile++)
     {
-        object oTile = GetObjectByTag(AREACREATOR_TILE_TAG_PREFIX + IntToString(nTile));
+        object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_TILES_ARRAY_NAME, nTile);
 
         if (GetUseableFlag(oTile))
             AreaCreator_SetCustomTileData(oTile);
     }
 }
 
-void AreaCreator_UpdateTile(object oTile)
+// *** Conversation Functions
+void AreaCreator_CreateConversation(string sSubsystemScript)
 {
-    Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
+    object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
 
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    int nTileID = GetLocalInt(oTile, "TILE_ID");
-    int nTileOrientation = GetLocalInt(oTile, "TILE_ORIENTATION");
-    int nTileHeight = GetLocalInt(oTile, "TILE_HEIGHT");
-    float fTileHeightTransition = GetLocalFloat(oDataObject, "TILESET_HEIGHT_TRANSITION");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Main Menu");
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[General Functions]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Tile Mode Selection]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Adjust Tile Paint Height]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[End]"));
 
-    float fOrientation;
-    switch (nTileOrientation)
+    SimpleDialog_AddPage(oConversation, "Area Creator - General Functions");
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Update Preview Area]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Clear All Tiles]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Generate Random Area]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Tileset Selection]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Mode");
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_PAINT) + "]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_CLEAR) + "]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_ROTATE) + "]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_HEIGHT) + "]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_LOCK) + "]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Creator - Adjust Tile Paint Height");
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Increase]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Decrease]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tileset");
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Rural]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Crypt]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+}
+
+void AreaCreator_StartConversation(object oPlayer, object oPlaceable)
+{
+    SimpleDialog_StartConversation(oPlayer, oPlayer, AREACREATOR_SCRIPT_NAME);
+}
+
+void AreaCreator_HandleConversation(string sEvent)
+{
+    object oPlayer = OBJECT_SELF;
+    int nPage = Events_GetEventData_NWNX_Int("PAGE");
+    int nOption = Events_GetEventData_NWNX_Int("OPTION");
+
+    if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
-        case 0: fOrientation = 90.0f; break;
-        case 1: fOrientation = 180.0f; break;
-        case 2: fOrientation = 270.0f; break;
-        case 3: fOrientation = 0.0f; break;
-    }
-
-    vector vRotate = Vector(fOrientation, 0.0f, 0.0f);
-    float fHeight = 1.75f + (nTileHeight * (fTileHeightTransition * AREACREATOR_TILE_SCALE));
-    vector vTranslate = Vector(0.0f, 0.0f, fHeight);
-
-    effect eTile = EffectVisualEffect(AREACREATOR_EFFECT_START + nTileID, FALSE, AREACREATOR_TILE_SCALE, vTranslate, vRotate);
-    eTile = TagEffect(eTile, "TILE_EFFECT");
-
-    AreaCreator_SetCustomTileData(oTile);
-
-    DelayCommand(AREACREATOR_TILE_EFFECT_APPLY_DELAY, ApplyEffectToObject(DURATION_TYPE_PERMANENT, eTile, oTile));
-}
-
-void AreaCreator_SetPylonState(string sType, int nPylonNum)
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    string sCurrentXYVarName = sType == "X" ? "CURRENT_TILE_WIDTH" : "CURRENT_TILE_HEIGHT";
-    int nCount;
-    object oOtherPylon;
-    while ((oOtherPylon = GetObjectByTag(AREACREATOR_PYLON_TAG_PREFIX + sType + IntToString(++nCount))) != OBJECT_INVALID)
-    {
-        int nOtherPylonNum = GetLocalInt(oOtherPylon, "PYLON_NUM");
-
-        AssignCommand(oOtherPylon, PlayAnimation(nOtherPylonNum <= nPylonNum ? ANIMATION_PLACEABLE_ACTIVATE : ANIMATION_PLACEABLE_DEACTIVATE));
-    }
-
-    SetLocalInt(oDataObject, sCurrentXYVarName, nPylonNum);
-}
-
-void AreaCreator_UpdateTileGridSize()
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    int nWidth = GetLocalInt(oDataObject, "CURRENT_TILE_WIDTH");
-    int nHeight = GetLocalInt(oDataObject, "CURRENT_TILE_HEIGHT");
-    int nMaxTiles = AREACREATOR_TILES_MAX_WIDTH * AREACREATOR_TILES_MAX_HEIGHT;
-
-    ObjectArray_Clear(oDataObject, "CURRENT_TILES");
-
-    int nTile, nCount;
-    for (nTile = 0; nTile < nMaxTiles; nTile++)
-    {
-        object oTile = GetObjectByTag(AREACREATOR_TILE_TAG_PREFIX + IntToString(nTile));
-        int nX = nTile % AREACREATOR_TILES_MAX_WIDTH;
-        int nY = nTile / AREACREATOR_TILES_MAX_WIDTH;
-
-        if (nX < nWidth && nY < nHeight)
+        switch (nPage)
         {
-            ObjectArray_Insert(oDataObject, "CURRENT_TILES", oTile);
-            SetLocalInt(oTile, "TILE_NUM", nCount++);
-            SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, -1.0f);
-            SetUseableFlag(oTile, TRUE);
-
-        }
-        else
-        {
-            SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, -200.0f);
-            SetUseableFlag(oTile, FALSE);
-        }
-    }
-}
-
-string AreaCreator_GetTileset()
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    return GetLocalString(oDataObject, "TILESET_NAME");
-}
-
-void AreaCreator_SetTileset(string sTileset)
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    struct NWNX_Tileset_TilesetInfo tsi = NWNX_Tileset_GetTilesetInfo(sTileset);
-
-    if (tsi.nNumTileData > AREACREATOR_TILESET_MAX_TILES)
-        ES_Util_Log(AREACREATOR_LOG_TAG , "WARNING: Tileset '" + sTileset + "' has more than " + IntToString(AREACREATOR_TILESET_MAX_TILES) + " tiles!");
-
-    SetLocalString(oDataObject, "TILESET_NAME", sTileset);
-    SetLocalInt(oDataObject, "TILESET_NUM_TILE_DATA", tsi.nNumTileData);
-    SetLocalFloat(oDataObject, "TILESET_HEIGHT_TRANSITION", tsi.fHeightTransition);
-}
-
-string AreaCreator_GetOverrideName()
-{
-    return "AreaTileOverrideData";
-}
-
-void AreaCreator_SetCustomAreaData()
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    string sOverrideName = AreaCreator_GetOverrideName();
-    string sTileset = AreaCreator_GetTileset();
-    int nWidth = GetLocalInt(oDataObject , "CURRENT_TILE_WIDTH");
-    int nHeight = GetLocalInt(oDataObject , "CURRENT_TILE_HEIGHT");
-
-    NWNX_Tileset_SetCustomAreaData(sOverrideName, sTileset, nWidth, nHeight);
-}
-
-void AreaCreator_ApplyEffect_PreviewTile(object oPreviewTile)
-{
-    Effects_RemoveEffectsWithTag(oPreviewTile, "TILE_EFFECT_PREVIEW");
-
-    int nTileID = GetLocalInt(oPreviewTile, "TILE_ID");
-
-    effect eTileEffect = EffectVisualEffect(AREACREATOR_EFFECT_START + nTileID, FALSE, 0.1f, [0.0f, 0.0f, 1.75f]);
-    eTileEffect = TagEffect(eTileEffect, "TILE_EFFECT_PREVIEW");
-
-    DelayCommand(AREACREATOR_TILE_EFFECT_APPLY_DELAY, ApplyEffectToObject(DURATION_TYPE_PERMANENT, eTileEffect, oPreviewTile));
-}
-
-void AreaCreator_UpdatePreviewTiles()
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    string sTileset = AreaCreator_GetTileset();
-    int nRange = GetLocalInt(oDataObject, "TILE_ID_RANGE");
-    int nNumPreviewTiles = ObjectArray_Size(oDataObject, "PREVIEW_TILES");
-
-    int nPreviewTile;
-    for (nPreviewTile = 0; nPreviewTile < nNumPreviewTiles; nPreviewTile++)
-    {
-        object oPreviewTile = ObjectArray_At(oDataObject, "PREVIEW_TILES", nPreviewTile);
-        int nTileID = nRange + nPreviewTile;
-        string sTileModel = NWNX_Tileset_GetTileModel(sTileset, nTileID);
-
-        SetLocalInt(oPreviewTile, "TILE_ID", nTileID);
-        SetLocalString(oPreviewTile, "TILE_MODEL", sTileModel);
-
-        if (sTileModel != "")
-        {
-            SetName(oPreviewTile, "[" + IntToString(nTileID) + "] " + sTileModel);
-
-            AreaCreator_ApplyEffect_PreviewTile(oPreviewTile);
-
-            SetUseableFlag(oPreviewTile, TRUE);
-        }
-        else
-        {
-            SetUseableFlag(oPreviewTile, FALSE);
-            Effects_RemoveEffectsWithTag(oPreviewTile, "TILE_EFFECT_PREVIEW");
-        }
-    }
-}
-
-void AreaCreator_SetTileEffectOverrides(object oPlayer, int bCheckPreviewTiles, int bCheckTiles)
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    object oPlayerDataObject = ES_Util_GetDataObject("AC_TILE_EFFECT_OVERRIDE_" + GetObjectUUID(oPlayer));
-
-    if (bCheckPreviewTiles)
-    {
-        int nRange = GetLocalInt(oDataObject, "TILE_ID_RANGE");
-        int nNumPreviewTiles = ObjectArray_Size(oDataObject, "PREVIEW_TILES");
-
-        int nPreviewTile;
-        for (nPreviewTile = 0; nPreviewTile < nNumPreviewTiles; nPreviewTile++)
-        {
-            object oPreviewTile = ObjectArray_At(oDataObject, "PREVIEW_TILES", nPreviewTile);
-
-            if (GetUseableFlag(oPreviewTile))
+            case 1: // Main Menu
             {
-                int nTileID = GetLocalInt(oPreviewTile, "TILE_ID");
-                string sTileModel = GetLocalString(oPreviewTile, "TILE_MODEL");
-
-                if (!GetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(nTileID)))
+                switch (nOption)
                 {
-                    NWNX_Player_SetResManOverride(oPlayer, 2002, AREACREATOR_VISUALEFFECT_DUMMY_NAME + IntToString(nTileID), sTileModel);
-                    SetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(nTileID), TRUE);
+                    case 1: // General Functions Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 2);
+                        break;
+
+                    case 2: // Tile Mode Selection Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 3);
+                        break;
+
+                    case 3:// Adjust Tile Paint Height Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 4);
+                        break;
+
+                    case 4:// End
+                        SimpleDialog_EndConversation(oPlayer);
+                        break;
                 }
+
+                break;
             }
-        }
-    }
 
-    if (bCheckTiles)
-    {
-        int nMaxTiles = AREACREATOR_TILES_MAX_WIDTH * AREACREATOR_TILES_MAX_HEIGHT;
-        int nTile;
-        for (nTile = 0; nTile < nMaxTiles; nTile++)
-        {
-            object oTile = GetObjectByTag(AREACREATOR_TILE_TAG_PREFIX + IntToString(nTile));
-
-            int nTileID = GetLocalInt(oTile, "TILE_ID");
-            string sTileModel = GetLocalString(oTile, "TILE_MODEL");
-
-            if (nTileID != -1)
+            case 2: // General Functions Menu
             {
-                if (!GetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(nTileID)))
+                switch (nOption)
                 {
-                    NWNX_Player_SetResManOverride(oPlayer, 2002, AREACREATOR_VISUALEFFECT_DUMMY_NAME + IntToString(nTileID), sTileModel);
-                    SetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(nTileID), TRUE);
+                    case 1:// Update Preview Area
+                    {
+                        object oArea = GetObjectByTag("AC_PREVIEW_AREA");
+
+                        if (GetIsObjectValid(oArea))
+                            DestroyArea(oArea);
+
+                        oArea = CreateArea(AREACREATOR_TEMPLATE_RESREF, "AC_PREVIEW_AREA", "Area Creator - Preview Area");
+                        break;
+                    }
+
+                    case 2:// Clear All Tiles
+                        AreaCreator_ClearAllTiles();
+                        break;
+
+                    case 3:// Generate Random Area
+                        AreaCreator_GenerateRandomArea(oPlayer);
+                        break;
+
+                    case 4: // Select Tileset Menu
+                         SimpleDialog_SetCurrentPage(oPlayer, 5);
+                         break;
+
+                    case 5:// Back to Main Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 1);
+                        break;
                 }
+
+                break;
+            }
+
+            case 3: // Tile Mode Selection Menu
+            {
+                switch (nOption)
+                {
+                    case 1:// Paint
+                    case 2:// Clear
+                    case 3:// Rotate
+                    case 4:// Height
+                    case 5:// Lock
+                    {
+                        AreaCreator_Player_SetSelectedMode(oPlayer, (nOption - 1));
+                        AreaCreator_UpdateGUISelectedMode(oPlayer);
+                        break;
+                    }
+
+                    case 6:// Back to Main Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 1);
+                        break;
+                }
+
+                break;
+            }
+
+            case 4: // Adjust Tile Paint Height Menu
+            {
+                switch (nOption)
+                {
+                    case 1:// Increase Tile Height
+                    {
+                        int nHeight = AreaCreator_Player_GetSelectedTileHeight(oPlayer) + 1;
+
+                        if (nHeight > AREACREATOR_MAX_TILE_HEIGHT)
+                            nHeight = AREACREATOR_MAX_TILE_HEIGHT;
+
+                        AreaCreator_Player_SetSelectedTileHeight(oPlayer, nHeight);
+                        AreaCreator_UpdateGUISelectedTileHeight(oPlayer);
+
+                        break;
+                    }
+
+                    case 2:// Decrease Tile Height
+                    {
+                        int nHeight = AreaCreator_Player_GetSelectedTileHeight(oPlayer) - 1;
+
+                        if (nHeight < 0)
+                            nHeight = 0;
+
+                        AreaCreator_Player_SetSelectedTileHeight(oPlayer, nHeight);
+                        AreaCreator_UpdateGUISelectedTileHeight(oPlayer);
+
+                        break;
+                    }
+
+                    case 3:// Back to Main Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 1);
+                        break;
+                }
+
+                break;
+            }
+
+            case 5: // Tileset Selection Menu
+            {
+                switch (nOption)
+                {
+                    case 1:// Rural
+                    {
+                        if (AreaCreator_GetTileset() != TILESET_RESREF_RURAL)
+                            AreaCreator_SetTileset(TILESET_RESREF_RURAL, "Trees");
+                        break;
+                    }
+
+                    case 2:// Crypt
+                    {
+                        if (AreaCreator_GetTileset() != TILESET_RESREF_CRYPT)
+                            AreaCreator_SetTileset(TILESET_RESREF_CRYPT, "Wall");
+                        break;
+                    }
+
+                    case 3:// Back to General Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 2);
+                        break;
+                }
+
+                break;
             }
         }
     }
 }
 
+// *** Wang Functions
 object AreaCreator_GetNeighborTile(object oTile, int nDirection)
 {
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    int nTileNum = GetLocalInt(oTile, "TILE_NUM");
-    int nCurrentWidth = GetLocalInt(oDataObject, "CURRENT_TILE_WIDTH");
-    int nCurrentHeight = GetLocalInt(oDataObject, "CURRENT_TILE_HEIGHT");
+    int nTileNum = AreaCreator_Tile_GetTileNum(oTile);
+    int nCurrentWidth =  AreaCreator_GetCurrentWidth();
+    int nCurrentHeight = AreaCreator_GetCurrentHeight();
     int nTileX = nTileNum % nCurrentWidth;
     int nTileY = nTileNum / nCurrentWidth;
 
@@ -912,73 +1437,61 @@ object AreaCreator_GetNeighborTile(object oTile, int nDirection)
         }
     }
 
-    return ObjectArray_At(oDataObject, "CURRENT_TILES", nTileNum);
-}
-
-void PrintStruct(struct NWNX_Tileset_TileEdgesAndCorners str)
-{
-    PrintString("TILE STRUCT:");
-    PrintString("TL: " + str.sTopLeft);
-    PrintString("T: " + str.sTop);
-    PrintString("TR: " + str.sTopRight);
-    PrintString("R: " + str.sRight);
-    PrintString("BR: " + str.sBottomRight);
-    PrintString("B: " + str.sBottom);
-    PrintString("BL: " + str.sBottomLeft);
-    PrintString("L: " + str.sLeft);
+    return ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME, nTileNum);
 }
 
 struct NWNX_Tileset_TileEdgesAndCorners AreaCreator_GetNeighborEdgesAndCorners(object oTile, int nDirection)
 {
     struct NWNX_Tileset_TileEdgesAndCorners str;
-    object oNeightbor = AreaCreator_GetNeighborTile(oTile, nDirection);
+    object oNeighborTile = AreaCreator_GetNeighborTile(oTile, nDirection);
 
-    if (oNeightbor != OBJECT_INVALID)
+    if (oNeighborTile != OBJECT_INVALID)
     {
-        int nTileID = GetLocalInt(oNeightbor, "TILE_ID");
-        int nOrientation = GetLocalInt(oNeightbor, "TILE_ORIENTATION");
-        int nHeight = GetLocalInt(oNeightbor, "TILE_HEIGHT");
+        int nTileID = AreaCreator_Tile_GetTileID(oNeighborTile);
+        int nOrientation = AreaCreator_Tile_GetTileOrientation(oNeighborTile);
+        int nHeight = AreaCreator_Tile_GetTileHeight(oNeighborTile);
 
         if (nTileID != -1)
             str = WangTiles_GetCornersAndEdgesByOrientation(AreaCreator_GetTileset(), nTileID, nOrientation);
 
-        // HACK
         if (AreaCreator_GetTileset() == TILESET_RESREF_RURAL && nHeight == 1)
             str = WangTiles_ReplaceTerrainOrCrosser(str, "Grass", "Grass+");
     }
     else
     {
+        string sEdgeTerrainType = AreaCreator_GetTilesetEdgeTerrainType();
+
         switch (nDirection)
         {
             case 0:
             {
-                str.sBottomLeft = AREACREATOR_INVALID_TILE_EDGE;
-                str.sBottom = AREACREATOR_INVALID_TILE_EDGE;
-                str.sBottomRight = AREACREATOR_INVALID_TILE_EDGE;
+                str.sBottomLeft = sEdgeTerrainType;
+                str.sBottom = sEdgeTerrainType;
+                str.sBottomRight = sEdgeTerrainType;
                 break;
             }
 
             case 1:
             {
-                str.sTopLeft = AREACREATOR_INVALID_TILE_EDGE;
-                str.sLeft = AREACREATOR_INVALID_TILE_EDGE;
-                str.sBottomLeft = AREACREATOR_INVALID_TILE_EDGE;
+                str.sTopLeft = sEdgeTerrainType;
+                str.sLeft = sEdgeTerrainType;
+                str.sBottomLeft = sEdgeTerrainType;
                 break;
             }
 
             case 2:
             {
-                str.sTopLeft = AREACREATOR_INVALID_TILE_EDGE;
-                str.sTop = AREACREATOR_INVALID_TILE_EDGE;
-                str.sTopRight = AREACREATOR_INVALID_TILE_EDGE;
+                str.sTopLeft = sEdgeTerrainType;
+                str.sTop = sEdgeTerrainType;
+                str.sTopRight = sEdgeTerrainType;
                 break;
             }
 
             case 3:
             {
-                str.sTopRight = AREACREATOR_INVALID_TILE_EDGE;
-                str.sRight = AREACREATOR_INVALID_TILE_EDGE;
-                str.sBottomRight = AREACREATOR_INVALID_TILE_EDGE;
+                str.sTopRight = sEdgeTerrainType;
+                str.sRight = sEdgeTerrainType;
+                str.sBottomRight = sEdgeTerrainType;
                 break;
             }
         }
@@ -1004,7 +1517,7 @@ string AreaCreator_HandleCornerConflict(string sCorner1, string sCorner2)
     return "ERROR";
 }
 
-struct WangTiles_Tile AreaCreator_GetRandomTile(object oTile)
+struct WangTiles_Tile AreaCreator_GetRandomMatchingTile(object oTile)
 {
     struct NWNX_Tileset_TileEdgesAndCorners strQuery;
 
@@ -1023,18 +1536,7 @@ struct WangTiles_Tile AreaCreator_GetRandomTile(object oTile)
     strQuery.sBottomRight = AreaCreator_HandleCornerConflict(strRight.sBottomLeft, strBottom.sTopRight);
     strQuery.sBottomLeft = AreaCreator_HandleCornerConflict(strBottom.sTopLeft, strLeft.sBottomRight);
 
-    /*
-    if (strQuery.sTopLeft == "") strQuery.sTopLeft = "IGNORE";
-    if (strQuery.sTop == "") strQuery.sTop = "IGNORE";
-    if (strQuery.sTopRight == "") strQuery.sTopRight = "IGNORE";
-    if (strQuery.sRight == "") strQuery.sRight = "IGNORE";
-    if (strQuery.sBottomRight == "") strQuery.sBottomRight = "IGNORE";
-    if (strQuery.sBottom == "") strQuery.sBottom = "IGNORE";
-    if (strQuery.sBottomLeft == "") strQuery.sBottomLeft = "IGNORE";
-    if (strQuery.sLeft == "") strQuery.sLeft = "IGNORE";
-    */
-
-    PrintStruct(strQuery);
+    //PrintStruct(strQuery);
 
     return WangTiles_GetRandomMatchingTile(AreaCreator_GetTileset(), strQuery);
 }
@@ -1043,40 +1545,31 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
 {
     NWNX_Util_SetInstructionLimit(524288 * 4);
 
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    float fTileHeightTransition = GetLocalFloat(oDataObject, "TILESET_HEIGHT_TRANSITION");
-    int nNumTiles = ObjectArray_Size(oDataObject, "CURRENT_TILES");
+    float fTileHeightTransition = AreaCreator_GetTilesetHeightTransition();
+    int nNumTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME);
     int nTile, nMatchFailure;
 
     for (nTile = 0; nTile < nNumTiles; nTile++)
     {
-        object oTile = ObjectArray_At(oDataObject, "CURRENT_TILES", nTile);
+        object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME, nTile);
 
         if (GetLocalInt(oTile, "TILE_ID") != -1)
             continue;
 
-        struct WangTiles_Tile tile = AreaCreator_GetRandomTile(oTile);
+        struct WangTiles_Tile tile = AreaCreator_GetRandomMatchingTile(oTile);
 
         if (tile.nTileID != -1)
         {
             string sTileModel = NWNX_Tileset_GetTileModel(AreaCreator_GetTileset(), tile.nTileID);
 
-            SetLocalInt(oTile, "TILE_ID", tile.nTileID);
-            SetLocalInt(oTile, "TILE_ORIENTATION", tile.nOrientation);
-            SetLocalInt(oTile, "TILE_HEIGHT", tile.nHeight);
-            SetLocalString(oTile, "TILE_MODEL", sTileModel);
+            AreaCreator_Tile_SetTileID(oTile, tile.nTileID);
+            AreaCreator_Tile_SetTileOrientation(oTile, tile.nOrientation);
+            AreaCreator_Tile_SetTileHeight(oTile, tile.nHeight);
+            AreaCreator_Tile_SetTileModel(oTile, sTileModel);
 
-            // TEMP
-            object oPlayerDataObject = ES_Util_GetDataObject("AC_TILE_EFFECT_OVERRIDE_" + GetObjectUUID(oPlayer));
+            AreaCreator_SetTileEffectOverrideForArea(tile.nTileID, sTileModel);
 
-            if (!GetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(tile.nTileID)))
-            {
-                NWNX_Player_SetResManOverride(oPlayer, 2002, AREACREATOR_VISUALEFFECT_DUMMY_NAME + IntToString(tile.nTileID), sTileModel);
-                SetLocalInt(oPlayerDataObject, "TILE_ID_" + IntToString(tile.nTileID), TRUE);
-            }
-            // ***
-
-            vector vTranslate = Vector(0.0f, 0.0f, 1.0f + (GetLocalInt(oTile, "TILE_HEIGHT") * (fTileHeightTransition * AREACREATOR_TILE_SCALE)));
+            vector vTranslate = Vector(0.0f, 0.0f, 1.0f + (tile.nHeight * (fTileHeightTransition * AREACREATOR_TILES_TILE_SCALE)));
             ApplyEffectToObject(DURATION_TYPE_INSTANT, EffectVisualEffect(VFX_IMP_DAZED_S, FALSE, 1.0f, vTranslate), oTile);
 
             AreaCreator_UpdateTile(oTile);
@@ -1090,41 +1583,5 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
     SendMessageToPC(oPlayer, "Tile Matching Failures: " + IntToString(nMatchFailure));
 
     NWNX_Util_SetInstructionLimit(-1);
-}
-
-void AreaCreator_ClearAllTiles(object oPlayer)
-{
-    object oDataObject = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
-    int nNumTiles = ObjectArray_Size(oDataObject, "TILES");
-
-    int nTile;
-    for (nTile = 0; nTile < nNumTiles; nTile++)
-    {
-        object oTile = ObjectArray_At(oDataObject, "TILES", nTile);
-
-        if (GetLocalInt(oTile, "TILE_LOCK"))
-            continue;
-
-        SetLocalInt(oTile, "TILE_ID", -1);
-        DeleteLocalInt(oTile, "TILE_ORIENTATION");
-        DeleteLocalInt(oTile, "TILE_HEIGHT");
-        DeleteLocalString(oTile, "TILE_MODEL");
-
-        Effects_RemoveEffectsWithTag(oTile, "TILE_EFFECT");
-    }
-}
-
-void AreaCreator_LockTile(object oTile)
-{
-    if (GetLocalInt(oTile, "TILE_LOCK"))
-    {
-        Effects_RemoveEffectsWithTag(oTile, "TILE_LOCK");
-        DeleteLocalInt(oTile, "TILE_LOCK");
-    }
-    else
-    {
-        ApplyEffectToObject(DURATION_TYPE_PERMANENT, TagEffect(EffectVisualEffect(VFX_DUR_GLOW_WHITE), "TILE_LOCK"), oTile);
-        SetLocalInt(oTile, "TILE_LOCK", TRUE);
-    }
 }
 
