@@ -125,6 +125,8 @@ object ES_Util_GetObjectByTagInArea(string sTag, object oArea, int nNth = 0);
 
 // Get a location fDistance ahead of oTarget
 location ES_Util_GetAheadLocation(object oTarget, float fDistance);
+// Get a location fDistance behind of oTarget
+location ES_Util_GetBehindLocation(object oTarget, float fDistance);
 
 // Get a random location fDistance from locPoint
 location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance);
@@ -564,6 +566,13 @@ location ES_Util_GetAheadLocation(object oTarget, float fDistance)
 {
     float fDir = GetFacing(oTarget);
     return GenerateNewLocation(oTarget, fDistance, fDir, fDir);
+}
+
+location ES_Util_GetBehindLocation(object oTarget, float fDistance)
+{
+    float fDir = GetFacing(oTarget);
+    float fAngleOpposite = GetOppositeDirection(fDir);
+    return GenerateNewLocation(oTarget, fDistance, fAngleOpposite, fDir);
 }
 
 int ES_Util_GetIsPC(object oObject)

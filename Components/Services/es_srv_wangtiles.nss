@@ -34,7 +34,9 @@ struct WangTiles_Tile WangTiles_GetRandomMatchingTile(string sTileset, struct NW
 // @Load
 void WangTiles_Load(string sServiceScript)
 {
-
+    WangTiles_ProcessTileset(TILESET_RESREF_RURAL);
+    WangTiles_ProcessTileset(TILESET_RESREF_CRYPT);
+    WangTiles_ProcessTileset(TILESET_RESREF_ILLITHID_INTERIOR);
 }
 
 void WangTiles_CreateTable(string sTileset)
@@ -98,13 +100,13 @@ string WangTiles_HandleEdgeCase(string sTileset, string sEdge, string sCorner1, 
 {
     if (sEdge != "")
         return sEdge;
+    else if (sCorner1 == sCorner2)
+        sEdge = sCorner1;
     else
     {
         if (sTileset == TILESET_RESREF_RURAL)
         {
-            if (sCorner1 == sCorner2)
-                sEdge = sCorner1;
-            else if ((sCorner1 == "Grass" && sCorner2 == "Trees") || (sCorner1 == "Trees" && sCorner2 == "Grass"))
+            if ((sCorner1 == "Grass" && sCorner2 == "Trees") || (sCorner1 == "Trees" && sCorner2 == "Grass"))
                 sEdge = "Grass";
             else if ((sCorner1 == "Water" && sCorner2 == "Trees") || (sCorner1 == "Trees" && sCorner2 == "Water"))
                 sEdge == "Water";
@@ -120,14 +122,18 @@ string WangTiles_HandleEdgeCase(string sTileset, string sEdge, string sCorner1, 
         else
         if (sTileset == TILESET_RESREF_CRYPT)
         {
-            if (sCorner1 == sCorner2)
-                sEdge = sCorner1;
-            else if ((sCorner1 == "Wall" && sCorner2 == "Floor") || (sCorner1 == "Floor" && sCorner2 == "Wall"))
+            if ((sCorner1 == "Wall" && sCorner2 == "Floor") || (sCorner1 == "Floor" && sCorner2 == "Wall"))
                 sEdge = "Floor";
             else if ((sCorner1 == "Wall" && sCorner2 == "Pit") || (sCorner1 == "Pit" && sCorner2 == "Wall"))
                 sEdge = "Pit";
             else if ((sCorner1 == "Floor" && sCorner2 == "Pit") || (sCorner1 == "Pit" && sCorner2 == "Floor"))
                 sEdge = "Pit";
+        }
+        else
+        if (sTileset == TILESET_RESREF_ILLITHID_INTERIOR)
+        {
+            if ((sCorner1 == "Wall" && sCorner2 == "Floor") || (sCorner1 == "Floor" && sCorner2 == "Wall"))
+                sEdge = "Floor";
         }
     }
 
@@ -270,6 +276,12 @@ void WangTiles_ProcessTileset(string sTileset)
                 (nTileID >= 94 && nTileID <= 100) ||
                 (nTileID >= 161 && nTileID <= 162) ||
                 (nTileID >= 166 && nTileID <= 168))
+                continue;
+        }
+        else
+        if (sTileset == TILESET_RESREF_ILLITHID_INTERIOR)
+        {
+            if ((nTileID >= 39 && nTileID <= 74))
                 continue;
         }
         // ***
