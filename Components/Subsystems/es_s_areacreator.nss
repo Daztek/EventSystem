@@ -16,7 +16,7 @@
 #include "es_srv_chatcom"
 #include "es_srv_gui"
 #include "es_srv_toolbox"
-#include "es_srv_wangtiles"
+#include "es_srv_tiles"
 #include "es_srv_simdialog"
 
 #include "nwnx_player"
@@ -55,7 +55,7 @@ const string AREACREATOR_VISUALEFFECT_DUMMY_NAME    = "dummy_tile_";
 const float AREACREATOR_TILE_EFFECT_APPLY_DELAY     = 0.1f;
 const int AREACREATOR_MAX_TILE_HEIGHT               = 15;
 
-const int AREACREATOR_RANDOM_AREA_MAX_ATTEMPTS      = 10;
+const int AREACREATOR_RANDOM_AREA_MAX_ATTEMPTS      = 15;
 
 const int AREACREATOR_TILES_MAX_WIDTH               = 12;
 const int AREACREATOR_TILES_MAX_HEIGHT              = 12;
@@ -121,6 +121,8 @@ void AreaCreator_UpdateGUISelectedTile(object oPlayer);
 void AreaCreator_ResetGUISelectedTileForArea();
 void AreaCreator_UpdateGUISelectedTileHeight(object oPlayer);
 void AreaCreator_UpdateGUISelectedMode(object oPlayer);
+void AreaCreator_UpdateGUIEdgeTerrain(object oPlayer);
+void AreaCreator_UpdateGUIEdgeTerrainForArea();
 void AreaCreator_UpdateFullGUI(object oPlayer);
 
 void AreaCreator_HandlePreviewLever(object oPlayer, object oLever);
@@ -136,7 +138,7 @@ object AreaCreator_GetTileEffectOverrideDataObject(object oPlayer);
 void AreaCreator_DestroyTileEffectOverrideDataObject(object oPlayer);
 void AreaCreator_DestroyAllTileEffectOverrideDataObjects();
 
-void AreaCreator_SetCustomAreaData();
+void AreaCreator_CreateTileOverride();
 void AreaCreator_SetCustomTileData(object oTile);
 void AreaCreator_UpdateAllCustomTileData();
 
@@ -147,7 +149,7 @@ void AreaCreator_HandleConversation(string sEvent);
 object AreaCreator_GetNeighborTile(object oTile, int nDirection);
 struct NWNX_Tileset_TileEdgesAndCorners AreaCreator_GetNeighborEdgesAndCorners(object oTile, int nDirection);
 string AreaCreator_HandleCornerConflict(string sCorner1, string sCorner2);
-struct WangTiles_Tile AreaCreator_GetRandomMatchingTile(object oTile);
+struct Tiles_Tile AreaCreator_GetRandomMatchingTile(object oTile);
 void AreaCreator_ClearNeighborTiles(object oTile);
 int AreaCreator_GenerateRandomTiles();
 void AreaCreator_GenerateRandomArea(object oPlayer);
@@ -170,6 +172,7 @@ void AreaCreator_Load(string sSubsystemScript)
     Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_MODULE_ON_PLAYER_TARGET);
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_SERVER_SEND_AREA_BEFORE");
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, TRUE);
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_PLAYERDM_LOGIN_AFTER");
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_PLAYERDM_LOGOUT_AFTER");
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE");
@@ -190,7 +193,7 @@ void AreaCreator_Load(string sSubsystemScript)
     AreaCreator_CreateConversation(sSubsystemScript);
 
     AreaCreator_SetTileGridSize(AREACREATOR_TILES_DEFAULT_WIDTH, AREACREATOR_TILES_DEFAULT_HEIGHT);
-    AreaCreator_SetTileset(TILESET_RESREF_RURAL, "Trees", TRUE);
+    AreaCreator_SetTileset(TILESET_RESREF_RURAL, "", TRUE);
 
     DestroyArea(GetObjectByTag(AREACREATOR_TEMPLATE_RESREF));
 }
@@ -267,7 +270,7 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
                     if (AreaCreator_HandlePylon(oPlayer, oPlaceable))
                     {
                         AreaCreator_UpdateTileGridSize();
-                        AreaCreator_SetCustomAreaData();
+                        AreaCreator_CreateTileOverride();
                         AreaCreator_UpdateAllCustomTileData();
                     }
                 }
@@ -288,7 +291,7 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
                 object oPlayer = GetEnteringObject();
                 object oArea = OBJECT_SELF;
 
-                if (GetIsPC(oPlayer))
+                if (ES_Util_GetIsPC(oPlayer))
                     AreaCreator_HandleAreaOnEnter(oPlayer, oArea);
 
                 break;
@@ -299,7 +302,7 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
                 object oPlayer = GetExitingObject();
                 object oArea = OBJECT_SELF;
 
-                if (GetIsPC(oPlayer))
+                if (ES_Util_GetIsPC(oPlayer))
                     AreaCreator_HandleAreaOnExit(oPlayer, oArea);
 
                 break;
@@ -394,29 +397,31 @@ string AreaCreator_GetTileset()                                             { re
 int AreaCreator_GetTilesetNumTileData()                                     { return GetLocalInt(AREACREATOR_DATA_OBJECT, "TILESET_NUM_TILE_DATA"); }
 float AreaCreator_GetTilesetHeightTransition()                              { return GetLocalFloat(AREACREATOR_DATA_OBJECT, "TILESET_HEIGHT_TRANSITION"); }
 string AreaCreator_GetTilesetEdgeTerrainType()                              { return GetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE"); }
+void AreaCreator_SetTilesetEdgeTerrainType(string sTerrain)                 { SetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE", sTerrain); }
 
 void AreaCreator_SetTileset(string sTileset, string sEdgeTerrainType, int bInitialSet = FALSE)
 {
     string sOverrideName = AreaCreator_GetOverrideName();
-    struct NWNX_Tileset_TilesetInfo tsi = NWNX_Tileset_GetTilesetInfo(sTileset);
+    int nNumTileData = Tiles_GetTilesetNumTileData(sTileset);
+    float fHeightTransition = Tiles_GetTilesetHeightTransition(sTileset);
 
-    if (tsi.nNumTileData > AREACREATOR_TILESET_MAX_TILES)
-        ES_Util_Log(AREACREATOR_LOG_TAG , "WARNING: Tileset '" + sTileset + "' has more than " + IntToString(AREACREATOR_TILESET_MAX_TILES) + " tiles! (" + IntToString(tsi.nNumTileData) + ")");
+    if (nNumTileData > AREACREATOR_TILESET_MAX_TILES)
+        ES_Util_Log(AREACREATOR_LOG_TAG , "WARNING: Tileset '" + sTileset + "' has more than " + IntToString(AREACREATOR_TILESET_MAX_TILES) + " tiles! (" + IntToString(nNumTileData) + ")");
 
-    NWNX_Tileset_OverrideAreaTiles(AREACREATOR_TEMPLATE_RESREF, sOverrideName);
+    NWNX_Tileset_SetAreaTileOverride(AREACREATOR_TEMPLATE_RESREF, sOverrideName);
 
     if (!bInitialSet)
     {
-        NWNX_Tileset_DeleteCustomAreaData(sOverrideName);
+        NWNX_Tileset_DeleteTileOverride(sOverrideName);
         AreaCreator_ClearAllTiles(TRUE);
         AreaCreator_DestroyAllTileEffectOverrideDataObjects();
     }
 
     SetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_NAME", sTileset);
-    SetLocalString(AREACREATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE", sEdgeTerrainType);
-    SetLocalInt(AREACREATOR_DATA_OBJECT, "TILESET_NUM_TILE_DATA", tsi.nNumTileData);
-    SetLocalFloat(AREACREATOR_DATA_OBJECT, "TILESET_HEIGHT_TRANSITION", tsi.fHeightTransition);
-    AreaCreator_SetCustomAreaData();
+    AreaCreator_SetTilesetEdgeTerrainType(sEdgeTerrainType);
+    SetLocalInt(AREACREATOR_DATA_OBJECT, "TILESET_NUM_TILE_DATA", nNumTileData);
+    SetLocalFloat(AREACREATOR_DATA_OBJECT, "TILESET_HEIGHT_TRANSITION", fHeightTransition);
+    AreaCreator_CreateTileOverride();
 
     if (!bInitialSet)
     {
@@ -425,6 +430,7 @@ void AreaCreator_SetTileset(string sTileset, string sEdgeTerrainType, int bIniti
         int nTileRange = !AreaCreator_GetPreviewTileRange() ? AreaCreator_GetMaxPreviewTiles() : 0;
         AreaCreator_SetPreviewTileRange(nTileRange);
         AreaCreator_UpdateGUIPreviewTilesRangeForArea(nTileRange, AreaCreator_GetTilesetNumTileData());
+        AreaCreator_UpdateGUIEdgeTerrainForArea();
     }
 
     AreaCreator_UpdatePreviewTiles();
@@ -742,6 +748,7 @@ void AreaCreator_HandleAreaOnEnter(object oPlayer, object oArea)
     AreaCreator_UpdateFullGUI(oPlayer);
 
     Events_AddObjectToDispatchList(AREACREATOR_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+    Events_AddObjectToDispatchList(AREACREATOR_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oPlayer);
 }
 
 void AreaCreator_HandleAreaOnExit(object oPlayer, object oArea)
@@ -752,6 +759,7 @@ void AreaCreator_HandleAreaOnExit(object oPlayer, object oArea)
         SimpleDialog_AbortConversation(oPlayer);
 
     Events_RemoveObjectFromDispatchList(AREACREATOR_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+    Events_RemoveObjectFromDispatchList(AREACREATOR_SCRIPT_NAME, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oPlayer);
 }
 
 // *** Tile Grid Functions
@@ -874,7 +882,7 @@ void AreaCreator_HandleTile(object oPlayer, object oTile)
 
         case AREACREATOR_MODE_MATCH:
         {
-            struct WangTiles_Tile tile = AreaCreator_GetRandomMatchingTile(oTile);
+            struct Tiles_Tile tile = AreaCreator_GetRandomMatchingTile(oTile);
 
             if (tile.nTileID != -1)
             {
@@ -1018,6 +1026,7 @@ const int AREACREATOR_GUI_ID_SELECTED_TILE_NAME     = 1;
 const int AREACREATOR_GUI_ID_SELECTED_TILE_ID       = 2;
 const int AREACREATOR_GUI_ID_SELECTED_TILE_HEIGHT   = 3;
 const int AREACREATOR_GUI_ID_SELECTED_MODE          = 4;
+const int AREACREATOR_GUI_ID_EDGE_TERRAIN           = 5;
 
 const int AREA_CREATOR_GUI_X_PADDING                = 36;
 const int AREA_CREATOR_GUI_Y_PADDING_DM             = 2;
@@ -1029,7 +1038,7 @@ void AreaCreator_DrawStaticGUI(object oPlayer)
     int nYPadding = GetLocalInt(oPlayer, "AC_GUI_Y_PADDING");
 
     // Window
-    nID -= GUI_DrawWindow(oPlayer, nID, SCREEN_ANCHOR_TOP_LEFT, nXPadding, nYPadding, 30, 6, 0.0f, FALSE);
+    nID -= GUI_DrawWindow(oPlayer, nID, SCREEN_ANCHOR_TOP_LEFT, nXPadding, nYPadding, 30, 7, 0.0f, FALSE);
 
     PostString(oPlayer, "a", nXPadding + 1, nYPadding + 1, SCREEN_ANCHOR_TOP_LEFT, 0.0f, GUI_COLOR_WHITE, GUI_COLOR_WHITE, nID--, GUI_FONT_ICON_32X32);
 }
@@ -1124,6 +1133,33 @@ void AreaCreator_UpdateGUISelectedMode(object oPlayer)
     PostString(oPlayer, sText, nXPadding + 1, nYPadding + 6, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nID, GUI_FONT_TEXT_NAME);
 }
 
+void AreaCreator_UpdateGUIEdgeTerrain(object oPlayer)
+{
+    int nID = GUI_GetStartID(AREACREATOR_SCRIPT_NAME) + AREACREATOR_GUI_ID_EDGE_TERRAIN;
+    int nXPadding = AreaCreator_Player_GetGUIXPadding(oPlayer);
+    int nYPadding = AreaCreator_Player_GetGUIYPadding(oPlayer);
+    int nTextColor = GUI_COLOR_WHITE;
+
+    string sTerrain = AreaCreator_GetTilesetEdgeTerrainType();
+    string sText = "Edge Terrain: " + (sTerrain == "" ? "None" : sTerrain);
+
+    PostString(oPlayer, sText, nXPadding + 1, nYPadding + 7, SCREEN_ANCHOR_TOP_LEFT, 0.0f, nTextColor, nTextColor, nID, GUI_FONT_TEXT_NAME);
+}
+
+void AreaCreator_UpdateGUIEdgeTerrainForArea()
+{
+    object oArea = GetArea(GetObjectByTag(AREACREATOR_TILES_WAYPOINT_TAG));
+    object oPlayer = GetFirstPC();
+
+    while (oPlayer != OBJECT_INVALID)
+    {
+        if (GetArea(oPlayer) == oArea)
+            AreaCreator_UpdateGUIEdgeTerrain(oPlayer);
+
+        oPlayer = GetNextPC();
+    }
+}
+
 void AreaCreator_UpdateFullGUI(object oPlayer)
 {
     if (GetIsDM(oPlayer))
@@ -1138,6 +1174,7 @@ void AreaCreator_UpdateFullGUI(object oPlayer)
     AreaCreator_UpdateGUISelectedTile(oPlayer);
     AreaCreator_UpdateGUISelectedTileHeight(oPlayer);
     AreaCreator_UpdateGUISelectedMode(oPlayer);
+    AreaCreator_UpdateGUIEdgeTerrain(oPlayer);
 }
 
 // *** Tile Preview Functions
@@ -1349,14 +1386,14 @@ void AreaCreator_DestroyAllTileEffectOverrideDataObjects()
 }
 
 // *** Custom Area/Tile Data Functions
-void AreaCreator_SetCustomAreaData()
+void AreaCreator_CreateTileOverride()
 {
     string sOverrideName = AreaCreator_GetOverrideName();
     string sTileset = AreaCreator_GetTileset();
     int nWidth = AreaCreator_GetCurrentWidth();
     int nHeight = AreaCreator_GetCurrentHeight();
 
-    NWNX_Tileset_SetCustomAreaData(sOverrideName, sTileset, nWidth, nHeight);
+    NWNX_Tileset_CreateTileOverride(sOverrideName, sTileset, nWidth, nHeight);
 }
 
 void AreaCreator_SetCustomTileData(object oTile)
@@ -1379,14 +1416,14 @@ void AreaCreator_SetCustomTileData(object oTile)
     ctd.bAnimLoop3 = TRUE;
 
     if (nTileID != -1)
-        NWNX_Tileset_SetCustomTileData(AreaCreator_GetOverrideName(), nTileNum, ctd);
+        NWNX_Tileset_SetOverrideTileData(AreaCreator_GetOverrideName(), nTileNum, ctd);
 }
 
 void AreaCreator_UpdateAllCustomTileData()
 {
     int nMaxTiles = AreaCreator_GetMaxTiles();
 
-    NWNX_Tileset_DeleteCustomTileData(AreaCreator_GetOverrideName(), -1);
+    NWNX_Tileset_DeleteOverrideTileData(AreaCreator_GetOverrideName(), -1);
 
     int nTile;
     for (nTile = 0; nTile < nMaxTiles; nTile++)
@@ -1414,6 +1451,7 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Clear All Tiles]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Generate Random Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Tileset Selection]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Edge Terrain Selection]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Jump To Location In Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
@@ -1434,7 +1472,22 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
     SimpleDialog_AddPage(oConversation, "Area Creator - Select Tileset");
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Rural]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Crypt]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Illithid Interior]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Castle Interior]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Edge");
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[None]"));
+        SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain2", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain3", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain4", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain5", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain6", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain7", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain8", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain9", TRUE);
+        SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 }
 
@@ -1453,7 +1506,44 @@ void AreaCreator_HandleConversation(string sEvent)
     if (sConversation != AREACREATOR_SCRIPT_NAME)
         return;
 
-    if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
+    if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION)
+    {
+        int nPage = Events_GetEventData_NWNX_Int("PAGE");
+        int nOption = Events_GetEventData_NWNX_Int("OPTION");
+
+        switch (nPage)
+        {
+            case 6: // Edge Terrain Menu
+            {
+                switch (nOption)
+                {
+                    case 2: // Terrain0
+                    case 3: // Terrain1
+                    case 4: // Terrain2
+                    case 5: // Terrain3
+                    case 6: // Terrain4
+                    case 7: // Terrain5
+                    case 8: // Terrain6
+                    case 9: // Terrain7
+                    case 10:// Terrain8
+                    case 11:// Terrain9
+                    case 12:// Terrain10
+                    {
+                        string sTerrain = Tiles_GetTilesetTerrain(AreaCreator_GetTileset(), nOption - 2);
+
+                        if (sTerrain != "")
+                        {
+                            SimpleDialog_SetResult(TRUE);
+                            SimpleDialog_SetOverrideText(SimpleDialog_Token_Action("[" + sTerrain + "]"));
+                        }
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+    else if (sEvent == SIMPLE_DIALOG_EVENT_ACTION_TAKEN)
     {
         int nPage = Events_GetEventData_NWNX_Int("PAGE");
         int nOption = Events_GetEventData_NWNX_Int("OPTION");
@@ -1506,11 +1596,15 @@ void AreaCreator_HandleConversation(string sEvent)
                          SimpleDialog_SetCurrentPage(oPlayer, 5);
                          break;
 
-                    case 5:// Jump To Location In Area
+                    case 5:// Edge Terrain Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 6);
+                        break;
+
+                    case 6:// Jump To Location In Area
                         Events_EnterTargetingMode(oPlayer, AREACREATOR_SCRIPT_NAME, OBJECT_TYPE_TILE | OBJECT_TYPE_PLACEABLE);
                         break;
 
-                    case 6:// Back to Main Menu
+                    case 7:// Back to Main Menu
                         SimpleDialog_SetCurrentPage(oPlayer, 1);
                         break;
                 }
@@ -1587,25 +1681,63 @@ void AreaCreator_HandleConversation(string sEvent)
                     case 1:// Rural
                     {
                         if (AreaCreator_GetTileset() != TILESET_RESREF_RURAL)
-                            AreaCreator_SetTileset(TILESET_RESREF_RURAL, "Trees");
+                            AreaCreator_SetTileset(TILESET_RESREF_RURAL, "");
                         break;
                     }
 
                     case 2:// Crypt
                     {
                         if (AreaCreator_GetTileset() != TILESET_RESREF_CRYPT)
-                            AreaCreator_SetTileset(TILESET_RESREF_CRYPT, "Wall");
+                            AreaCreator_SetTileset(TILESET_RESREF_CRYPT, "");
                         break;
                     }
 
-                    case 3:// Illithid Interior
+                    case 3:// Castle Interior
                     {
-                        if (AreaCreator_GetTileset() != TILESET_RESREF_ILLITHID_INTERIOR)
-                            AreaCreator_SetTileset(TILESET_RESREF_ILLITHID_INTERIOR, "Wall");
+                        if (AreaCreator_GetTileset() != TILESET_RESREF_CASTLE_INTERIOR)
+                            AreaCreator_SetTileset(TILESET_RESREF_CASTLE_INTERIOR, "");
                         break;
                     }
 
                     case 4:// Back to General Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, 2);
+                        break;
+                }
+
+                break;
+            }
+
+            case 6: // Edge Terrain Menu
+            {
+                switch (nOption)
+                {
+                    case 1:// None
+                    {
+                        AreaCreator_SetTilesetEdgeTerrainType("");
+                        AreaCreator_UpdateGUIEdgeTerrainForArea();
+                        SimpleDialog_SetCurrentPage(oPlayer, 2);
+                        break;
+                    }
+
+                    case 2: // Terrain0
+                    case 3: // Terrain1
+                    case 4: // Terrain2
+                    case 5: // Terrain3
+                    case 6: // Terrain4
+                    case 7: // Terrain5
+                    case 8: // Terrain6
+                    case 9: // Terrain7
+                    case 10:// Terrain8
+                    case 11:// Terrain9
+                    case 12:// Terrain10
+                    {
+                        AreaCreator_SetTilesetEdgeTerrainType(Tiles_GetTilesetTerrain(AreaCreator_GetTileset(), nOption - 2));
+                        AreaCreator_UpdateGUIEdgeTerrainForArea();
+                        SimpleDialog_SetCurrentPage(oPlayer, 2);
+                        break;
+                    }
+
+                    case 13:// Back to General Menu
                         SimpleDialog_SetCurrentPage(oPlayer, 2);
                         break;
                 }
@@ -1715,10 +1847,10 @@ struct NWNX_Tileset_TileEdgesAndCorners AreaCreator_GetNeighborEdgesAndCorners(o
         int nHeight = AreaCreator_Tile_GetTileHeight(oNeighborTile);
 
         if (nTileID != -1)
-            str = WangTiles_GetCornersAndEdgesByOrientation(AreaCreator_GetTileset(), nTileID, nOrientation);
+            str = Tiles_GetCornersAndEdgesByOrientation(AreaCreator_GetTileset(), nTileID, nOrientation);
 
         if (AreaCreator_GetTileset() == TILESET_RESREF_RURAL && nHeight == 1)
-            str = WangTiles_ReplaceTerrainOrCrosser(str, "Grass", "Grass+");
+            str = Tiles_ReplaceTerrainOrCrosser(str, "Grass", "Grass+");
     }
     else
     {
@@ -1795,7 +1927,7 @@ void PrintTileStruct(struct NWNX_Tileset_TileEdgesAndCorners str)
 }
 */
 
-struct WangTiles_Tile AreaCreator_GetRandomMatchingTile(object oTile)
+struct Tiles_Tile AreaCreator_GetRandomMatchingTile(object oTile)
 {
     struct NWNX_Tileset_TileEdgesAndCorners strQuery;
 
@@ -1816,7 +1948,7 @@ struct WangTiles_Tile AreaCreator_GetRandomMatchingTile(object oTile)
 
     //PrintTileStruct(strQuery);
 
-    return WangTiles_GetRandomMatchingTile(AreaCreator_GetTileset(), strQuery);
+    return Tiles_GetRandomMatchingTile(AreaCreator_GetTileset(), strQuery);
 }
 
 void AreaCreator_ClearNeighborTiles(object oTile)
@@ -1835,9 +1967,7 @@ int AreaCreator_GenerateRandomTiles()
 {
     ObjectArray_Clear(AREACREATOR_DATA_OBJECT, AREACREATOR_FAILED_TILES_ARRAY_NAME, TRUE);
 
-    int nNumTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME);
-    int nTile;
-
+    int nTile, nNumTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME);
     for (nTile = 0; nTile < nNumTiles; nTile++)
     {
         object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME, nTile);
@@ -1845,7 +1975,7 @@ int AreaCreator_GenerateRandomTiles()
         if (AreaCreator_Tile_GetTileID(oTile) != -1)
             continue;
 
-        struct WangTiles_Tile tile = AreaCreator_GetRandomMatchingTile(oTile);
+        struct Tiles_Tile tile = AreaCreator_GetRandomMatchingTile(oTile);
 
         if (tile.nTileID != -1)
         {
@@ -1870,7 +2000,7 @@ int AreaCreator_GenerateRandomTiles()
 void AreaCreator_GenerateRandomArea(object oPlayer)
 {
     struct ProfilerData pd = Profiler_Start("AreaCreator_GenerateRandomArea");
-    NWNX_Util_SetInstructionLimit(524288 * 8);
+    NWNX_Util_SetInstructionLimit(524288 * 10);
 
     SendMessageToPC(oPlayer, "* Generating Random Area");
 
@@ -1887,7 +2017,6 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
             for (nTile = 0; nTile < nMatchFailures; nTile++)
             {
                 object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_FAILED_TILES_ARRAY_NAME, nTile);
-
                 AreaCreator_ClearNeighborTiles(oTile);
             }
         }
@@ -1895,10 +2024,7 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
             break;
     }
 
-    float fTileHeightTransition = AreaCreator_GetTilesetHeightTransition();
-    int nNumTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME);
-    int nTile;
-
+    int nTile, nNumTiles = ObjectArray_Size(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME);
     for (nTile = 0; nTile < nNumTiles; nTile++)
     {
         object oTile = ObjectArray_At(AREACREATOR_DATA_OBJECT, AREACREATOR_CURRENT_TILES_ARRAY_NAME, nTile);

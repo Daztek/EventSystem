@@ -134,6 +134,9 @@ location ES_Util_GetRandomLocationAroundPoint(location locPoint, float fDistance
 // Returns TRUE if oObject is a PC in cases where GetIsPC() does not work
 int ES_Util_GetIsPC(object oObject);
 
+// Capitalize the first letter of sString
+string ES_Util_CapitalizeString(string sString);
+
 object ES_Util_CreateWaypoint(location locLocation, string sTag)
 {
     return CreateObject(OBJECT_TYPE_WAYPOINT, "nw_waypoint001", locLocation, FALSE, sTag);
@@ -578,5 +581,10 @@ location ES_Util_GetBehindLocation(object oTarget, float fDistance)
 int ES_Util_GetIsPC(object oObject)
 {
     return GetIsPC(oObject) || GetStringLength(ObjectToString(oObject)) == 8;
+}
+
+string ES_Util_CapitalizeString(string sString)
+{
+    return GetStringUpperCase(GetStringLeft(sString, 1)) + GetStringRight(sString, GetStringLength(sString) - 1);
 }
 
