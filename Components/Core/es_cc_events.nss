@@ -10,7 +10,6 @@
 */
 
 #include "es_inc_core"
-#include "es_cc_profiler"
 #include "nwnx_events"
 #include "nwnx_object"
 

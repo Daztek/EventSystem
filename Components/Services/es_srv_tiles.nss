@@ -14,8 +14,15 @@
 #include "nwnx_area"
 #include "nwnx_tileset"
 
-const string TILES_LOG_TAG                      = "Tiles";
-const string TILES_SCRIPT_NAME                  = "es_srv_tiles";
+const string TILES_LOG_TAG                          = "Tiles";
+const string TILES_SCRIPT_NAME                      = "es_srv_tiles";
+
+const int TILES_USE_MODULE_DATABASE                 = TRUE;
+
+const string TILESET_RESREF_MEDIEVAL_RURAL_2        = "trm02";
+const string TILESET_RESREF_MEDIEVAL_CITY_2         = "tcm02";
+const string TILESET_RESREF_CASTLE_EXTERIOR_RURAL   = "tno01";
+const string TILESET_RESREF_EARLY_WINTER            = "trs02";
 
 struct Tiles_Tile
 {
@@ -32,11 +39,14 @@ struct Tiles_DoorData
     string sResRef;
 };
 
-void Tiles_CreateTable(string sTileset);
+void Tiles_CreateTables(string sTileset);
 void Tiles_InsertTile(string sTileset, int nTileID, int nOrientation, int nHeight, struct NWNX_Tileset_TileEdgesAndCorners str);
 struct NWNX_Tileset_TileEdgesAndCorners Tiles_RotateTileEdgesAndCornersStruct(struct NWNX_Tileset_TileEdgesAndCorners str);
 struct NWNX_Tileset_TileEdgesAndCorners Tiles_GetCornersAndEdgesByOrientation(string sTileset, int nTileID, int nOrientation);
+int Tiles_GetIsGroupTile(string sTileset, int nTileID);
+int Tiles_GetIsWhitelistedGroupTile(string sTileset, int nTileID);
 void Tiles_ProcessTile(string sTileset, int nTileID);
+void Tiles_ProcessGroups(string sTileset);
 void Tiles_CheckForDoors(string sTileset, int nTileID);
 void Tiles_ProcessTileset(string sTileset);
 struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tileset_TileEdgesAndCorners str);
@@ -46,10 +56,14 @@ int Tiles_GetTilesetNumTileData(string sTileset);
 float Tiles_GetTilesetHeightTransition(string sTileset);
 int Tiles_GetTilesetNumTerrain(string sTileset);
 int Tiles_GetTilesetNumCrossers(string sTileset);
+int Tiles_GetTilesetNumGroups(string sTileset);
 string Tiles_GetTilesetTerrain(string sTileset, int nTerrainNum);
 string Tiles_GetTilesetCrosser(string sTileset, int nCrosserNum);
 int Tiles_GetTileNumDoors(string sTileset, int nTileID);
 struct Tiles_DoorData Tiles_GetTileDoorData(string sTileset, int nTileID, int nDoorNumber = 0);
+string Tiles_GetTileModel(string sTileset, int nTileID);
+int Tile_GetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain);
+void Tile_SetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain, int bIgnore);
 
 vector Tiles_RotateRealToCanonical(int nOrientation, vector vReal);
 vector Tiles_RotateCanonicalToReal(int nOrientation, vector vCanonical);
@@ -65,11 +79,26 @@ void Tiles_Load(string sServiceScript)
     Tiles_ProcessTileset(TILESET_RESREF_RURAL);
     Tiles_ProcessTileset(TILESET_RESREF_CRYPT);
     Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_CITY_EXTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_DUNGEON);
+    Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_RURAL_2);
+    Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_MINES_AND_CAVERNS);
+    Tiles_ProcessTileset(TILESET_RESREF_CASTLE_EXTERIOR_RURAL);
+    Tiles_ProcessTileset(TILESET_RESREF_EARLY_WINTER);
 }
 
-void Tiles_CreateTable(string sTileset)
+string Tiles_GetDatabaseName(string sTileset, string sType)
 {
-    string sQuery = "CREATE TABLE IF NOT EXISTS " + TILES_SCRIPT_NAME + "_" + sTileset + " (" +
+    if (TILES_USE_MODULE_DATABASE)
+        return TILES_SCRIPT_NAME + "_" + sTileset + "_" + sType;
+    else
+        return sType;
+}
+
+void Tiles_CreateTables(string sTileset)
+{
+    string sQuery = "CREATE TABLE IF NOT EXISTS " + Tiles_GetDatabaseName(sTileset, "Tiles") +" (" +
                     "tileID INTEGER NOT NULL, " +
                     "orientation INTEGER NOT NULL, " +
                     "height INTEGER NOT NULL, " +
@@ -81,16 +110,40 @@ void Tiles_CreateTable(string sTileset)
                     "b TEXT NOT NULL, " +
                     "bl TEXT NOT NULL, " +
                     "l TEXT NOT NULL, " +
+                    "ctc TEXT NOT NULL, " +
                     "PRIMARY KEY(tileID, orientation, height));";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    sqlquery sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
     SqlStep(sql);
+
+    sQuery = "CREATE TABLE IF NOT EXISTS " + Tiles_GetDatabaseName(sTileset, "Groups") +" (" +
+             "groupID INTEGER NOT NULL PRIMARY KEY, " +
+             "name TEXT NOT NULL, " +
+             "strRef INTEGER NOT NULL, " +
+             "rows INTEGER NOT NULL, " +
+             "columns INTEGER NOT NULL, " +
+             "numTiles INTEGER NOT NULL);";
+    sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
+    SqlStep(sql);
+
+    sQuery = "CREATE TABLE IF NOT EXISTS " + Tiles_GetDatabaseName(sTileset, "GroupTiles") +" (" +
+             "groupID INTEGER NOT NULL, " +
+             "tileIndex INTEGER NOT NULL, " +
+             "tileID INTEGER NOT NULL, " +
+             "PRIMARY KEY(groupID, tileIndex));";
+    sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
+    SqlStep(sql);
+}
+
+string Tiles_GetTerrainAndCrossersAsString(struct NWNX_Tileset_TileEdgesAndCorners str)
+{
+    return str.sTopLeft + str.sTop + str.sTopRight + str.sRight + str.sBottomRight + str.sBottom + str.sBottomLeft + str.sLeft;
 }
 
 void Tiles_InsertTile(string sTileset, int nTileID, int nOrientation, int nHeight, struct NWNX_Tileset_TileEdgesAndCorners str)
 {
-    string sQuery = "REPLACE INTO " + TILES_SCRIPT_NAME + "_" + sTileset + "(tileID, orientation, height, tl, t, tr, r, br, b, bl, l) " +
-                    "VALUES(@tileID, @orientation, @height, @tl, @t, @tr, @r, @br, @b, @bl, @l);";
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    string sQuery = "REPLACE INTO " + Tiles_GetDatabaseName(sTileset, "Tiles") + " (tileID, orientation, height, tl, t, tr, r, br, b, bl, l, ctc) " +
+                    "VALUES(@tileID, @orientation, @height, @tl, @t, @tr, @r, @br, @b, @bl, @l, @ctc);";
+    sqlquery sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
 
     SqlBindInt(sql, "@tileID", nTileID);
     SqlBindInt(sql, "@orientation", nOrientation);
@@ -104,6 +157,8 @@ void Tiles_InsertTile(string sTileset, int nTileID, int nOrientation, int nHeigh
     SqlBindString(sql, "@b", str.sBottom);
     SqlBindString(sql, "@bl", str.sBottomLeft);
     SqlBindString(sql, "@l", str.sLeft);
+
+    SqlBindString(sql, "@ctc", Tiles_GetTerrainAndCrossersAsString(str));
 
     SqlStep(sql);
 }
@@ -131,36 +186,7 @@ string Tiles_HandleEdgeCase(string sTileset, string sEdge, string sCorner1, stri
     else if (sCorner1 == sCorner2)
         sEdge = sCorner1;
     else
-    {
-        if (sTileset == TILESET_RESREF_RURAL)
-        {
-            if ((sCorner1 == "Grass" && sCorner2 == "Trees") || (sCorner1 == "Trees" && sCorner2 == "Grass"))
-                sEdge = "Grass";
-            else if ((sCorner1 == "Water" && sCorner2 == "Trees") || (sCorner1 == "Trees" && sCorner2 == "Water"))
-                sEdge == "Water";
-            else if ((sCorner1 == "Grass" && sCorner2 == "Grass+") || (sCorner1 == "Grass+" && sCorner2 == "Grass"))
-                sEdge == "Grass";
-            else if ((sCorner1 == "Water" && sCorner2 == "Grass+") || (sCorner1 == "Grass+" && sCorner2 == "Water"))
-                sEdge == "Water";
-            else if ((sCorner1 == "Grass+" && sCorner2 == "Trees") || (sCorner1 == "Trees" && sCorner2 == "Grass+"))
-                sEdge == "Trees";
-            else if ((sCorner1 == "Grass" && sCorner2 == "Water") || (sCorner1 == "Water" && sCorner2 == "Grass"))
-                sEdge = "Grass";
-        }
-        else if (sTileset == TILESET_RESREF_CRYPT)
-        {
-            if ((sCorner1 == "Wall" && sCorner2 == "Floor") || (sCorner1 == "Floor" && sCorner2 == "Wall"))
-                sEdge = "Floor";
-            else if ((sCorner1 == "Wall" && sCorner2 == "Pit") || (sCorner1 == "Pit" && sCorner2 == "Wall"))
-                sEdge = "Pit";
-            else if ((sCorner1 == "Floor" && sCorner2 == "Pit") || (sCorner1 == "Pit" && sCorner2 == "Floor"))
-                sEdge = "Pit";
-        }
-        else if (sTileset == TILESET_RESREF_CASTLE_INTERIOR)
-        {
-
-        }
-    }
+        sEdge = "N/A";
 
     return sEdge;
 }
@@ -182,6 +208,13 @@ struct NWNX_Tileset_TileEdgesAndCorners Tiles_FixCapitalization(struct NWNX_Tile
 struct NWNX_Tileset_TileEdgesAndCorners Tiles_GetTileEdgesAndCorners(string sTileset, int nTileID)
 {
     struct NWNX_Tileset_TileEdgesAndCorners str = Tiles_FixCapitalization(NWNX_Tileset_GetTileEdgesAndCorners(sTileset, nTileID));
+
+    // BUG: Fixes a missing crosser
+    if (sTileset == TILESET_RESREF_MEDIEVAL_RURAL_2)
+    {
+        if (nTileID == 1313)
+            str.sLeft = "Stream";
+    }
 
     str.sTop = Tiles_HandleEdgeCase(sTileset, str.sTop, str.sTopLeft, str.sTopRight);
     str.sRight = Tiles_HandleEdgeCase(sTileset, str.sRight, str.sTopRight, str.sBottomRight);
@@ -233,39 +266,129 @@ struct NWNX_Tileset_TileEdgesAndCorners Tiles_ReplaceTerrainOrCrosser(struct NWN
     return str;
 }
 
-void Tiles_ProcessTile(string sTileset, int nTileID)
+int Tiles_GetIsGroupTile(string sTileset, int nTileID)
 {
-    struct NWNX_Tileset_TileEdgesAndCorners str = Tiles_GetTileEdgesAndCorners(sTileset, nTileID);
+    string sQuery = "SELECT * FROM " + Tiles_GetDatabaseName(sTileset, "GroupTiles") + " WHERE tileID = @tileID;";
+    sqlquery sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
 
-    // Tiles to outright skip, groups etc
+    SqlBindInt(sql, "@tileID", nTileID);
+
+    return SqlStep(sql);
+}
+
+int Tiles_GetIsWhitelistedGroupTile(string sTileset, int nTileID)
+{
     if (sTileset == TILESET_RESREF_RURAL)
     {
-        if ( nTileID == 61 || nTileID == 113 || nTileID == 117 || nTileID == 118 ||
-             nTileID == 127 || nTileID == 128 || nTileID == 242 ||
-            (nTileID >= 132 && nTileID <= 182) ||
-            (nTileID >= 213 && nTileID <= 230) ||
-            (nTileID >= 233 && nTileID <= 240) ||
-            (nTileID >= 245 && nTileID <= 246) ||
-            (nTileID >= 249 && nTileID <= 282) ||
-            Tiles_GetHasTerrainOrCrosser(str, "Wall1") ||
-            Tiles_GetHasTerrainOrCrosser(str, "Wall2") ||
-            (Tiles_GetHasTerrainOrCrosser(str, "Water") && Tiles_GetHasTerrainOrCrosser(str, "Road")))
-            return;
+        switch (nTileID)
+        {
+            case 113: // Shrine01
+            case 118: // Crystal
+            case 129: // Tree Hollow
+            case 130: // Menhir
+            case 131: // Anthill
+            case 205: // Ramp
+            case 241: // Tree
+            case 244: // Cave
+                return TRUE;
+        }
     }
+    /*
     else if (sTileset == TILESET_RESREF_CRYPT)
     {
-        if ((nTileID >= 72 && nTileID <= 83) ||
-            (nTileID >= 84 && nTileID <= 87) ||
-            (nTileID >= 88 && nTileID <= 89) ||
-            (nTileID >= 90 && nTileID <= 93) ||
-            (nTileID >= 94 && nTileID <= 100) ||
-            (nTileID >= 161 && nTileID <= 162) ||
-            (nTileID >= 166 && nTileID <= 168))
-            return;
+        switch (nTileID)
+        {
+            case :
+                return TRUE;
+        }
     }
+    */
+    /*
     else if (sTileset == TILESET_RESREF_CASTLE_INTERIOR)
     {
+        switch (nTileID)
+        {
+            case :
+                return TRUE;
+        }
+    }
+    */
+    else if (sTileset == TILESET_RESREF_CITY_EXTERIOR)
+    {
+        switch (nTileID)
+        {
+            case 33: // GC_MainDoor
+            case 34: // GC_Breach
+            case 42: // Wall Gate
+            case 45: // Market01
+            case 46: // Market02
+            case 47: // Tree
+            case 48: // Wagon
+            case 49: // StreetLight
+            case 50: // SlumHouse01
+            case 51: // SlumHouse02
+            case 54: // House
+            case 114: // SlumMarket01
+            case 115: // SlumMarket02
+            case 124: // Fountain
+            case 125: // VegGarden
+            case 128: // FlowerGarden
+            case 129: // Construction
+            case 130: // BurningBuilding
+            case 134: // SewerEntrance02
+            case 146: // Gazebo
+            case 147: // Well
+            case 181: // Footbridge
+            case 187: // DockDoor
+            case 193: // BridgeDoor
+            case 198: // BW_Temple
+            case 215: // Boathouse
+            case 231: // GC_SmallDoor
+            case 258: // WallGap01
+            case 259: // WallGap02
+            case 260: // WallChunk
+            case 273: // CaveEntrance
+            case 274: // Ramp
+            case 298: // Boat
+            case 299: // ElevationDoor01
+            case 304: // BW_Breach
+            case 316: // ElevationTower2
+            case 317: // ElevationTower1
+                return TRUE;
+        }
+    }
+    /*
+    else if (sTileset == TILESET_RESREF_DUNGEON)
+    {
+        switch (nTileID)
+        {
+            case :
+                return TRUE;
+        }
+    }
+    */
 
+    return FALSE;
+}
+
+void Tiles_ProcessTile(string sTileset, int nTileID)
+{
+    if (Tiles_GetIsGroupTile(sTileset, nTileID) && !Tiles_GetIsWhitelistedGroupTile(sTileset, nTileID))
+        return;
+
+    struct NWNX_Tileset_TileEdgesAndCorners str = Tiles_GetTileEdgesAndCorners(sTileset, nTileID);
+
+
+    if (sTileset == TILESET_RESREF_CITY_EXTERIOR)
+    {
+        if (nTileID == 306)
+            return;
+    }
+    else
+    if (sTileset == TILESET_RESREF_MEDIEVAL_RURAL_2)
+    {
+        if (nTileID == 812)
+            return;
     }
 
     int nOrientation;
@@ -295,6 +418,53 @@ void Tiles_ProcessTile(string sTileset, int nTileID)
                 Tiles_InsertTile(sTileset, nTileID, nOrientation, 1, str);
                 str = Tiles_RotateTileEdgesAndCornersStruct(str);
             }
+        }
+    }
+}
+
+void Tiles_ProcessGroups(string sTileset)
+{
+    int nNumGroups = Tiles_GetTilesetNumGroups(sTileset);
+
+    if (!nNumGroups)
+        return;
+
+    object oDataObject = Tiles_GetTilesetDataObject(sTileset);
+
+    int nGroupNum;
+    for (nGroupNum = 0; nGroupNum < nNumGroups; nGroupNum++)
+    {
+        struct NWNX_Tileset_TilesetGroupData strGroupData = NWNX_Tileset_GetTilesetGroupData(sTileset, nGroupNum);
+        int nNumGroupTiles = strGroupData.nRows * strGroupData.nColumns;
+
+        string sQuery = "REPLACE INTO " + Tiles_GetDatabaseName(sTileset, "Groups") + " (groupID, name, strRef, rows, columns, numTiles) " +
+                        "VALUES(@groupID, @name, @strRef, @rows, @columns, @numTiles);";
+        sqlquery sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
+
+        SqlBindInt(sql, "@groupID", nGroupNum);
+        SqlBindString(sql, "@name", strGroupData.sName);
+        SqlBindInt(sql, "@strRef", strGroupData.nStrRef);
+        SqlBindInt(sql, "@rows", strGroupData.nRows);
+        SqlBindInt(sql, "@columns", strGroupData.nColumns);
+        SqlBindInt(sql, "@numTiles", nNumGroupTiles);
+
+        SqlStep(sql);
+
+        int nGroupTileIndex;
+
+        for (nGroupTileIndex = 0; nGroupTileIndex < nNumGroupTiles; nGroupTileIndex++)
+        {
+            int nGroupTileID = NWNX_Tileset_GetTilesetGroupTile(nGroupTileIndex);
+
+            sQuery = "REPLACE INTO " + Tiles_GetDatabaseName(sTileset, "GroupTiles") + " (groupID, tileIndex, tileID) " +
+                     "VALUES(@groupID, @tileIndex, @tileID);";
+            sqlquery sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
+
+            SqlBindInt(sql, "@groupID", nGroupNum);
+            SqlBindInt(sql, "@tileIndex", nGroupTileIndex);
+            SqlBindInt(sql, "@tileID", nGroupTileID);
+
+            SqlStep(sql);
         }
     }
 }
@@ -342,27 +512,32 @@ void Tiles_ProcessTileset(string sTileset)
 
     object oTilesetDataObject = Tiles_GetTilesetDataObject(sTileset);
 
-    Tiles_CreateTable(sTileset);
+    Tiles_CreateTables(sTileset);
 
-    struct NWNX_Tileset_TilesetInfo str = NWNX_Tileset_GetTilesetInfo(sTileset);
+    struct NWNX_Tileset_TilesetData str = NWNX_Tileset_GetTilesetData(sTileset);
     SetLocalInt(oTilesetDataObject, "NUM_TILE_DATA", str.nNumTileData);
     SetLocalFloat(oTilesetDataObject, "HEIGHT_TRANSITION", str.fHeightTransition);
     SetLocalInt(oTilesetDataObject, "NUM_TERRAIN", str.nNumTerrain);
     SetLocalInt(oTilesetDataObject, "NUM_CROSSERS", str.nNumCrossers);
+    SetLocalInt(oTilesetDataObject, "NUM_GROUPS", str.nNumGroups);
+
+    ES_Util_Log(TILES_LOG_TAG, "Processing tileset: " + (str.nDisplayNameStrRef != -1 ? GetStringByStrRef(str.nDisplayNameStrRef) : str.sUnlocalizedName));
 
     int nTerrainNum;
     for (nTerrainNum = 0; nTerrainNum < str.nNumTerrain; nTerrainNum++)
     {
-        string sTerrain = NWNX_Tileset_GetTilesetTerrain(sTileset, nTerrainNum);
+        string sTerrain = ES_Util_CapitalizeString(NWNX_Tileset_GetTilesetTerrain(sTileset, nTerrainNum));
         SetLocalString(oTilesetDataObject, "TERRAIN" + IntToString(nTerrainNum), sTerrain);
     }
 
     int nCrosserNum;
     for (nCrosserNum = 0; nCrosserNum < str.nNumCrossers; nCrosserNum++)
     {
-        string sCrosser = NWNX_Tileset_GetTilesetCrosser(sTileset, nCrosserNum);
+        string sCrosser = ES_Util_CapitalizeString(NWNX_Tileset_GetTilesetCrosser(sTileset, nCrosserNum));
         SetLocalString(oTilesetDataObject, "CROSSER" + IntToString(nCrosserNum), sCrosser);
     }
+
+    Tiles_ProcessGroups(sTileset);
 
     int nTileID;
     for (nTileID = 0; nTileID < str.nNumTileData; nTileID++)
@@ -374,48 +549,74 @@ void Tiles_ProcessTileset(string sTileset)
     SetLocalInt(oDataObject, "T_" + sTileset, TRUE);
 }
 
-string Tiles_GetWhereClause(struct NWNX_Tileset_TileEdgesAndCorners str)
+string Tiles_GetCornersAndEdgesClause(struct NWNX_Tileset_TileEdgesAndCorners str)
 {
-    string sWhere = "WHERE ";
+    string sWhere;
 
     if (str.sTopLeft != "")
-        sWhere += "tl=@tl AND ";
+        sWhere += "AND tl=@tl ";
 
     if (str.sTop != "")
-        sWhere += "t=@t AND ";
+        sWhere += "AND t=@t ";
 
     if (str.sTopRight != "")
-        sWhere += "tr=@tr AND ";
+        sWhere += "AND tr=@tr ";
 
     if (str.sRight != "")
-        sWhere += "r=@r AND ";
+        sWhere += "AND r=@r ";
 
     if (str.sBottomRight != "")
-        sWhere += "br=@br AND ";
+        sWhere += "AND br=@br ";
 
     if (str.sBottom != "")
-        sWhere += "b=@b AND ";
+        sWhere += "AND b=@b ";
 
     if (str.sBottomLeft != "")
-        sWhere += "bl=@bl AND ";
+        sWhere += "AND bl=@bl ";
 
     if (str.sLeft != "")
-        sWhere += "l=@l AND ";
-
-    sWhere = GetStringLeft(sWhere, GetStringLength(sWhere) - 4);
+        sWhere += "AND l=@l ";
 
     return sWhere;
+}
+
+string Tiles_GetIgnoreTerrainOrCrosserClause(string sCrosserOrTerrain)
+{
+    return "AND ctc NOT LIKE @" + sCrosserOrTerrain + " ";
 }
 
 struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tileset_TileEdgesAndCorners str)
 {
     struct Tiles_Tile tile;
 
-    string sQuery = "SELECT tileID, orientation, height FROM " + TILES_SCRIPT_NAME + "_" + sTileset + " " +
-                    Tiles_GetWhereClause(str) +
-                    " ORDER BY RANDOM() LIMIT 1;";
+    string sQuery = "SELECT tileID, orientation, height FROM " + Tiles_GetDatabaseName(sTileset, "Tiles") + " WHERE 1=1 " +
+                    Tiles_GetCornersAndEdgesClause(str);
 
-    sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
+    int nTerrain, nNumTerrain = Tiles_GetTilesetNumTerrain(sTileset);
+    for (nTerrain = 0; nTerrain < nNumTerrain; nTerrain++)
+    {
+        string sTerrain = Tiles_GetTilesetTerrain(sTileset, nTerrain);
+
+        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrain))
+        {
+            sQuery += Tiles_GetIgnoreTerrainOrCrosserClause(sTerrain);
+        }
+    }
+
+    int nCrosser, nNumCrossers = Tiles_GetTilesetNumCrossers(sTileset);
+    for (nCrosser = 0; nCrosser < nNumCrossers; nCrosser++)
+    {
+        string sCrosser = Tiles_GetTilesetCrosser(sTileset, nCrosser);
+
+        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sCrosser))
+        {
+            sQuery += Tiles_GetIgnoreTerrainOrCrosserClause(sCrosser);
+        }
+    }
+
+    sQuery += " ORDER BY RANDOM() LIMIT 1;";
+
+    sqlquery sql = SqlPrepareQuery(sTileset, sQuery, TILES_USE_MODULE_DATABASE);
 
     if (str.sTopLeft != "")
         SqlBindString(sql, "@tl", str.sTopLeft);
@@ -440,6 +641,26 @@ struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tiles
 
     if (str.sLeft != "")
         SqlBindString(sql, "@l", str.sLeft);
+
+    for (nTerrain = 0; nTerrain < nNumTerrain; nTerrain++)
+    {
+        string sTerrain = Tiles_GetTilesetTerrain(sTileset, nTerrain);
+
+        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrain))
+        {
+            SqlBindString(sql, "@" + sTerrain, "%" + sTerrain + "%");
+        }
+    }
+
+    for (nCrosser = 0; nCrosser < nNumCrossers; nCrosser++)
+    {
+        string sCrosser = Tiles_GetTilesetCrosser(sTileset, nCrosser);
+
+        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sCrosser))
+        {
+            SqlBindString(sql, "@" + sCrosser, "%" + sCrosser + "%");
+        }
+    }
 
     if (SqlStep(sql))
     {
@@ -489,6 +710,12 @@ int Tiles_GetTilesetNumCrossers(string sTileset)
     return GetLocalInt(oDataObject, "NUM_CROSSERS");
 }
 
+int Tiles_GetTilesetNumGroups(string sTileset)
+{
+    object oDataObject = Tiles_GetTilesetDataObject(sTileset);
+    return GetLocalInt(oDataObject, "NUM_GROUPS");
+}
+
 string Tiles_GetTilesetTerrain(string sTileset, int nTerrainNum)
 {
     object oDataObject = Tiles_GetTilesetDataObject(sTileset);
@@ -528,6 +755,34 @@ struct Tiles_DoorData Tiles_GetTileDoorData(string sTileset, int nTileID, int nD
         str.nType = -1;
 
     return str;
+}
+
+string Tiles_GetTileModel(string sTileset, int nTileID)
+{
+    string sTileModel = NWNX_Tileset_GetTileModel(sTileset, nTileID);
+
+    // BUG: Fix typo'd models
+    if (sTileset == TILESET_RESREF_MEDIEVAL_CITY_2)
+    {
+        if (nTileID == 1600 && sTileModel == "tcm02_f27_14")
+            sTileModel = "tcm02_f27_04";
+        else if (nTileID == 1026 && sTileModel == "tcm02_f17_14")
+            sTileModel = "tcm02_f17_04";
+    }
+
+    return sTileModel;
+}
+
+int Tile_GetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain)
+{
+    object oDataObject = Tiles_GetTilesetDataObject(sTileset);
+    return GetLocalInt(oDataObject, "IGNORE_" + sCrosserOrTerrain);
+}
+
+void Tile_SetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain, int bIgnore)
+{
+    object oDataObject = Tiles_GetTilesetDataObject(sTileset);
+    SetLocalInt(oDataObject, "IGNORE_" + sCrosserOrTerrain, bIgnore);
 }
 
 // *** Rotation Functions
@@ -636,6 +891,9 @@ string Tiles_GetGenericDoorResRef(string sTileset)
     else
     if (sTileset == TILESET_RESREF_ILLITHID_INTERIOR)
         sResRef = "x3_door_oth003";
+    else
+    if (sTileset == TILESET_RESREF_CITY_EXTERIOR)
+        sResRef = Random(2) ? "nw_door_fancy" : "nw_door_strong";
     else
         sResRef = "nw_door_fancy";
 

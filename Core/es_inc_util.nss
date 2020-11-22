@@ -239,7 +239,7 @@ location ES_Util_StringToLocation(string sLocation)
         nCount = FindSubString(GetSubString(sLocation, nPos, nLength - nPos), "#");
         float fOrientation = StringToFloat(GetSubString(sLocation, nPos, nCount));
 
-        if( GetIsObjectValid(oArea) )
+        if (GetIsObjectValid(oArea))
             locLocation = Location(oArea, vPosition, fOrientation);
         else
             locLocation = GetStartingLocation();
