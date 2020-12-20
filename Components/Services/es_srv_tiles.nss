@@ -17,12 +17,13 @@
 const string TILES_LOG_TAG                          = "Tiles";
 const string TILES_SCRIPT_NAME                      = "es_srv_tiles";
 
-const int TILES_USE_MODULE_DATABASE                 = TRUE;
+const string TILES_NUM_TILESETS                     = "NumTilesets";
+const string TILES_TILESET_ID                       = "TilesetID";
+const string TILES_TILESET_RESREF                   = "TilesetResRef";
+const string TILES_TILESET_NAME                     = "TilesetName";
+const string TILES_TILESET_EDGE_TERRAIN             = "TilesetEdgeTerrain";
 
-const string TILESET_RESREF_MEDIEVAL_RURAL_2        = "trm02";
-const string TILESET_RESREF_MEDIEVAL_CITY_2         = "tcm02";
-const string TILESET_RESREF_CASTLE_EXTERIOR_RURAL   = "tno01";
-const string TILESET_RESREF_EARLY_WINTER            = "trs02";
+const int TILES_USE_MODULE_DATABASE                 = TRUE;
 
 struct Tiles_Tile
 {
@@ -39,6 +40,13 @@ struct Tiles_DoorData
     string sResRef;
 };
 
+struct Tiles_TilesetInfo
+{
+    string sResRef;
+    string sName;
+    string sEdgeTerrain;
+};
+
 void Tiles_CreateTables(string sTileset);
 void Tiles_InsertTile(string sTileset, int nTileID, int nOrientation, int nHeight, struct NWNX_Tileset_TileEdgesAndCorners str);
 struct NWNX_Tileset_TileEdgesAndCorners Tiles_RotateTileEdgesAndCornersStruct(struct NWNX_Tileset_TileEdgesAndCorners str);
@@ -48,6 +56,8 @@ int Tiles_GetIsWhitelistedGroupTile(string sTileset, int nTileID);
 void Tiles_ProcessTile(string sTileset, int nTileID);
 void Tiles_ProcessGroups(string sTileset);
 void Tiles_CheckForDoors(string sTileset, int nTileID);
+int Tiles_GetNumProcessedTilesets();
+struct Tiles_TilesetInfo Tiles_GetProcessedTilesetInfo(int nID);
 void Tiles_ProcessTileset(string sTileset);
 struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tileset_TileEdgesAndCorners str);
 
@@ -80,12 +90,14 @@ void Tiles_Load(string sServiceScript)
     Tiles_ProcessTileset(TILESET_RESREF_CRYPT);
     Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR);
     Tiles_ProcessTileset(TILESET_RESREF_CITY_EXTERIOR);
-    Tiles_ProcessTileset(TILESET_RESREF_DUNGEON);
+    //Tiles_ProcessTileset(TILESET_RESREF_DUNGEON);
     Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_RURAL_2);
-    Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR);
+    //Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR);
     Tiles_ProcessTileset(TILESET_RESREF_MINES_AND_CAVERNS);
-    Tiles_ProcessTileset(TILESET_RESREF_CASTLE_EXTERIOR_RURAL);
-    Tiles_ProcessTileset(TILESET_RESREF_EARLY_WINTER);
+    //Tiles_ProcessTileset(TILESET_RESREF_CASTLE_EXTERIOR_RURAL);
+    //Tiles_ProcessTileset(TILESET_RESREF_EARLY_WINTER_2);
+    //Tiles_ProcessTileset(TILESET_RESREF_TROPICAL);
+    //Tiles_ProcessTileset(TILESET_RESREF_MICROSET);
 }
 
 string Tiles_GetDatabaseName(string sTileset, string sType)
@@ -209,12 +221,13 @@ struct NWNX_Tileset_TileEdgesAndCorners Tiles_GetTileEdgesAndCorners(string sTil
 {
     struct NWNX_Tileset_TileEdgesAndCorners str = Tiles_FixCapitalization(NWNX_Tileset_GetTileEdgesAndCorners(sTileset, nTileID));
 
-    // BUG: Fixes a missing crosser
+    /* BUG: Fixes a missing crosser
     if (sTileset == TILESET_RESREF_MEDIEVAL_RURAL_2)
     {
         if (nTileID == 1313)
             str.sLeft = "Stream";
     }
+    */
 
     str.sTop = Tiles_HandleEdgeCase(sTileset, str.sTop, str.sTopLeft, str.sTopRight);
     str.sRight = Tiles_HandleEdgeCase(sTileset, str.sRight, str.sTopRight, str.sBottomRight);
@@ -504,11 +517,43 @@ void Tiles_CheckForDoors(string sTileset, int nTileID)
     }
 }
 
+int Tiles_GetNumProcessedTilesets()
+{
+    object oDataObject = ES_Util_GetDataObject(TILES_SCRIPT_NAME);
+    return GetLocalInt(oDataObject, TILES_NUM_TILESETS);
+}
+
+struct Tiles_TilesetInfo Tiles_GetProcessedTilesetInfo(int nID)
+{
+    struct Tiles_TilesetInfo strTTI;
+    object oDataObject = ES_Util_GetDataObject(TILES_SCRIPT_NAME);
+
+    strTTI.sResRef = GetLocalString(oDataObject, TILES_TILESET_RESREF + IntToString(nID));
+    strTTI.sName = GetLocalString(oDataObject, TILES_TILESET_NAME + IntToString(nID));
+    strTTI.sEdgeTerrain = GetLocalString(oDataObject, TILES_TILESET_EDGE_TERRAIN + IntToString(nID));
+
+    return strTTI;
+}
+
+void Tiles_SetTilesetInfo(string sResRef, string sName, string sEdgeTerrain)
+{
+    object oDataObject = ES_Util_GetDataObject(TILES_SCRIPT_NAME);
+    int nNumTilesets = GetLocalInt(oDataObject, TILES_NUM_TILESETS);
+
+    SetLocalString(oDataObject, TILES_TILESET_RESREF + IntToString(nNumTilesets), sResRef);
+    SetLocalString(oDataObject, TILES_TILESET_NAME + IntToString(nNumTilesets), sName);
+    SetLocalString(oDataObject, TILES_TILESET_EDGE_TERRAIN + IntToString(nNumTilesets), sEdgeTerrain);
+
+    SetLocalInt(oDataObject, TILES_NUM_TILESETS, ++nNumTilesets);
+}
+
 void Tiles_ProcessTileset(string sTileset)
 {
     object oDataObject = ES_Util_GetDataObject(TILES_SCRIPT_NAME);
     if (GetLocalInt(oDataObject, "T_" + sTileset))
         return;
+
+    NWNX_Util_SetInstructionsExecuted(0);
 
     object oTilesetDataObject = Tiles_GetTilesetDataObject(sTileset);
 
@@ -521,7 +566,11 @@ void Tiles_ProcessTileset(string sTileset)
     SetLocalInt(oTilesetDataObject, "NUM_CROSSERS", str.nNumCrossers);
     SetLocalInt(oTilesetDataObject, "NUM_GROUPS", str.nNumGroups);
 
-    ES_Util_Log(TILES_LOG_TAG, "Processing tileset: " + (str.nDisplayNameStrRef != -1 ? GetStringByStrRef(str.nDisplayNameStrRef) : str.sUnlocalizedName));
+    string sName = (str.nDisplayNameStrRef != -1 ? GetStringByStrRef(str.nDisplayNameStrRef) : str.sUnlocalizedName);
+
+    ES_Util_Log(TILES_LOG_TAG, "Processing tileset: " + sName);
+
+    Tiles_SetTilesetInfo(sTileset, sName, ES_Util_CapitalizeString(str.sBorderTerrain));
 
     int nTerrainNum;
     for (nTerrainNum = 0; nTerrainNum < str.nNumTerrain; nTerrainNum++)

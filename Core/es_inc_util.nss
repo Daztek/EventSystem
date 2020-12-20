@@ -81,7 +81,7 @@ string ES_Util_ExecuteScriptChunkAndReturnString(string sInclude, string sScript
 int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk, object oObject, string sObjectSelfVarName = "");
 // Execute a script chunk for every element in sArrayName
 // You can access the array element through the sArrayElement variable in your script chunk
-void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject = OBJECT_INVALID);
+void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject = OBJECT_INVALID, int bResetInstructionLimit = TRUE);
 
 int floor(float f);
 int ceil(float f);
@@ -393,7 +393,7 @@ int ES_Util_ExecuteScriptChunkAndReturnInt(string sInclude, string sScriptChunk,
     return GetLocalInt(oModule, "ES_TEMP_VAR");
 }
 
-void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject = OBJECT_INVALID)
+void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArrayName, string sInclude, string sScriptChunk, object oObject = OBJECT_INVALID, int bResetInstructionLimit = TRUE)
 {
     if (oObject == OBJECT_INVALID)
         oObject = GetModule();
@@ -408,6 +408,9 @@ void ES_Util_ExecuteScriptChunkForArrayElements(object oArrayObject, string sArr
         {
             string sArrayElement = StringArray_At(oArrayObject, sArrayName, nIndex);
             string sScript = nssInclude(sInclude) + nssVoidMain(nssString("sArrayElement", nssEscapeDoubleQuotes(sArrayElement)) + sScriptChunk);
+
+            if (bResetInstructionLimit)
+                NWNX_Util_SetInstructionsExecuted(0);
 
             string sResult = ExecuteScriptChunk(sScript, oObject, FALSE);
 

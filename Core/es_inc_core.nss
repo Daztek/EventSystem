@@ -54,7 +54,7 @@ void ES_Core_Init()
     ES_Util_Log(ES_CORE_LOG_TAG, "* Increasing Instruction Limit");
     // We do a lot of stuff, so increase the max instruction limit for the init function.
     // 64x Ought to be Enough for Anyone
-    NWNX_Util_SetInstructionLimit(524288 * 64);
+    NWNX_Util_SetInstructionLimit(NWNX_Util_GetInstructionLimit() * 64);
 
     object oModule = GetModule();
     object oCoreDataObject = ES_Core_GetCoreDataObject();
