@@ -72,6 +72,7 @@ const int AREACREATOR_MODE_ROTATE                   = 2;
 const int AREACREATOR_MODE_HEIGHT                   = 3;
 const int AREACREATOR_MODE_LOCK                     = 4;
 const int AREACREATOR_MODE_MATCH                    = 5;
+const int AREACREATOR_NUM_MODES                     = 6;
 
 const int AREACREATOR_NEIGHBOR_TILE_TOP_LEFT        = 0;
 const int AREACREATOR_NEIGHBOR_TILE_TOP             = 1;
@@ -194,7 +195,10 @@ void AreaCreator_Load(string sSubsystemScript)
     AreaCreator_CreateConversation(sSubsystemScript);
 
     AreaCreator_SetTileGridSize(AREACREATOR_TILES_DEFAULT_WIDTH, AREACREATOR_TILES_DEFAULT_HEIGHT);
-    AreaCreator_SetTileset(TILESET_RESREF_RURAL, "Trees", TRUE);
+
+    // Attempt to process the Rural Tileset if for some reason it is not done so in Tiles_Load()
+    Tiles_ProcessTileset(TILESET_RESREF_RURAL);
+    AreaCreator_SetTileset(TILESET_RESREF_RURAL, "Grass", TRUE);
 
     DestroyArea(GetObjectByTag(AREACREATOR_TEMPLATE_RESREF));
 }
@@ -256,7 +260,8 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
     }
     else
     {
-        switch (StringToInt(sEvent))
+        int nEvent = StringToInt(sEvent);
+        switch (nEvent)
         {
             case EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK:
             {
@@ -351,7 +356,7 @@ void AreaCreator_EventHandler(string sSubsystemScript, string sEvent)
             case EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER:
             case EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT:
             {
-                AreaCreator_HandleTrigger(StringToInt(sEvent));
+                AreaCreator_HandleTrigger(nEvent);
                 break;
             }
         }
@@ -449,7 +454,7 @@ void AreaCreator_SetTileset(string sTileset, string sEdgeTerrainType, int bIniti
 
 string AreaCreator_GetOverrideName()
 {
-    return "AreaTileOverride";
+    return "AreaCreatorTileOverride";
 }
 
 string AreaCreator_GetModeName(int nMode)
@@ -1046,8 +1051,8 @@ const int AREA_CREATOR_GUI_Y_PADDING_DM             = 2;
 void AreaCreator_DrawStaticGUI(object oPlayer)
 {
     int nID = GUI_GetEndID(AREACREATOR_SCRIPT_NAME);
-    int nXPadding = GetLocalInt(oPlayer, "AC_GUI_X_PADDING");
-    int nYPadding = GetLocalInt(oPlayer, "AC_GUI_Y_PADDING");
+    int nXPadding = AreaCreator_Player_GetGUIXPadding(oPlayer);
+    int nYPadding = AreaCreator_Player_GetGUIYPadding(oPlayer);
 
     // Window
     nID -= GUI_DrawWindow(oPlayer, nID, SCREEN_ANCHOR_TOP_LEFT, nXPadding, nYPadding, 30, 7, 0.0f, FALSE);
@@ -1460,19 +1465,28 @@ void AreaCreator_UpdateAllCustomTileData()
     }
 }
 
+const int AREACREATOR_CV_PAGE_MAINMENU = 1;
+const int AREACREATOR_CV_PAGE_GENERALFUNCTIONS = 2;
+const int AREACREATOR_CV_PAGE_SELECTTILEMODE = 3;
+const int AREACREATOR_CV_PAGE_ADJUSTTILEPAINTHEIGHT = 4;
+const int AREACREATOR_CV_PAGE_SELECTTILESET = 5;
+const int AREACREATOR_CV_PAGE_SELECTTILEEDGE = 6;
+const int AREACREATOR_CV_PAGE_IGNORETERRAIN = 7;
+const int AREACREATOR_CV_PAGE_IGNORECROSSER = 8;
+
 // *** Conversation Functions
 void AreaCreator_CreateConversation(string sSubsystemScript)
 {
     object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Main Menu");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Main Menu"); // Page 1
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[General Functions]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Tile Mode Selection]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Adjust Tile Paint Height]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Export Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Close]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - General Functions");
+    SimpleDialog_AddPage(oConversation, "Area Creator - General Functions"); // Page 2
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Update Preview Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Clear All Tiles]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Generate Random Area]"));
@@ -1483,21 +1497,20 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Jump To Location In Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Mode");
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_PAINT) + "]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_CLEAR) + "]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_ROTATE) + "]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_HEIGHT) + "]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_LOCK) + "]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(AREACREATOR_MODE_MATCH) + "]"));
+    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Mode"); // Page 3
+        int nMode;
+        for (nMode = 0; nMode < AREACREATOR_NUM_MODES; nMode++)
+        {
+            SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Mode: " + AreaCreator_GetModeName(nMode) + "]"));
+        }
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Adjust Tile Paint Height");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Adjust Tile Paint Height"); // Page 4
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Increase]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Decrease]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tileset");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tileset"); // Page 5
         SimpleDialog_AddOption(oConversation, "Tileset0", TRUE);
         SimpleDialog_AddOption(oConversation, "Tileset1", TRUE);
         SimpleDialog_AddOption(oConversation, "Tileset2", TRUE);
@@ -1512,7 +1525,7 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Previous]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Edge");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Edge"); // Page 6
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[None]"));
         SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
         SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
@@ -1527,7 +1540,7 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Ignore Terrain");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Ignore Terrain"); // Page 7
         SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
         SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
         SimpleDialog_AddOption(oConversation, "Terrain2", TRUE);
@@ -1541,7 +1554,7 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Creator - Ignore Crosser");
+    SimpleDialog_AddPage(oConversation, "Area Creator - Ignore Crosser"); // Page 8
         SimpleDialog_AddOption(oConversation, "Crosser0", TRUE);
         SimpleDialog_AddOption(oConversation, "Crosser1", TRUE);
         SimpleDialog_AddOption(oConversation, "Crosser2", TRUE);
@@ -1576,7 +1589,7 @@ void AreaCreator_HandleConversation(string sEvent)
 
         switch (nPage)
         {
-            case 5: // Select Tileset Menu
+            case AREACREATOR_CV_PAGE_SELECTTILESET: // Select Tileset Menu
             {
                 switch (nOption)
                 {
@@ -1604,7 +1617,6 @@ void AreaCreator_HandleConversation(string sEvent)
                                 SimpleDialog_SetResult(TRUE);
                                 SimpleDialog_SetOverrideText(SimpleDialog_Token_Action("[" + strTTI.sName + "]"));
                             }
-
                         }
 
                         break;
@@ -1636,7 +1648,7 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 6: // Edge Terrain Menu
+            case AREACREATOR_CV_PAGE_SELECTTILEEDGE: // Edge Terrain Menu
             {
                 switch (nOption)
                 {
@@ -1665,8 +1677,8 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 7: // Ignore Terrain Menu
-            case 8: // Ignore Crosser Menu
+            case AREACREATOR_CV_PAGE_IGNORETERRAIN: // Ignore Terrain Menu
+            case AREACREATOR_CV_PAGE_IGNORECROSSER: // Ignore Crosser Menu
             {
                 switch (nOption)
                 {
@@ -1708,7 +1720,7 @@ void AreaCreator_HandleConversation(string sEvent)
 
         switch (nPage)
         {
-            case 1: // Main Menu
+            case AREACREATOR_CV_PAGE_MAINMENU: // Main Menu
             {
                 switch (nOption)
                 {
@@ -1743,7 +1755,7 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 2: // General Functions Menu
+            case AREACREATOR_CV_PAGE_GENERALFUNCTIONS: // General Functions Menu
             {
                 switch (nOption)
                 {
@@ -1787,31 +1799,21 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 3: // Tile Mode Selection Menu
+            case AREACREATOR_CV_PAGE_SELECTTILEMODE: // Tile Mode Selection Menu
             {
-                switch (nOption)
+                int nMode = (nOption - 1);
+                if (nMode < AREACREATOR_NUM_MODES)
                 {
-                    case 1:// Paint
-                    case 2:// Clear
-                    case 3:// Rotate
-                    case 4:// Height
-                    case 5:// Lock
-                    case 6:// Match
-                    {
-                        AreaCreator_Player_SetSelectedMode(oPlayer, (nOption - 1));
-                        AreaCreator_UpdateGUISelectedMode(oPlayer);
-                        break;
-                    }
-
-                    case 7:// Back to Main Menu
-                        SimpleDialog_SetCurrentPage(oPlayer, 1);
-                        break;
+                    AreaCreator_Player_SetSelectedMode(oPlayer, nMode);
+                    AreaCreator_UpdateGUISelectedMode(oPlayer);
                 }
+                else
+                    SimpleDialog_SetCurrentPage(oPlayer, 1);
 
                 break;
             }
 
-            case 4: // Adjust Tile Paint Height Menu
+            case AREACREATOR_CV_PAGE_ADJUSTTILEPAINTHEIGHT: // Adjust Tile Paint Height Menu
             {
                 switch (nOption)
                 {
@@ -1849,7 +1851,7 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 5: // Select Tileset Menu
+            case AREACREATOR_CV_PAGE_SELECTTILESET: // Select Tileset Menu
             {
                 switch (nOption)
                 {
@@ -1894,7 +1896,7 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 6: // Edge Terrain Menu
+            case AREACREATOR_CV_PAGE_SELECTTILEEDGE: // Edge Terrain Menu
             {
                 switch (nOption)
                 {
@@ -1932,8 +1934,8 @@ void AreaCreator_HandleConversation(string sEvent)
                 break;
             }
 
-            case 7: // Ignore Terrain Menu
-            case 8: // Ignore Crosser Menu
+            case AREACREATOR_CV_PAGE_IGNORETERRAIN: // Ignore Terrain Menu
+            case AREACREATOR_CV_PAGE_IGNORECROSSER: // Ignore Crosser Menu
             {
                 switch (nOption)
                 {
@@ -2273,7 +2275,7 @@ void AreaCreator_GenerateRandomArea(object oPlayer)
     }
     else
     {
-        SendMessageToPC(oPlayer, "* An Area Is Currently Being Generated");
+        SendMessageToPC(oPlayer, "* Area is currently being generated!");
     }
 
     /*
