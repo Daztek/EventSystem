@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[Time]
+        @NWNX[]
 
     Description: An EventSystem Core Component that adds a Script Profiler
 */
@@ -11,7 +11,6 @@
 //void main() {}
 
 #include "es_inc_core"
-#include "nwnx_time"
 
 const string PROFILER_LOG_TAG                           = "Profiler";
 const string PROFILER_SCRIPT_NAME                       = "es_cc_profiler";
@@ -62,7 +61,7 @@ struct ProfilerData Profiler_Start(string sName, int bSkipLog = FALSE, int bEnab
     pd.bEnableStats = bEnableStats;
     pd.bSkipLog = bSkipLog;
 
-    struct NWNX_Time_HighResTimestamp ts = NWNX_Time_GetHighResTimeStamp();
+    struct NWNX_Util_HighResTimestamp ts = NWNX_Util_GetHighResTimeStamp();
     pd.nSeconds = ts.seconds;
     pd.nMicroseconds = ts.microseconds;
 
@@ -71,7 +70,7 @@ struct ProfilerData Profiler_Start(string sName, int bSkipLog = FALSE, int bEnab
 
 int Profiler_Stop(struct ProfilerData startData)
 {
-    struct NWNX_Time_HighResTimestamp endTimestamp = NWNX_Time_GetHighResTimeStamp();
+    struct NWNX_Util_HighResTimestamp endTimestamp = NWNX_Util_GetHighResTimeStamp();
     int nTotalSeconds = endTimestamp.seconds - startData.nSeconds;
     int nTotalMicroSeconds = endTimestamp.microseconds - startData.nMicroseconds - Profiler_GetOverheadCompensation();
 

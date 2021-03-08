@@ -87,13 +87,13 @@ object Tiles_CreateDoorOnTile(object oArea, struct NWNX_Area_TileInfo strTileInf
 void Tiles_Load(string sServiceScript)
 {
     Tiles_ProcessTileset(TILESET_RESREF_RURAL);
-    Tiles_ProcessTileset(TILESET_RESREF_CRYPT);
-    Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR);
-    Tiles_ProcessTileset(TILESET_RESREF_CITY_EXTERIOR);
+    //Tiles_ProcessTileset(TILESET_RESREF_CRYPT);
+    //Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR);
+    //Tiles_ProcessTileset(TILESET_RESREF_CITY_EXTERIOR);
     //Tiles_ProcessTileset(TILESET_RESREF_DUNGEON);
-    Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_RURAL_2);
+    //Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_RURAL_2);
     //Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR);
-    Tiles_ProcessTileset(TILESET_RESREF_MINES_AND_CAVERNS);
+    //Tiles_ProcessTileset(TILESET_RESREF_MINES_AND_CAVERNS);
     //Tiles_ProcessTileset(TILESET_RESREF_CASTLE_EXTERIOR_RURAL);
     //Tiles_ProcessTileset(TILESET_RESREF_EARLY_WINTER_2);
     //Tiles_ProcessTileset(TILESET_RESREF_TROPICAL);

@@ -94,7 +94,7 @@ void Instance_EventHandler(string sServiceScript, string sEvent)
 
         case EVENT_SCRIPT_AREA_ON_ENTER:
         {
-            Instance_INTERNAL_AreaEnter(GetExitingObject(), OBJECT_SELF);
+            Instance_INTERNAL_AreaEnter(GetEnteringObject(), OBJECT_SELF);
             break;
         }
 

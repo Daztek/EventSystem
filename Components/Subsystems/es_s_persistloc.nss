@@ -66,4 +66,3 @@ void PersistentLocation_LoadLocation(object oPlayer)
     }
 }
 
-

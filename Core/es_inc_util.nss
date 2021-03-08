@@ -591,3 +591,10 @@ string ES_Util_CapitalizeString(string sString)
     return GetStringUpperCase(GetStringLeft(sString, 1)) + GetStringRight(sString, GetStringLength(sString) - 1);
 }
 
+void NWNX_Optimizations_SetObjectUpdateDistance(int nObjectType, float fDistance)
+{
+    NWNX_PushArgumentInt("NWNX_Optimizations", "SetObjectUpdateDistance", nObjectType);
+    NWNX_PushArgumentFloat("NWNX_Optimizations", "SetObjectUpdateDistance", fDistance);
+    NWNX_CallFunction("NWNX_Optimizations", "SetObjectUpdateDistance");
+}
+
