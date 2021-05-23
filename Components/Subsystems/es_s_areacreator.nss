@@ -1512,61 +1512,22 @@ void AreaCreator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
     SimpleDialog_AddPage(oConversation, "Area Creator - Select Tileset"); // Page 5
-        SimpleDialog_AddOption(oConversation, "Tileset0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset9", TRUE);
+        SimpleDialog_AddOptions(oConversation, "Tileset", 10, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Next]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Previous]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
     SimpleDialog_AddPage(oConversation, "Area Creator - Select Tile Edge"); // Page 6
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[None]"));
-        SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain9", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
+        SimpleDialog_AddOptions(oConversation, "Terrain", 11, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
     SimpleDialog_AddPage(oConversation, "Area Creator - Ignore Terrain"); // Page 7
-        SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain9", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
+        SimpleDialog_AddOptions(oConversation, "Terrain", 11, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
     SimpleDialog_AddPage(oConversation, "Area Creator - Ignore Crosser"); // Page 8
-        SimpleDialog_AddOption(oConversation, "Crosser0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser9", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser10", TRUE);
+        SimpleDialog_AddOptions(oConversation, "Crosser", 11, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 }
 

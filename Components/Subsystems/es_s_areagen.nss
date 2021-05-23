@@ -100,6 +100,7 @@ void AreaGenerator_Load(string sSubsystemScript)
 
     AreaGenerator_CreateConversation(sSubsystemScript);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, TRUE);
+    SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, TRUE);
     SimpleDialog_SubscribeEvent(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, TRUE);
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE");
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_SERVER_SEND_AREA_BEFORE");
@@ -171,6 +172,7 @@ void AreaGenerator_EventHandler(string sSubsystemScript, string sEvent)
                 if (ES_Util_GetIsPC(oPlayer))
                 {
                     Events_AddObjectToDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+                    Events_AddObjectToDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, oPlayer);
                     Events_AddObjectToDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oPlayer);
                 }
 
@@ -188,6 +190,7 @@ void AreaGenerator_EventHandler(string sSubsystemScript, string sEvent)
                         SimpleDialog_AbortConversation(oPlayer);
 
                     Events_RemoveObjectFromDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_ACTION_TAKEN, oPlayer);
+                    Events_RemoveObjectFromDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE, oPlayer);
                     Events_RemoveObjectFromDispatchList(sSubsystemScript, SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION, oPlayer);
 
                     AreaGenerator_DestroyTileEffectOverrideDataObject(oPlayer);
@@ -224,6 +227,8 @@ int AreaGenerator_Tile_GetTileHeight(int nTile) { return GetLocalInt(AREAGENERAT
 
 int AreaGenerator_Player_GetTilesetPage(object oPlayer) { return GetLocalInt(oPlayer, "AG_TILESET_PAGE"); }
 void AreaGenerator_Player_SetTilesetPage(object oPlayer, int nPage) { SetLocalInt(oPlayer, "AG_TILESET_PAGE", nPage); }
+int AreaGenerator_Player_GetAreaSizeMode(object oPlayer) { return GetLocalInt(oPlayer, "AG_AREA_SIZE_MODE"); }
+void AreaGenerator_Player_SetAreaSizeMode(object oPlayer, int nMode) { SetLocalInt(oPlayer, "AG_AREA_SIZE_MODE", nMode); }
 
 string AreaGenerator_GetTileset() { return GetLocalString(AREAGENERATOR_DATA_OBJECT, "TILESET_NAME"); }
 int AreaGenerator_GetTilesetNumTileData() { return GetLocalInt(AREAGENERATOR_DATA_OBJECT, "TILESET_NUM_TILE_DATA"); }
@@ -266,6 +271,9 @@ void AreaGenerator_SetAreaDimensions(int nWidth, int nHeight)
     cassowary cSolverX = GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_X");
     cassowary cSolverY = GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_Y");
 
+    nWidth = nWidth > AREAGENERATOR_TILES_MAX_WIDTH ? AREAGENERATOR_TILES_MAX_WIDTH : nWidth < 1 ? 1 : nWidth;
+    nHeight = nHeight > AREAGENERATOR_TILES_MAX_HEIGHT ? AREAGENERATOR_TILES_MAX_HEIGHT : nHeight < 1 ? 1 : nHeight;
+
     AreaGenerator_SetCurrentWidth(nWidth);
     AreaGenerator_SetCurrentHeight(nHeight);
 
@@ -275,86 +283,58 @@ void AreaGenerator_SetAreaDimensions(int nWidth, int nHeight)
 
 // *** Conversation Functions
 const int AREAGENERATOR_CV_PAGE_MAINMENU = 1;
-const int AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS = 2;
-const int AREAGENERATOR_CV_PAGE_SELECTTILESET = 3;
-const int AREAGENERATOR_CV_PAGE_SELECTTILEEDGE = 4;
-const int AREAGENERATOR_CV_PAGE_IGNORETERRAIN = 5;
-const int AREAGENERATOR_CV_PAGE_IGNORECROSSER = 6;
-const int AREAGENERATOR_CV_PAGE_AREASIZE = 7;
+const int AREAGENERATOR_CV_PAGE_SELECTTILESET = 2;
+const int AREAGENERATOR_CV_PAGE_SELECTTILEEDGE = 3;
+const int AREAGENERATOR_CV_PAGE_IGNORETERRAIN = 4;
+const int AREAGENERATOR_CV_PAGE_IGNORECROSSER = 5;
+const int AREAGENERATOR_CV_PAGE_CHANGEAREASIZE = 6;
+const int AREAGENERATOR_CV_PAGE_MODIFYAREASIZE = 7;
 
 void AreaGenerator_CreateConversation(string sSubsystemScript)
 {
     object oConversation = SimpleDialog_CreateConversation(sSubsystemScript);
 
     SimpleDialog_AddPage(oConversation, "Area Generator - Main Menu"); // Page 1
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[General Functions]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Close]"));
-
-    SimpleDialog_AddPage(oConversation, "Area Generator - General Functions"); // Page 2
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Generate Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Display Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Tileset Selection]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Edge Terrain Selection]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Ignore Terrain]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Ignore Crosser]"));
-        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Change Area Size]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Close]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Generator - Select Tileset"); // Page 3
-        SimpleDialog_AddOption(oConversation, "Tileset0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Tileset9", TRUE);
+    SimpleDialog_AddPage(oConversation, "Area Generator - Select Tileset"); // Page 2
+        SimpleDialog_AddOptions(oConversation, "Tileset", 10, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Next]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Previous]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Generator - Select Tile Edge"); // Page 4
+    SimpleDialog_AddPage(oConversation, "Area Generator - Select Tile Edge"); // Page 3
         SimpleDialog_AddOption(oConversation, "None", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain9", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
+        SimpleDialog_AddOptions(oConversation, "Terrain", 11, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Generator - Ignore Terrain"); // Page 5
-        SimpleDialog_AddOption(oConversation, "Terrain0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain9", TRUE);
-        SimpleDialog_AddOption(oConversation, "Terrain10", TRUE);
+    SimpleDialog_AddPage(oConversation, "Area Generator - Ignore Terrain"); // Page 4
+        SimpleDialog_AddOptions(oConversation, "Terrain", 11, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 
-    SimpleDialog_AddPage(oConversation, "Area Generator - Ignore Crosser"); // Page 6
-        SimpleDialog_AddOption(oConversation, "Crosser0", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser1", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser2", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser3", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser4", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser5", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser6", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser7", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser8", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser9", TRUE);
-        SimpleDialog_AddOption(oConversation, "Crosser10", TRUE);
+    SimpleDialog_AddPage(oConversation, "Area Generator - Ignore Crosser"); // Page 5
+        SimpleDialog_AddOptions(oConversation, "Crosser", 11, TRUE);
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Generator - Change Area Size", TRUE); // Page 6
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Modify Width]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Modify Height]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Generator - Modify Area ", TRUE); // Page 7
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[+1]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[+5]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[+10]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[-1]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[-5]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[-10]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 }
 
@@ -479,6 +459,8 @@ void AreaGenerator_HandleConversation(string sEvent)
 
                             SimpleDialog_SetResult(TRUE);
                         }
+
+                        break;
                     }
                 }
 
@@ -512,8 +494,45 @@ void AreaGenerator_HandleConversation(string sEvent)
                                 Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser) ?
                                     SimpleDialog_Token_Check("[" + sTerrainOrCrosser + "]") : SimpleDialog_Token_Action("[" + sTerrainOrCrosser + "]"));
                         }
+
+                        break;
                     }
                 }
+
+                break;
+            }
+        }
+    }
+    else if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE)
+    {
+        int nPage = Events_GetEventData_NWNX_Int("PAGE");
+
+        switch (nPage)
+        {
+            case AREAGENERATOR_CV_PAGE_CHANGEAREASIZE:
+            {
+                object oConversation = SimpleDialog_GetConversation(AREAGENERATOR_SCRIPT_NAME);
+
+                SimpleDialog_SetResult(TRUE);
+                SimpleDialog_SetOverrideText(SimpleDialog_GetPageText(oConversation, nPage) +
+                    "\n\nCurrent Width: " + IntToString(AreaGenerator_GetCurrentWidth()) +
+                    "\nCurrent Height: " + IntToString(AreaGenerator_GetCurrentHeight()));
+
+                break;
+            }
+
+            case AREAGENERATOR_CV_PAGE_MODIFYAREASIZE:
+            {
+                object oConversation = SimpleDialog_GetConversation(AREAGENERATOR_SCRIPT_NAME);
+
+                SimpleDialog_SetResult(TRUE);
+
+                int nMode = AreaGenerator_Player_GetAreaSizeMode(oPlayer);
+                string sAxis = nMode ? "Height" : "Width";
+                int nCurrentValue = nMode ? AreaGenerator_GetCurrentHeight() : AreaGenerator_GetCurrentWidth();
+
+                SimpleDialog_SetOverrideText(SimpleDialog_GetPageText(oConversation, nPage) + sAxis +
+                    "\n\nCurrent " + sAxis + ": " + IntToString(nCurrentValue));
 
                 break;
             }
@@ -529,22 +548,6 @@ void AreaGenerator_HandleConversation(string sEvent)
         switch (nPage)
         {
             case AREAGENERATOR_CV_PAGE_MAINMENU: // Main Menu
-            {
-                switch (nOption)
-                {
-                    case 1: // General Functions Menu
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
-                        break;
-
-                    case 2:// Close
-                        SimpleDialog_EndConversation(oPlayer);
-                        break;
-                }
-
-                break;
-            }
-
-            case AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS: // General Functions Menu
             {
                 switch (nOption)
                 {
@@ -572,8 +575,12 @@ void AreaGenerator_HandleConversation(string sEvent)
                         SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_IGNORECROSSER);
                         break;
 
-                    case 7:// Back to Main Menu
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
+                    case 7:// Area Size
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_CHANGEAREASIZE);
+                        break;
+
+                    case 8:// Close
+                        SimpleDialog_EndConversation(oPlayer);
                         break;
                 }
 
@@ -602,7 +609,7 @@ void AreaGenerator_HandleConversation(string sEvent)
                         if (strTTI.sResRef != "")
                         {
                             AreaGenerator_SetTileset(strTTI.sResRef, strTTI.sEdgeTerrain);
-                            SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
+                            SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
                         }
 
                         break;
@@ -618,7 +625,7 @@ void AreaGenerator_HandleConversation(string sEvent)
                     }
 
                     case 13:// Back to General Menu
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
                         break;
                 }
 
@@ -632,7 +639,7 @@ void AreaGenerator_HandleConversation(string sEvent)
                     case 1:// None
                     {
                         AreaGenerator_SetTilesetEdgeTerrainType("");
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
                         break;
                     }
 
@@ -649,12 +656,12 @@ void AreaGenerator_HandleConversation(string sEvent)
                     case 12:// Terrain10
                     {
                         AreaGenerator_SetTilesetEdgeTerrainType(Tiles_GetTilesetTerrain(AreaGenerator_GetTileset(), nOption - 2));
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
                         break;
                     }
 
-                    case 13:// Back to General Menu
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
+                    case 13:// Back to Main Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
                         break;
                 }
 
@@ -685,9 +692,60 @@ void AreaGenerator_HandleConversation(string sEvent)
                         break;
                     }
 
-                    case 12:// Back to General Menu
-                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_GENERALFUNCTIONS);
+                    case 12:// Back to Main Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
                         break;
+                }
+
+                break;
+            }
+
+            case AREAGENERATOR_CV_PAGE_CHANGEAREASIZE:
+            {
+                switch (nOption)
+                {
+                    case 1:// Width
+                    case 2:// Height
+                    {
+                        AreaGenerator_Player_SetAreaSizeMode(oPlayer, (nOption - 1));
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MODIFYAREASIZE);
+                        break;
+                    }
+
+                    case 3:// Back to Main Menu
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
+                        break;
+                }
+
+                break;
+            }
+
+            case AREAGENERATOR_CV_PAGE_MODIFYAREASIZE:
+            {
+                if (nOption == 7)// Back to Area Size Menu
+                    SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_CHANGEAREASIZE);
+                else
+                {
+                    int nModify = 0;
+                    switch (nOption)
+                    {
+                        case 1: nModify = 1; break;
+                        case 2: nModify = 5; break;
+                        case 3: nModify = 10; break;
+                        case 4: nModify = -1; break;
+                        case 5: nModify = -5; break;
+                        case 6: nModify = -10; break;
+                     }
+
+                     int nWidth = AreaGenerator_GetCurrentWidth();
+                     int nHeight = AreaGenerator_GetCurrentHeight();
+
+                     if (AreaGenerator_Player_GetAreaSizeMode(oPlayer))
+                        nHeight += nModify;
+                     else
+                        nWidth += nModify;
+
+                     AreaGenerator_SetAreaDimensions(nWidth, nHeight);
                 }
 
                 break;
@@ -1131,7 +1189,7 @@ void AreaGenerator_DelayedApplyEffect(object oDisplay, int nTile, cassowary cSol
 
     float fX = CassowaryGetValue(cSolverX, "OUTPUT");
     float fY = CassowaryGetValue(cSolverY, "OUTPUT");
-    float fZ = 0.5f + (AreaGenerator_Tile_GetTileHeight(nTile) * (AreaGenerator_GetTilesetHeightTransition() * AREAGENERATOR_TILES_TILE_SCALE));
+    float fZ = 1.0f + (AreaGenerator_Tile_GetTileHeight(nTile) * (AreaGenerator_GetTilesetHeightTransition() * AREAGENERATOR_TILES_TILE_SCALE));
     vector vTranslate = Vector(fX, fY, fZ);
     vector vRotate = Vector((AreaGenerator_Tile_GetTileOrientation(nTile) * 90.0f), 0.0f, 0.0f);
     effect eTile = EffectVisualEffect(AREAGENERATOR_VISUALEFFECT_START_ROW + nTile, FALSE, AREAGENERATOR_TILES_TILE_SCALE, vTranslate, vRotate);

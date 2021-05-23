@@ -94,6 +94,13 @@ string SimpleDialog_GetPageText(object oConversation, int nPage);
 //
 // Returns: the option number
 int SimpleDialog_AddOption(object oConversation, string sText, int bEnableConditionalEvent = FALSE);
+// Add nAmount conversation options to the current page
+// - bEnableConditionalEvent: if TRUE, a SIMPLE_DIALOG_EVENT_CONDITIONAL_OPTION event will be signalled
+//                            which can be used to add and set the result of a conditional check or to
+//                            override the displayed text for the option
+//
+// Returns: the option number of the last option added
+int SimpleDialog_AddOptions(object oConversation, string sText, int nAmount, int bEnableConditionalEvent = FALSE);
 // Get the option text of a conversation page
 string SimpleDialog_GetOptionText(object oConversation, int nPage, int nOption);
 
@@ -167,7 +174,6 @@ int SimpleDialog_HandleStartingConditional()
 
         if (sNodeType == "HEADER")
         {
-
             string sText = SimpleDialog_GetPageText(oConversation, nPage);
 
             if (sText != "")
@@ -336,6 +342,17 @@ int SimpleDialog_AddOption(object oConversation, string sText, int bEnableCondit
         SetLocalInt(oConversation, SIMPLE_DIALOG_CV_OPTION_CONDITIONAL + IntToString(nPage) + "_" + IntToString(nOption), TRUE);
 
     return nOption;
+}
+
+int SimpleDialog_AddOptions(object oConversation, string sText, int nAmount, int bEnableConditionalEvent = FALSE)
+{
+    int nCount, nReturn;
+    for (nCount = 0; nCount < nAmount; nCount++)
+    {
+        nReturn = SimpleDialog_AddOption(oConversation, sText + IntToString(nCount), bEnableConditionalEvent);
+    }
+
+    return nReturn;
 }
 
 string SimpleDialog_GetOptionText(object oConversation, int nPage, int nOption)

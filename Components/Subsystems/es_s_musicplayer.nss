@@ -297,16 +297,7 @@ void MusicPlayer_CreateConversation()
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Leave]"));
 
     SimpleDialog_AddPage(oConversation, "Select a track.", TRUE);
-        SimpleDialog_AddOption(oConversation, "1", TRUE);
-        SimpleDialog_AddOption(oConversation, "2", TRUE);
-        SimpleDialog_AddOption(oConversation, "3", TRUE);
-        SimpleDialog_AddOption(oConversation, "4", TRUE);
-        SimpleDialog_AddOption(oConversation, "5", TRUE);
-        SimpleDialog_AddOption(oConversation, "6", TRUE);
-        SimpleDialog_AddOption(oConversation, "7", TRUE);
-        SimpleDialog_AddOption(oConversation, "8", TRUE);
-        SimpleDialog_AddOption(oConversation, "9", TRUE);
-        SimpleDialog_AddOption(oConversation, "10", TRUE);
+        SimpleDialog_AddOptions(oConversation, "Track", 10, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Next]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Previous]"), TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
