@@ -76,8 +76,13 @@ int Profiler_Stop(struct ProfilerData startData)
 
     if (nTotalMicroSeconds < 0)
     {
-        nTotalMicroSeconds = 1000000 + nTotalMicroSeconds;
-        nTotalSeconds--;
+        if (nTotalSeconds > 0)
+        {
+            nTotalMicroSeconds = 1000000 + nTotalMicroSeconds;
+            nTotalSeconds--;
+        }
+        else
+            nTotalMicroSeconds = 0;
     }
 
     string sStats;

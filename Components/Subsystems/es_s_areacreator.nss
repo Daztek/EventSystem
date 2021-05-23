@@ -24,6 +24,7 @@
 #include "nwnx_visibility"
 #include "nwnx_area"
 
+
 const string AREACREATOR_LOG_TAG                    = "AreaCreator";
 const string AREACREATOR_SCRIPT_NAME                = "es_s_areacreator";
 object AREACREATOR_DATA_OBJECT                      = ES_Util_GetDataObject(AREACREATOR_SCRIPT_NAME);
@@ -178,9 +179,9 @@ void AreaCreator_Load(string sSubsystemScript)
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_PLAYERDM_LOGIN_AFTER");
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_DM_PLAYERDM_LOGOUT_AFTER");
     Events_SubscribeEvent_NWNX(sSubsystemScript, "NWNX_ON_INPUT_TOGGLE_PAUSE_BEFORE");
-    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, TRUE);
-    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, TRUE);
 
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_ENTER, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
+    Events_SubscribeEvent_Object(sSubsystemScript, EVENT_SCRIPT_TRIGGER_ON_OBJECT_EXIT, EVENTS_EVENT_FLAG_DEFAULT, TRUE);
     Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_AREA_ON_ENTER), oArea);
     Events_AddObjectToDispatchList(sSubsystemScript, Events_GetEventName_Object(EVENT_SCRIPT_AREA_ON_EXIT), oArea);
 
@@ -1438,10 +1439,10 @@ void AreaCreator_SetCustomTileData(object oTile)
     ctd.nTileID = nTileID;
     ctd.nOrientation = nTileOrientation;
     ctd.nHeight = nTileHeight;
-    ctd.nMainLightColor1 = TILE_MAIN_LIGHT_COLOR_BRIGHT_WHITE;
-    ctd.nMainLightColor2 = TILE_MAIN_LIGHT_COLOR_BRIGHT_WHITE;
-    ctd.nSourceLightColor1 = TILE_SOURCE_LIGHT_COLOR_PALE_YELLOW;
-    ctd.nSourceLightColor2 = TILE_SOURCE_LIGHT_COLOR_PALE_YELLOW;
+    ctd.nMainLightColor1 = 0;//TILE_MAIN_LIGHT_COLOR_BRIGHT_WHITE;
+    ctd.nMainLightColor2 = 0;//TILE_MAIN_LIGHT_COLOR_BRIGHT_WHITE;
+    ctd.nSourceLightColor1 = 0;//TILE_SOURCE_LIGHT_COLOR_PALE_YELLOW;
+    ctd.nSourceLightColor2 = 0;//TILE_SOURCE_LIGHT_COLOR_PALE_YELLOW;
     ctd.bAnimLoop1 = TRUE;
     ctd.bAnimLoop2 = TRUE;
     ctd.bAnimLoop3 = TRUE;
@@ -1701,7 +1702,7 @@ void AreaCreator_HandleConversation(string sEvent)
                         {
                             SimpleDialog_SetResult(TRUE);
                             SimpleDialog_SetOverrideText(
-                                Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser) ?
+                                Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser) ?
                                     SimpleDialog_Token_Check("[" + sTerrainOrCrosser + "]") : SimpleDialog_Token_Action("[" + sTerrainOrCrosser + "]"));
                         }
                     }
@@ -1954,7 +1955,7 @@ void AreaCreator_HandleConversation(string sEvent)
                         string sTileset = AreaCreator_GetTileset();
                         string sTerrainOrCrosser = (nPage == 7 ? Tiles_GetTilesetTerrain(sTileset, nOption - 1) : Tiles_GetTilesetCrosser(sTileset, nOption - 1));
 
-                        Tile_SetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser, !Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser));
+                        Tiles_SetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser, !Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrainOrCrosser));
                         break;
                     }
 

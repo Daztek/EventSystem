@@ -29,8 +29,7 @@ const int EVENTS_EVENT_FLAG_BEFORE                  = 1;
 const int EVENTS_EVENT_FLAG_DEFAULT                 = 2;
 const int EVENTS_EVENT_FLAG_AFTER                   = 4;
 
-// INTERNAL FUNCTION
-void Events_CheckObjectEventScripts(int nStart, int nEnd);
+
 // INTERNAL FUNCTION: Subscribe sScript to sEvent.
 // You probably want one of these instead:
 //  - Events_SubscribeEvent_Object()
@@ -116,18 +115,7 @@ void Events_Load(string sCoreComponentScript)
     sqlquery sql = SqlPrepareQueryObject(GetModule(), sQuery);
     SqlStep(sql);
 
-    ES_Util_Log(EVENTS_LOG_TAG, "* Checking Object Event Scripts");
-
-    // Check if all the object event script exist and (re)compile them if needed
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_MODULE_ON_HEARTBEAT, EVENT_SCRIPT_MODULE_ON_MODULE_SHUTDOWN);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_AREA_ON_HEARTBEAT, EVENT_SCRIPT_AREA_ON_EXIT);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_AREAOFEFFECT_ON_HEARTBEAT, EVENT_SCRIPT_AREAOFEFFECT_ON_OBJECT_EXIT);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_CREATURE_ON_HEARTBEAT, EVENT_SCRIPT_CREATURE_ON_BLOCKED_BY_DOOR);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_TRIGGER_ON_HEARTBEAT, EVENT_SCRIPT_TRIGGER_ON_CLICKED);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_PLACEABLE_ON_CLOSED, EVENT_SCRIPT_PLACEABLE_ON_LEFT_CLICK);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_DOOR_ON_OPEN, EVENT_SCRIPT_DOOR_ON_FAIL_TO_OPEN);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_ENCOUNTER_ON_OBJECT_ENTER, EVENT_SCRIPT_ENCOUNTER_ON_USER_DEFINED_EVENT);
-    Events_CheckObjectEventScripts(EVENT_SCRIPT_STORE_ON_OPEN, EVENT_SCRIPT_STORE_ON_CLOSE);
+    ES_Util_AddScript(sCoreComponentScript, sCoreComponentScript, nssFunction("Events_SignalObjectEvent", "GetCurrentlyRunningEvent()"));
 
     ES_Util_Log(EVENTS_LOG_TAG, "* Hooking Module Event Scripts");
     // Set all module event script to the EventSystem event scripts
@@ -158,22 +146,6 @@ void Events_Test(string sCoreComponentScript)
 }
 
 // *** INTERNAL FUNCTIONS
-void Events_CheckObjectEventScripts(int nStart, int nEnd)
-{
-    int bHashChanged = ES_Core_GetComponentHashChanged(EVENTS_SCRIPT_NAME), nEvent;
-
-    for (nEvent = nStart; nEvent <= nEnd; nEvent++)
-    {
-        string sScriptName = EVENTS_SCRIPT_PREFIX + IntToString(nEvent);
-        int bObjectEventScriptExists = NWNX_Util_IsValidResRef(sScriptName, NWNX_UTIL_RESREF_TYPE_NCS);
-
-        if (bHashChanged || !bObjectEventScriptExists)
-        {
-            ES_Util_AddScript(sScriptName, EVENTS_SCRIPT_NAME, nssFunction("Events_SignalObjectEvent", IntToString(nEvent)));
-        }
-    }
-}
-
 void Events_SignalObjectEvent(int nEvent, object oTarget = OBJECT_SELF)
 {
     string sEventID = IntToString(nEvent);
@@ -223,12 +195,12 @@ void Events_SetObjectEventScript(object oObject, int nEvent, int bStoreOldEvent 
 {
     string sEvent = IntToString(nEvent);
     string sOldScript = GetEventScript(oObject, nEvent);
-    string sNewScript = "es_obj_e_" + sEvent;
+    string sNewScript = EVENTS_SCRIPT_NAME;
 
     int bSet = SetEventScript(oObject, nEvent, sNewScript);
 
     if (!bSet)
-        ES_Util_Log(EVENTS_LOG_TAG, "WARNING: Failed to SetObjectEventScript: " + GetName(oObject) + "(" + IntToString(nEvent) + ")");
+        ES_Util_Log(EVENTS_LOG_TAG, "WARNING: Failed to SetObjectEventScript: " + GetName(oObject) + "(" + sEvent + ")");
     else
     if (bStoreOldEvent && sOldScript != "" && sOldScript != sNewScript)
         SetLocalString(oObject, EVENTS_SCRIPT_NAME + "_OldEventScript!" + sEvent, sOldScript);

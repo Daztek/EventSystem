@@ -24,14 +24,12 @@ const string SAILING_SCRIPT_NAME                = "es_s_sailing";
 object SAILING_DATA_OBJECT                      = ES_Util_GetDataObject(SAILING_SCRIPT_NAME);
 const string SAILING_AREA_TAG                   = "ARE_SAILING";
 const float SAILING_TILE_SIZE                   = 10.0f;
-const float SAILING_TILE_HEIGHT_OFFSET          = -9.5f;
 
 const string SAILING_TILE_TAG                   = "SAILING_TILE";
 
 const int SAILING_ROW_NUM_TILES                 = 13;
 const string SAILING_TILES_ROW_ARRAY            = "SailingRow_";
-const string SAILING_TILESET_NAME               = TILESET_RESREF_RURAL;
-const int SAILING_WATER_TILE_ID                 = 20;
+const string SAILING_TILESET_NAME               = TILESET_RESREF_CITY_EXTERIOR;
 const float SAILING_TILESET_HEIGHT_OFFSET       = -9.5f;
 const int SAILING_VISUALEFFECT_START_ROW        = 1000;
 const string SAILING_VISUALEFFECT_DUMMY_NAME    = "dummy_tile_";
@@ -69,9 +67,36 @@ void Sailing_Load(string sSubsystemScript)
         Sailing_MoveRow(nRow, nRow, 0);
     }
 
-    Tile_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Road", TRUE);
-    Tile_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Wall1", TRUE);
-    Tile_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Wall2", TRUE);
+    if (SAILING_TILESET_NAME == TILESET_RESREF_RURAL)
+    {
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Road", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Wall1", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Wall2", TRUE);
+    }
+    else if (SAILING_TILESET_NAME == TILESET_RESREF_MEDIEVAL_RURAL_2)
+    {
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Chasm", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Mountain", TRUE);
+
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Road", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Wall", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Bridge", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Street", TRUE);
+    }
+    else if (SAILING_TILESET_NAME == TILESET_RESREF_CASTLE_EXTERIOR_RURAL)
+    {
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Cliff", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Castlewall", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Dirt", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Keep", TRUE);
+
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Road", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Bridge", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Smallwall", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Stonewall", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Lists", TRUE);
+        Tiles_SetTilesetIgnoreTerrainOrCrosser(SAILING_TILESET_NAME, "Listssmall", TRUE);
+    }
 }
 
 // @EventHandler
@@ -132,7 +157,7 @@ void Sailing_CreateTileRows()
     }
 }
 
-void Sailing_UpdateTile(object oTile)
+void Sailing_UpdateTile(object oTile, int nNextY)
 {
     Effects_RemoveEffectsWithTag(oTile, "SAILING_TILE_EFFECT");
 
@@ -214,31 +239,17 @@ struct Tiles_Tile Sailing_GetRandomMatchingTile(object oTile, int nRow, int nTil
     struct NWNX_Tileset_TileEdgesAndCorners strQuery;
     int nNextRow = Sailing_GetNextArrayNum(nRow);
 
-    if (nTile == 0)
+    if (nTile == nCenterColumn)
     {
-        object oBottom = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nNextRow), nTile);
-        struct NWNX_Tileset_TileEdgesAndCorners strBottom = Sailing_GetNeighborEdgesAndCorners(oBottom);
-
-        strQuery.sBottom = strBottom.sTop;
-        strQuery.sBottomRight = strBottom.sTopRight;
-        strQuery.sBottomLeft = strBottom.sTopLeft;
-    }
-    else if (nTile == (nCenterColumn - 1))
-    {
-        object oLeft = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nRow), nTile - 1);
-        struct NWNX_Tileset_TileEdgesAndCorners strLeft = Sailing_GetNeighborEdgesAndCorners(oLeft);
-
-        object oBottom = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nNextRow), nTile);
-        struct NWNX_Tileset_TileEdgesAndCorners strBottom = Sailing_GetNeighborEdgesAndCorners(oBottom);
-
+        strQuery.sTop = "Water";
         strQuery.sRight = "Water";
-        strQuery.sBottom = strBottom.sTop;
-        strQuery.sLeft = strLeft.sRight;
+        strQuery.sBottom = "Water";
+        strQuery.sLeft = "Water";
 
-        strQuery.sTopLeft = strLeft.sTopRight;
+        strQuery.sTopLeft = "Water";
         strQuery.sTopRight = "Water";
         strQuery.sBottomRight = "Water";
-        strQuery.sBottomLeft = Sailing_HandleCornerConflict(strBottom.sTopLeft, strLeft.sBottomRight);
+        strQuery.sBottomLeft = "Water";
     }
     else if (nTile == (nCenterColumn + 1))
     {
@@ -253,7 +264,7 @@ struct Tiles_Tile Sailing_GetRandomMatchingTile(object oTile, int nRow, int nTil
         strQuery.sBottomLeft = "Water";
 
     }
-    else
+    else if (nTile > (nCenterColumn + 1))
     {
         object oLeft = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nRow), nTile - 1);
         struct NWNX_Tileset_TileEdgesAndCorners strLeft = Sailing_GetNeighborEdgesAndCorners(oLeft);
@@ -267,6 +278,32 @@ struct Tiles_Tile Sailing_GetRandomMatchingTile(object oTile, int nRow, int nTil
         strQuery.sTopLeft = strLeft.sTopRight;
         strQuery.sBottomRight = strBottom.sTopRight;
         strQuery.sBottomLeft = Sailing_HandleCornerConflict(strBottom.sTopLeft, strLeft.sBottomRight);
+    }
+    else if (nTile == (nCenterColumn - 1))
+    {
+        object oBottom = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nNextRow), nTile);
+        struct NWNX_Tileset_TileEdgesAndCorners strBottom = Sailing_GetNeighborEdgesAndCorners(oBottom);
+
+         strQuery.sRight = "Water";
+         strQuery.sBottom = strBottom.sTop;
+
+         strQuery.sTopRight = "Water";
+         strQuery.sBottomRight = "Water";
+         strQuery.sBottomLeft = strBottom.sTopLeft;
+    }
+    else if (nTile < (nCenterColumn - 1))
+    {
+        object oRight = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nRow), nTile + 1);
+        struct NWNX_Tileset_TileEdgesAndCorners strRight = Sailing_GetNeighborEdgesAndCorners(oRight);
+        object oBottom = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nNextRow), nTile);
+        struct NWNX_Tileset_TileEdgesAndCorners strBottom = Sailing_GetNeighborEdgesAndCorners(oBottom);
+
+        strQuery.sRight = strRight.sLeft;
+        strQuery.sBottom = strBottom.sTop;
+
+        strQuery.sTopRight = strRight.sTopLeft;
+        strQuery.sBottomRight = Sailing_HandleCornerConflict(strRight.sBottomLeft, strBottom.sTopRight);
+        strQuery.sBottomLeft = strBottom.sTopLeft;
     }
 
     return Tiles_GetRandomMatchingTile(SAILING_TILESET_NAME, strQuery);
@@ -303,11 +340,52 @@ void Sailing_SetTileEffectOverrideForArea(int nTileID, string sTileModel)
     }
 }
 
+void Sailing_CheckTile(object oTile, int nRow, int nTile, int nCenterColumn, int nNextY, float fTileY, int nLerpType)
+{
+    if (nNextY == ((Sailing_GetAreaHeight() - 1) * 1000))
+    {
+       SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_ROTATE_Y, 90.0f, nLerpType, 2.5f, FALSE);
+       SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, SAILING_TILESET_HEIGHT_OFFSET - 6.5f, nLerpType, 2.5f, FALSE);
+    }
+    else if (!nNextY)
+    {
+        //SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_ROTATE_Y, -359.0f, nLerpType, 2.5f, FALSE);
+        SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_ROTATE_Y, -90.0f);//, nLerpType, 1.0f, FALSE);
+        //SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, SAILING_TILESET_HEIGHT_OFFSET, nLerpType, 1.5f, FALSE);
+        SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, SAILING_TILESET_HEIGHT_OFFSET - 6.5f);//, nLerpType, 1.0f, FALSE);
+    }
+    else
+    {
+        SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_ROTATE_Y, 0.0f, nLerpType, 1.0f, FALSE);
+        SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Z, SAILING_TILESET_HEIGHT_OFFSET, nLerpType, 1.0f, FALSE);
+    }
+
+    if (nNextY == 1000)
+    {
+        if (GetIsObjectValid(GetFirstPC()))
+        {
+            struct Tiles_Tile tile = Sailing_GetRandomMatchingTile(oTile, nRow, nTile, nCenterColumn);
+
+            Sailing_Tile_SetTileID(oTile, tile.nTileID);
+            Sailing_Tile_SetTileOrientation(oTile, tile.nOrientation);
+            Sailing_Tile_SetTileHeight(oTile, tile.nHeight);
+
+            if (tile.nTileID != -1)
+                Sailing_SetTileEffectOverrideForArea(tile.nTileID, Tiles_GetTileModel(SAILING_TILESET_NAME, tile.nTileID));
+
+            Sailing_UpdateTile(oTile, nNextY);
+        }
+    }
+
+    SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Y, -fTileY, nLerpType, 2.5f, FALSE);
+}
+
 void Sailing_MoveRow(int nRow, int nPosition, int nNextY)
 {
     int nWidth = Sailing_GetAreaWidth();
     int nHeight = Sailing_GetAreaHeight();
     int nCenterColumn = nWidth / 2;
+    int nLerpType = OBJECT_VISUAL_TRANSFORM_LERP_LINEAR;
 
     if (nPosition != -1)
     {
@@ -318,50 +396,28 @@ void Sailing_MoveRow(int nRow, int nPosition, int nNextY)
     float fAreaHeight = nHeight * SAILING_TILE_SIZE;
     float fTileY = ((nNextY / 100.0f) + (fAreaHeight * 0.5f)) - fAreaHeight;
 
+    object oCenterTile = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nRow), nCenterColumn);
+    Sailing_CheckTile(oCenterTile, nRow, nCenterColumn, nCenterColumn, nNextY, fTileY, nLerpType);
+
     int nTile;
-    for(nTile = 0; nTile < nWidth; nTile++)
+    for (nTile = nCenterColumn - 1; nTile >= 0; nTile--)
     {
         object oTile = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nRow), nTile);
-
-        if (!nNextY)
-        {
-            if (GetIsObjectValid(GetFirstPC()))
-            {
-                int nTileID = -1, nOrientation, nHeight;
-                string sTileModel;
-
-                if (nTile == nCenterColumn)
-                    nTileID = SAILING_WATER_TILE_ID;
-                else
-                {
-                    struct Tiles_Tile tile = Sailing_GetRandomMatchingTile(oTile, nRow, nTile, nCenterColumn);
-                    nTileID = tile.nTileID;
-                    nOrientation = tile.nOrientation;
-                    nHeight = tile.nHeight;
-                }
-
-                if (nTileID != -1)
-                    sTileModel = Tiles_GetTileModel(SAILING_TILESET_NAME, nTileID);
-
-                Sailing_Tile_SetTileID(oTile, nTileID);
-                Sailing_Tile_SetTileOrientation(oTile, nOrientation);
-                Sailing_Tile_SetTileHeight(oTile, nHeight);
-
-                if (nTileID != -1)
-                    Sailing_SetTileEffectOverrideForArea(nTileID, sTileModel);
-
-                Sailing_UpdateTile(oTile);
-            }
-        }
-
-        SetObjectVisualTransform(oTile, OBJECT_VISUAL_TRANSFORM_TRANSLATE_Y, -fTileY);
+        Sailing_CheckTile(oTile, nRow, nTile, nCenterColumn, nNextY, fTileY, nLerpType);
     }
 
-    nNextY += 25;
+    for (nTile = nCenterColumn + 1; nTile < nWidth; nTile++)
+    {
+        object oTile = ObjectArray_At(SAILING_DATA_OBJECT, SAILING_TILES_ROW_ARRAY + IntToString(nRow), nTile);
+        Sailing_CheckTile(oTile, nRow, nTile, nCenterColumn, nNextY, fTileY, nLerpType);
+    }
+
+    nNextY += 1000;
 
     if (nNextY == Sailing_GetAreaHeight() * 1000)
         nNextY = 0;
 
-    DelayCommand(0.1f, Sailing_MoveRow(nRow, nPosition, nNextY));
+    DelayCommand(2.5f, Sailing_MoveRow(nRow, nPosition, nNextY));
 }
+
 

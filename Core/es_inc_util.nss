@@ -593,8 +593,8 @@ string ES_Util_CapitalizeString(string sString)
 
 void NWNX_Optimizations_SetObjectUpdateDistance(int nObjectType, float fDistance)
 {
-    NWNX_PushArgumentInt("NWNX_Optimizations", "SetObjectUpdateDistance", nObjectType);
-    NWNX_PushArgumentFloat("NWNX_Optimizations", "SetObjectUpdateDistance", fDistance);
+    NWNX_PushArgumentInt(nObjectType);
+    NWNX_PushArgumentFloat(fDistance);
     NWNX_CallFunction("NWNX_Optimizations", "SetObjectUpdateDistance");
 }
 

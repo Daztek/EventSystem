@@ -11,6 +11,7 @@
 //void main() {}
 
 #include "es_inc_core"
+#include "es_cc_profiler"
 #include "nwnx_area"
 #include "nwnx_tileset"
 
@@ -72,8 +73,8 @@ string Tiles_GetTilesetCrosser(string sTileset, int nCrosserNum);
 int Tiles_GetTileNumDoors(string sTileset, int nTileID);
 struct Tiles_DoorData Tiles_GetTileDoorData(string sTileset, int nTileID, int nDoorNumber = 0);
 string Tiles_GetTileModel(string sTileset, int nTileID);
-int Tile_GetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain);
-void Tile_SetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain, int bIgnore);
+int Tiles_GetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain);
+void Tiles_SetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain, int bIgnore);
 
 vector Tiles_RotateRealToCanonical(int nOrientation, vector vReal);
 vector Tiles_RotateCanonicalToReal(int nOrientation, vector vCanonical);
@@ -86,18 +87,43 @@ object Tiles_CreateDoorOnTile(object oArea, struct NWNX_Area_TileInfo strTileInf
 // @Load
 void Tiles_Load(string sServiceScript)
 {
-    Tiles_ProcessTileset(TILESET_RESREF_RURAL);
-    //Tiles_ProcessTileset(TILESET_RESREF_CRYPT);
-    //Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR);
-    //Tiles_ProcessTileset(TILESET_RESREF_CITY_EXTERIOR);
-    //Tiles_ProcessTileset(TILESET_RESREF_DUNGEON);
-    //Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_RURAL_2);
-    //Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR);
-    //Tiles_ProcessTileset(TILESET_RESREF_MINES_AND_CAVERNS);
-    //Tiles_ProcessTileset(TILESET_RESREF_CASTLE_EXTERIOR_RURAL);
-    //Tiles_ProcessTileset(TILESET_RESREF_EARLY_WINTER_2);
-    //Tiles_ProcessTileset(TILESET_RESREF_TROPICAL);
+    struct ProfilerData pd = Profiler_Start("ProcessTilesets");
+
+    //Tiles_ProcessTileset(TILESET_RESREF_BARROWS_INTERIOR);
+    //Tiles_ProcessTileset(TILESET_RESREF_BEHOLDER_CAVES);
+    Tiles_ProcessTileset(TILESET_RESREF_CASTLE_EXTERIOR_RURAL);
+    Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_CASTLE_INTERIOR_2);
+    Tiles_ProcessTileset(TILESET_RESREF_CITY_EXTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_CITY_INTERIOR_2);
+    Tiles_ProcessTileset(TILESET_RESREF_CRYPT);
+    Tiles_ProcessTileset(TILESET_RESREF_DESERT);
+    //Tiles_ProcessTileset(TILESET_RESREF_DROW_INTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_DUNGEON);
+    Tiles_ProcessTileset(TILESET_RESREF_EARLY_WINTER_2);
+    //Tiles_ProcessTileset(TILESET_RESREF_FOREST);
+    Tiles_ProcessTileset(TILESET_RESREF_FOREST_FACELIFT);
+    //Tiles_ProcessTileset(TILESET_RESREF_FORT_INTERIOR);
+    //Tiles_ProcessTileset(TILESET_RESREF_FROZEN_WASTES);
+    //Tiles_ProcessTileset(TILESET_RESREF_ILLITHID_INTERIOR);
+    //Tiles_ProcessTileset(TILESET_RESREF_LIZARDFOLK_INTERIOR);
+    Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_CITY_2);
+    Tiles_ProcessTileset(TILESET_RESREF_MEDIEVAL_RURAL_2);
     //Tiles_ProcessTileset(TILESET_RESREF_MICROSET);
+    Tiles_ProcessTileset(TILESET_RESREF_MINES_AND_CAVERNS);
+    Tiles_ProcessTileset(TILESET_RESREF_RUINS);
+    Tiles_ProcessTileset(TILESET_RESREF_RURAL);
+    //Tiles_ProcessTileset(TILESET_RESREF_RURAL_WINTER);
+    Tiles_ProcessTileset(TILESET_RESREF_RURAL_WINTER_FACELIFT);
+    //Tiles_ProcessTileset(TILESET_RESREF_SEA_CAVES);
+    //Tiles_ProcessTileset(TILESET_RESREF_SEASHIPS);
+    Tiles_ProcessTileset(TILESET_RESREF_SEWERS);
+    Tiles_ProcessTileset(TILESET_RESREF_STEAMWORKS);
+    Tiles_ProcessTileset(TILESET_RESREF_TROPICAL);
+    //Tiles_ProcessTileset(TILESET_RESREF_UNDERDARK);
+
+    Profiler_Stop(pd);
 }
 
 string Tiles_GetDatabaseName(string sTileset, string sType)
@@ -467,7 +493,7 @@ void Tiles_ProcessGroups(string sTileset)
 
         for (nGroupTileIndex = 0; nGroupTileIndex < nNumGroupTiles; nGroupTileIndex++)
         {
-            int nGroupTileID = NWNX_Tileset_GetTilesetGroupTile(nGroupTileIndex);
+            int nGroupTileID = NWNX_Tileset_GetTilesetGroupTile(sTileset, nGroupNum, nGroupTileIndex);
 
             sQuery = "REPLACE INTO " + Tiles_GetDatabaseName(sTileset, "GroupTiles") + " (groupID, tileIndex, tileID) " +
                      "VALUES(@groupID, @tileIndex, @tileID);";
@@ -646,7 +672,7 @@ struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tiles
     {
         string sTerrain = Tiles_GetTilesetTerrain(sTileset, nTerrain);
 
-        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrain))
+        if (Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrain))
         {
             sQuery += Tiles_GetIgnoreTerrainOrCrosserClause(sTerrain);
         }
@@ -657,7 +683,7 @@ struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tiles
     {
         string sCrosser = Tiles_GetTilesetCrosser(sTileset, nCrosser);
 
-        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sCrosser))
+        if (Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sCrosser))
         {
             sQuery += Tiles_GetIgnoreTerrainOrCrosserClause(sCrosser);
         }
@@ -695,7 +721,7 @@ struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tiles
     {
         string sTerrain = Tiles_GetTilesetTerrain(sTileset, nTerrain);
 
-        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrain))
+        if (Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sTerrain))
         {
             SqlBindString(sql, "@" + sTerrain, "%" + sTerrain + "%");
         }
@@ -705,7 +731,7 @@ struct Tiles_Tile Tiles_GetRandomMatchingTile(string sTileset, struct NWNX_Tiles
     {
         string sCrosser = Tiles_GetTilesetCrosser(sTileset, nCrosser);
 
-        if (Tile_GetTilesetIgnoreTerrainOrCrosser(sTileset, sCrosser))
+        if (Tiles_GetTilesetIgnoreTerrainOrCrosser(sTileset, sCrosser))
         {
             SqlBindString(sql, "@" + sCrosser, "%" + sCrosser + "%");
         }
@@ -822,13 +848,13 @@ string Tiles_GetTileModel(string sTileset, int nTileID)
     return sTileModel;
 }
 
-int Tile_GetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain)
+int Tiles_GetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain)
 {
     object oDataObject = Tiles_GetTilesetDataObject(sTileset);
     return GetLocalInt(oDataObject, "IGNORE_" + sCrosserOrTerrain);
 }
 
-void Tile_SetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain, int bIgnore)
+void Tiles_SetTilesetIgnoreTerrainOrCrosser(string sTileset, string sCrosserOrTerrain, int bIgnore)
 {
     object oDataObject = Tiles_GetTilesetDataObject(sTileset);
     SetLocalInt(oDataObject, "IGNORE_" + sCrosserOrTerrain, bIgnore);

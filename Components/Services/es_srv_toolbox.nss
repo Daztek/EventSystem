@@ -22,6 +22,8 @@ const string TOOLBOX_SCRIPT_NAME                        = "es_srv_toolbox";
 const string TOOLBOX_TEMPLATE_SMALL_ITEM_TAG            = "ToolboxSmallItem";
 const string TOOLBOX_TEMPLATE_PLACEABLE_TAG             = "ToolboxPlaceable";
 
+const int TOOLBOX_INVISIBLE_PLACEABLE_MODEL_ID          = 157;
+
 // Creates and returns a small Item with a single itemproperty
 object Toolbox_CreateSmallItem(struct Toolbox_SmallItemData sid);
 // Generates a serialized placeable template
@@ -116,8 +118,8 @@ void Toolbox_Load(string sServiceScript)
         object oPlaceable = CreateObject(OBJECT_TYPE_PLACEABLE, "plc_invisobj", GetStartingLocation(), FALSE, TOOLBOX_TEMPLATE_PLACEABLE_TAG);
         SetName(oPlaceable, "Placeable Template");
         NWNX_Object_SetPlaceableIsStatic(oPlaceable, FALSE);
-        string sNormalPlaceable = NWNX_Object_Serialize(oPlaceable);
-        SetLocalString(oDataObject, TOOLBOX_TEMPLATE_PLACEABLE_TAG, sNormalPlaceable);
+        string sPlaceable = NWNX_Object_Serialize(oPlaceable);
+        SetLocalString(oDataObject, TOOLBOX_TEMPLATE_PLACEABLE_TAG, sPlaceable);
         DestroyObject(oPlaceable);
 }
 
@@ -156,7 +158,8 @@ string Toolbox_GeneratePlaceable(struct Toolbox_PlaceableData pd)
 
     SetName(oPlaceable, pd.sName);
     SetDescription(oPlaceable, pd.sDescription);
-    SetTag(oPlaceable, pd.sTag);
+    if (pd.sTag != "")
+        SetTag(oPlaceable, pd.sTag);
 
     SetLocalFloat(oPlaceable, "ToolboxFacingAdjustment", pd.fFacingAdjustment);
 

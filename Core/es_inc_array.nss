@@ -179,7 +179,7 @@ void ObjectArray_Clear(object oObject, string sArrayName, int bFast = FALSE)
         {
             for (nIndex = 0; nIndex < nSize; nIndex++)
             {
-                DeleteLocalString(oObject, "OA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+                DeleteLocalObject(oObject, "OA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
             }
 
             DeleteLocalInt(oObject, "OA!NUM!" + sArrayName);
@@ -235,6 +235,124 @@ void ObjectArray_DeleteByValue(object oObject, string sArrayName, object oValue)
         if (oElement == oValue)
         {
             ObjectArray_Delete(oObject, sArrayName, nIndex);
+            break;
+        }
+   }
+}
+
+// *** INT
+
+// Insert an int to sArrayName
+void IntArray_Insert(object oObject, string sArrayName, int nValue);
+// Set nIndex of sArrayName to nValue
+void IntArray_Set(object oObject, string sArrayName, int nIndex, int nValue);
+// Get the size of sArrayName
+int IntArray_Size(object oObject, string sArrayName);
+// Get the int at nIndex of sArrayName
+int IntArray_At(object oObject, string sArrayName, int nIndex);
+// Delete sArrayName
+// If bFast is TRUE, only set the array size to 0
+void IntArray_Clear(object oObject, string sArrayName, int bFast = FALSE);
+// Returns the index of nValue if it exists in sArrayName or -1 if not
+int IntArray_Contains(object oObject, string sArrayName, int nValue);
+// Delete nIndex from sArrayName on oObject
+void IntArray_Delete(object oObject, string sArrayName, int nIndex);
+// Delete nValue from sArrayName on oObject
+void IntArray_DeleteByValue(object oObject, string sArrayName, int nValue);
+
+void IntArray_Insert(object oObject, string sArrayName, int nValue)
+{
+    int nSize = IntArray_Size(oObject, sArrayName);
+    SetLocalInt(oObject, "IA!ELEMENT!" + sArrayName + "!" + IntToString(nSize), nValue);
+    SetLocalInt(oObject, "IA!NUM!" + sArrayName, ++nSize);
+}
+
+void IntArray_Set(object oObject, string sArrayName, int nIndex, int nValue)
+{
+    int nSize = IntArray_Size(oObject, sArrayName);
+
+    if (nIndex < nSize)
+        SetLocalInt(oObject, "IA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex), nValue);
+}
+
+int IntArray_Size(object oObject, string sArrayName)
+{
+    return GetLocalInt(oObject, "IA!NUM!" + sArrayName);
+}
+
+int IntArray_At(object oObject, string sArrayName, int nIndex)
+{
+    return GetLocalInt(oObject, "IA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+}
+
+void IntArray_Clear(object oObject, string sArrayName, int bFast = FALSE)
+{
+    if (bFast)
+        DeleteLocalInt(oObject, "IA!NUM!" + sArrayName);
+    else
+    {
+        int nSize = ObjectArray_Size(oObject, sArrayName), nIndex;
+
+        if (nSize)
+        {
+            for (nIndex = 0; nIndex < nSize; nIndex++)
+            {
+                DeleteLocalInt(oObject, "IA!ELEMENT!" + sArrayName + "!" + IntToString(nIndex));
+            }
+
+            DeleteLocalInt(oObject, "IA!NUM!" + sArrayName);
+        }
+    }
+}
+
+int IntArray_Contains(object oObject, string sArrayName, int nValue)
+{
+    int nSize = IntArray_Size(oObject, sArrayName), nIndex;
+    int nElement;
+
+    if (nSize)
+    {
+        for (nIndex = 0; nIndex < nSize; nIndex++)
+        {
+            nElement = IntArray_At(oObject, sArrayName, nIndex);
+
+            if (nElement == nValue)
+            {
+                return nIndex;
+            }
+        }
+    }
+
+    return -1;
+}
+
+void IntArray_Delete(object oObject, string sArrayName, int nIndex)
+{
+    int nSize = IntArray_Size(oObject, sArrayName), nIndexNew;
+    if (nIndex < nSize)
+    {
+        for (nIndexNew = nIndex; nIndexNew < nSize - 1; nIndexNew++)
+        {
+            IntArray_Set(oObject, sArrayName, nIndexNew, IntArray_At(oObject, sArrayName, nIndexNew + 1));
+        }
+
+        DeleteLocalInt(oObject, "IA!ELEMENT!" + sArrayName + "!" + IntToString(nSize - 1));
+        SetLocalInt(oObject, "IA!NUM!" + sArrayName, nSize - 1);
+    }
+}
+
+void IntArray_DeleteByValue(object oObject, string sArrayName, int nValue)
+{
+    int nSize = IntArray_Size(oObject, sArrayName), nIndex;
+    int nElement;
+
+    for (nIndex = 0; nIndex < nSize; nIndex++)
+    {
+        nElement = IntArray_At(oObject, sArrayName, nIndex);
+
+        if (nElement == nValue)
+        {
+            IntArray_Delete(oObject, sArrayName, nIndex);
             break;
         }
    }

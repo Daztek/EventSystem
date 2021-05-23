@@ -83,6 +83,9 @@ void ObjectSit_EventHandler(string sSubsystemScript, string sEvent)
                 if (!GetIsObjectValid(GetSittingCreature(oSittingObject)))
                 {
                     SimpleDialog_StartConversation(oPlayer, oSittingObject, sSubsystemScript);
+                    //SetLocalObject(oPlayer, "OBJSIT_SINGLE_CHAIR", oSittingObject);
+                    //Events_AddObjectToDispatchList(sSubsystemScript, "NWNX_ON_INPUT_KEYBOARD_BEFORE", oPlayer);
+
                     AssignCommand(oPlayer, ActionSit(oSittingObject));
                 }
 
