@@ -428,6 +428,18 @@ void Tiles_ProcessTile(string sTileset, int nTileID)
     {
         if (nTileID == 812)
             return;
+
+        if (nTileID == 433)
+        {
+            str.sTopLeft = "grass2";
+            str.sTop = "ridge";
+            str.sTopRight = "grass+";
+            str.sRight = "ridge";
+            str.sBottomRight= "grass2";
+            str.sBottom = "ridge";
+            str.sBottomLeft= "grass+";
+            str.sLeft = "ridge";
+        }
     }
 
     int nOrientation;

@@ -635,6 +635,8 @@ void KI_HandleFireball(object oCatapult)
     object oTarget = GetFirstObjectInShape(SHAPE_SPHERE, RADIUS_SIZE_HUGE, locTarget, FALSE, OBJECT_TYPE_CREATURE);
 
     int nNumKobolds;
+    int nCurrentEvent = GetCurrentlyRunningEvent();
+    NWNX_Util_SetCurrentlyRunningEvent(EVENT_SCRIPT_CREATURE_ON_DEATH);
     while (GetIsObjectValid(oTarget))
     {
         if (GetTag(oTarget) == KI_KOBOLD_TAG && !GetIsDead(oTarget))
@@ -647,6 +649,8 @@ void KI_HandleFireball(object oCatapult)
 
         oTarget = GetNextObjectInShape(SHAPE_SPHERE, RADIUS_SIZE_HUGE, locTarget, FALSE, OBJECT_TYPE_CREATURE);
     }
+
+    NWNX_Util_SetCurrentlyRunningEvent(nCurrentEvent);
 
     KI_AnnounceKills(nNumKobolds);
 
@@ -785,6 +789,7 @@ void KI_KoboldOnDeath(object oKobold)
 
     effect eBlood = Effects_GetBloodEffect(oKobold);
     Effects_ApplyImpactVisualEffects(oKobold, eBlood, Random(15) + 1, 0.0f, 0.5f);
+
 
     DelayCommand(10.0f, KI_DelayedDestroy(oKobold));
 }

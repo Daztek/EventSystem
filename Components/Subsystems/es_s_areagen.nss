@@ -3,7 +3,7 @@
     Created by: Daz
 
     Required NWNX Plugins:
-        @NWNX[Player Tileset]
+        @NWNX[Area Player Tileset]
 
     Description:
 */
@@ -16,6 +16,7 @@
 #include "es_srv_tiles"
 #include "es_srv_simdialog"
 
+#include "nwnx_area"
 #include "nwnx_player"
 #include "nwnx_tileset"
 
@@ -32,7 +33,10 @@ const float AREAGENERATOR_GENERATION_DELAY              = 0.1f;
 const string AREAGENERATOR_DISPLAY_TAG                  = "AG_DISPLAY";
 const string AREAGENERATOR_DISPLAY_TEMPLATE             = "AreaGeneratorDisplayTemplate";
 const int AREAGENERATOR_VISUALEFFECT_START_ROW          = 1000;
+const int AREAGENERATOR_INVALID_TILE_ID                 = -1;
 
+const int AREAGENERATOR_TILES_MIN_WIDTH                 = 1;
+const int AREAGENERATOR_TILES_MIN_HEIGHT                = 1;
 const int AREAGENERATOR_TILES_MAX_WIDTH                 = 32;
 const int AREAGENERATOR_TILES_MAX_HEIGHT                = 32;
 const int AREAGENERATOR_TILES_DEFAULT_WIDTH             = 24;
@@ -82,9 +86,13 @@ void AreaGenerator_GenerateArea(object oPlayer);
 
 void AreaGenerator_InitSolver(cassowary cSolver);
 void AreaGenerator_SetupSolvers();
+float AreaGenerator_GetSolverValue(cassowary cSolver, float fInput);
 void AreaGenerator_SetupDisplay();
 void AreaGenerator_DisplayArea(object oPlayer);
 void AreaGenerator_SetAreaDimensions(int nWidth, int nHeight);
+
+void AreaGenerator_PreloadAreaList();
+void AreaGenerator_LoadExistingArea(object oArea);
 
 // @Load
 void AreaGenerator_Load(string sSubsystemScript)
@@ -113,7 +121,7 @@ void AreaGenerator_Load(string sSubsystemScript)
     Tiles_ProcessTileset(sTileset);
 
     AreaGenerator_SetTileset(sTileset, "");
-    // Ignore these because I am lazy
+    // Ignoring these because I am lazy
     Tiles_SetTilesetIgnoreTerrainOrCrosser(sTileset, "Chasm", TRUE);
     Tiles_SetTilesetIgnoreTerrainOrCrosser(sTileset, "Road", TRUE);
     Tiles_SetTilesetIgnoreTerrainOrCrosser(sTileset, "Wall", TRUE);
@@ -121,6 +129,7 @@ void AreaGenerator_Load(string sSubsystemScript)
     Tiles_SetTilesetIgnoreTerrainOrCrosser(sTileset, "Street", TRUE);
 
     AreaGenerator_SetupDisplay();
+    AreaGenerator_PreloadAreaList();
 }
 
 // @Test
@@ -236,6 +245,9 @@ float AreaGenerator_GetTilesetHeightTransition() { return GetLocalFloat(AREAGENE
 string AreaGenerator_GetTilesetEdgeTerrainType() { return GetLocalString(AREAGENERATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE"); }
 void AreaGenerator_SetTilesetEdgeTerrainType(string sTerrain) { SetLocalString(AREAGENERATOR_DATA_OBJECT, "TILESET_EDGE_TERRAIN_TYPE", sTerrain); }
 
+cassowary AreaGenerator_GetXSolver() { return GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_X"); }
+cassowary AreaGenerator_GetYSolver() { return GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_Y"); }
+
 void AreaGenerator_SetTileset(string sTileset, string sEdgeTerrainType)
 {
     if (AreaGenerator_GetTileset() == sTileset)
@@ -262,17 +274,19 @@ void AreaGenerator_ClearTiles()
     int nTile, nNumTiles = AreaGenerator_GetNumTiles();
     for (nTile = 0; nTile < nNumTiles; nTile++)
     {
-         AreaGenerator_Tile_SetTileID(nTile, -1);
+         AreaGenerator_Tile_SetTileID(nTile, AREAGENERATOR_INVALID_TILE_ID);
     }
 }
 
 void AreaGenerator_SetAreaDimensions(int nWidth, int nHeight)
 {
-    cassowary cSolverX = GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_X");
-    cassowary cSolverY = GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_Y");
+    cassowary cSolverX = AreaGenerator_GetXSolver();
+    cassowary cSolverY = AreaGenerator_GetYSolver();
 
-    nWidth = nWidth > AREAGENERATOR_TILES_MAX_WIDTH ? AREAGENERATOR_TILES_MAX_WIDTH : nWidth < 1 ? 1 : nWidth;
-    nHeight = nHeight > AREAGENERATOR_TILES_MAX_HEIGHT ? AREAGENERATOR_TILES_MAX_HEIGHT : nHeight < 1 ? 1 : nHeight;
+    nWidth = nWidth > AREAGENERATOR_TILES_MAX_WIDTH ? AREAGENERATOR_TILES_MAX_WIDTH :
+             nWidth < AREAGENERATOR_TILES_MIN_WIDTH ? AREAGENERATOR_TILES_MIN_WIDTH : nWidth;
+    nHeight = nHeight > AREAGENERATOR_TILES_MAX_HEIGHT ? AREAGENERATOR_TILES_MAX_HEIGHT :
+              nHeight < AREAGENERATOR_TILES_MIN_HEIGHT ? AREAGENERATOR_TILES_MIN_HEIGHT : nHeight;
 
     AreaGenerator_SetCurrentWidth(nWidth);
     AreaGenerator_SetCurrentHeight(nHeight);
@@ -289,6 +303,7 @@ const int AREAGENERATOR_CV_PAGE_IGNORETERRAIN = 4;
 const int AREAGENERATOR_CV_PAGE_IGNORECROSSER = 5;
 const int AREAGENERATOR_CV_PAGE_CHANGEAREASIZE = 6;
 const int AREAGENERATOR_CV_PAGE_MODIFYAREASIZE = 7;
+const int AREAGENERATOR_CV_PAGE_LOADEXISTINGAREA = 8;
 
 void AreaGenerator_CreateConversation(string sSubsystemScript)
 {
@@ -302,6 +317,7 @@ void AreaGenerator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Ignore Terrain]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Ignore Crosser]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Change Area Size]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Load Existing Area]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Close]"));
 
     SimpleDialog_AddPage(oConversation, "Area Generator - Select Tileset"); // Page 2
@@ -335,6 +351,10 @@ void AreaGenerator_CreateConversation(string sSubsystemScript)
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[-1]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[-5]"));
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[-10]"));
+        SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
+
+    SimpleDialog_AddPage(oConversation, "Area Generator - Load Existing Area"); // Page 8
+        SimpleDialog_AddOptions(oConversation, "Area", 10, TRUE);
         SimpleDialog_AddOption(oConversation, SimpleDialog_Token_Action("[Back]"));
 }
 
@@ -501,6 +521,19 @@ void AreaGenerator_HandleConversation(string sEvent)
 
                 break;
             }
+
+            case AREAGENERATOR_CV_PAGE_LOADEXISTINGAREA:
+            {
+                object oArea = ObjectArray_At(AREAGENERATOR_DATA_OBJECT, "AREA_LIST", nOption - 1);
+
+                if (GetIsObjectValid(oArea))
+                {
+                    SimpleDialog_SetResult(TRUE);
+                    SimpleDialog_SetOverrideText(SimpleDialog_Token_Action("[" + GetName(oArea)  + "]"));
+                }
+
+                break;
+            }
         }
     }
     else if (sEvent == SIMPLE_DIALOG_EVENT_CONDITIONAL_PAGE)
@@ -579,7 +612,11 @@ void AreaGenerator_HandleConversation(string sEvent)
                         SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_CHANGEAREASIZE);
                         break;
 
-                    case 8:// Close
+                    case 8:// Load Existing Area
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_LOADEXISTINGAREA);
+                        break;
+
+                    case 9:// Close
                         SimpleDialog_EndConversation(oPlayer);
                         break;
                 }
@@ -750,6 +787,24 @@ void AreaGenerator_HandleConversation(string sEvent)
 
                 break;
             }
+
+            case AREAGENERATOR_CV_PAGE_LOADEXISTINGAREA:
+            {
+                if (nOption == 11)// Back to Main Menu
+                    SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
+                else
+                {
+                    object oArea = ObjectArray_At(AREAGENERATOR_DATA_OBJECT, "AREA_LIST", nOption - 1);
+
+                    if (GetIsObjectValid(oArea))
+                    {
+                        AreaGenerator_LoadExistingArea(oArea);
+                        SimpleDialog_SetCurrentPage(oPlayer, AREAGENERATOR_CV_PAGE_MAINMENU);
+                    }
+                }
+
+                break;
+            }
         }
     }
 }
@@ -764,7 +819,7 @@ void AreaGenerator_UpdateTileEffectOverrides(object oPlayer)
     {
         int nTileID = AreaGenerator_Tile_GetTileID(nTile);
 
-        if (nTileID != -1)
+        if (nTileID != AREAGENERATOR_INVALID_TILE_ID)
         {
             string sTileModel = AreaGenerator_Tile_GetTileModel(nTile);
             AreaGenerator_SetTileEffectOverride(oPlayer, oPlayerDataObject, nTile, sTileModel);
@@ -848,7 +903,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_TOP_LEFT:
         {
             if (nTileY == (nCurrentHeight - 1) || nTileX == 0)
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile += (nCurrentWidth - 1);
             break;
@@ -857,7 +912,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_TOP:
         {
             if (nTileY == (nCurrentHeight - 1))
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile += nCurrentWidth;
             break;
@@ -866,7 +921,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_TOP_RIGHT:
         {
             if (nTileY == (nCurrentHeight - 1) || nTileX == (nCurrentWidth - 1))
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile += (nCurrentWidth + 1);
             break;
@@ -875,7 +930,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_RIGHT:
         {
             if (nTileX == (nCurrentWidth - 1))
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile += 1;
             break;
@@ -884,7 +939,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_BOTTOM_RIGHT:
         {
             if (nTileY == 0 || nTileX == (nCurrentWidth - 1))
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile -= (nCurrentWidth - 1);
             break;
@@ -893,7 +948,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_BOTTOM:
         {
             if (nTileY == 0)
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile -= nCurrentWidth;
             break;
@@ -902,7 +957,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_BOTTOM_LEFT:
         {
             if (nTileY == 0 || nTileX == 0)
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile -= (nCurrentWidth + 1);
             break;
@@ -911,7 +966,7 @@ int AreaGenerator_GetNeighborTile(int nTile, int nDirection)
         case AREAGENERATOR_NEIGHBOR_TILE_LEFT:
         {
             if (nTileX == 0)
-                return -1;
+                return AREAGENERATOR_INVALID_TILE_ID;
             else
                 nTile -= 1;
             break;
@@ -926,16 +981,17 @@ struct NWNX_Tileset_TileEdgesAndCorners AreaGenerator_GetNeighborEdgesAndCorners
     struct NWNX_Tileset_TileEdgesAndCorners str;
     int nNeighborTile = AreaGenerator_GetNeighborTile(nTile, nDirection);
 
-    if (nNeighborTile != -1)
+    if (nNeighborTile != AREAGENERATOR_INVALID_TILE_ID)
     {
+        string sTileset = AreaGenerator_GetTileset();
         int nTileID = AreaGenerator_Tile_GetTileID(nNeighborTile);
         int nOrientation = AreaGenerator_Tile_GetTileOrientation(nNeighborTile);
         int nHeight = AreaGenerator_Tile_GetTileHeight(nNeighborTile);
 
-        if (nTileID != -1)
-            str = Tiles_GetCornersAndEdgesByOrientation(AreaGenerator_GetTileset(), nTileID, nOrientation);
+        if (nTileID != AREAGENERATOR_INVALID_TILE_ID)
+            str = Tiles_GetCornersAndEdgesByOrientation(sTileset, nTileID, nOrientation);
 
-        if (AreaGenerator_GetTileset() == TILESET_RESREF_RURAL && nHeight == 1)
+        if (sTileset == TILESET_RESREF_RURAL && nHeight == 1)
             str = Tiles_ReplaceTerrainOrCrosser(str, "Grass", "Grass+");
     }
     else
@@ -1027,8 +1083,8 @@ void AreaGenerator_ClearNeighborTiles(int nTile)
     {
         int nNeighborTile = AreaGenerator_GetNeighborTile(nTile, nDirection);
 
-        if (nNeighborTile != -1)
-            AreaGenerator_Tile_SetTileID(nNeighborTile, -1);
+        if (nNeighborTile != AREAGENERATOR_INVALID_TILE_ID)
+            AreaGenerator_Tile_SetTileID(nNeighborTile, AREAGENERATOR_INVALID_TILE_ID);
     }
 }
 
@@ -1041,12 +1097,12 @@ int AreaGenerator_GenerateRandomTiles()
     {
         NWNX_Util_SetInstructionsExecuted(0);
 
-        if (AreaGenerator_Tile_GetTileID(nTile) != -1)
+        if (AreaGenerator_Tile_GetTileID(nTile) != AREAGENERATOR_INVALID_TILE_ID)
             continue;
 
         struct Tiles_Tile tile = AreaGenerator_GetRandomMatchingTile(nTile);
 
-        if (tile.nTileID != -1)
+        if (tile.nTileID != AREAGENERATOR_INVALID_TILE_ID)
         {
             string sTileModel = Tiles_GetTileModel(AreaGenerator_GetTileset(), tile.nTileID);
 
@@ -1135,6 +1191,12 @@ void AreaGenerator_SetupSolvers()
     SetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_Y", cSolverY);
 }
 
+float AreaGenerator_GetSolverValue(cassowary cSolver, float fInput)
+{
+    CassowarySuggestValue(cSolver, "INPUT", fInput);
+    return CassowaryGetValue(cSolver, "OUTPUT");
+}
+
 void AreaGenerator_SetupDisplay()
 {
     struct Toolbox_PlaceableData pd;
@@ -1177,22 +1239,18 @@ void AreaGenerator_DelayedApplyEffect(object oDisplay, int nTile, cassowary cSol
 {
     int nTileID = AreaGenerator_Tile_GetTileID(nTile);
 
-    if (nTileID == -1)
+    if (nTileID == AREAGENERATOR_INVALID_TILE_ID)
         return;
 
     int nCurrentWidth = AreaGenerator_GetCurrentWidth();
     int tileX = nTile % nCurrentWidth;
     int tileY = nTile / nCurrentWidth;
-
-    CassowarySuggestValue(cSolverX, "INPUT", IntToFloat(tileX));
-    CassowarySuggestValue(cSolverY, "INPUT", IntToFloat(tileY));
-
-    float fX = CassowaryGetValue(cSolverX, "OUTPUT");
-    float fY = CassowaryGetValue(cSolverY, "OUTPUT");
-    float fZ = 1.0f + (AreaGenerator_Tile_GetTileHeight(nTile) * (AreaGenerator_GetTilesetHeightTransition() * AREAGENERATOR_TILES_TILE_SCALE));
+    float fX = AreaGenerator_GetSolverValue(cSolverX, IntToFloat(tileX));
+    float fY = AreaGenerator_GetSolverValue(cSolverY, IntToFloat(tileY));
+    float fZ = 0.5f + (AreaGenerator_Tile_GetTileHeight(nTile) * (AreaGenerator_GetTilesetHeightTransition() * AREAGENERATOR_TILES_TILE_SCALE));
     vector vTranslate = Vector(fX, fY, fZ);
     vector vRotate = Vector((AreaGenerator_Tile_GetTileOrientation(nTile) * 90.0f), 0.0f, 0.0f);
-    effect eTile = EffectVisualEffect(AREAGENERATOR_VISUALEFFECT_START_ROW + nTile, FALSE, AREAGENERATOR_TILES_TILE_SCALE, vTranslate, vRotate);
+    effect eTile = TagEffect(EffectVisualEffect(AREAGENERATOR_VISUALEFFECT_START_ROW + nTile, FALSE, AREAGENERATOR_TILES_TILE_SCALE, vTranslate, vRotate), "TILE_" + IntToString(nTile));
 
     ApplyEffectToObject(DURATION_TYPE_PERMANENT, eTile, oDisplay);
 }
@@ -1203,8 +1261,8 @@ void AreaGenerator_DisplayArea(object oPlayer)
     {
         object oDisplay = GetObjectByTag(AREAGENERATOR_DISPLAY_TAG);
         location locSpawn = GetLocation(GetObjectByTag(AREAGENERATOR_WP_CENTER_TAG));
-        cassowary cSolverX = GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_X");
-        cassowary cSolverY = GetLocalCassowary(AREAGENERATOR_DATA_OBJECT, "AG_SOLVER_Y");
+        cassowary cSolverX = AreaGenerator_GetXSolver();
+        cassowary cSolverY = AreaGenerator_GetYSolver();
 
         if (GetIsObjectValid(oDisplay))
             DestroyObject(oDisplay);
@@ -1212,7 +1270,6 @@ void AreaGenerator_DisplayArea(object oPlayer)
         oDisplay = Toolbox_CreatePlaceable(GetLocalString(AREAGENERATOR_DATA_OBJECT, AREAGENERATOR_DISPLAY_TEMPLATE), locSpawn);
 
         int nTile, nNumTiles = AreaGenerator_GetNumTiles();
-
         for (nTile = 0; nTile < nNumTiles; nTile++)
         {
             DelayCommand(0.01f * nTile, AreaGenerator_DelayedApplyEffect(oDisplay, nTile, cSolverX, cSolverY));
@@ -1224,5 +1281,48 @@ void AreaGenerator_DisplayArea(object oPlayer)
     {
         SendMessageToPC(oPlayer, "* Area is currently being generated!");
     }
+}
+
+// *** Load Existing Area Functions
+void AreaGenerator_PreloadAreaList()
+{
+    object oArea = GetFirstArea();
+    while (oArea != OBJECT_INVALID)
+    {
+        ObjectArray_Insert(AREAGENERATOR_DATA_OBJECT, "AREA_LIST", oArea);
+
+        oArea = GetNextArea();
+    }
+}
+
+void AreaGenerator_LoadExistingArea(object oArea)
+{
+    string sTileset = GetTilesetResRef(oArea);
+    int nWidth = GetAreaSize(AREA_WIDTH, oArea);
+    int nHeight = GetAreaSize(AREA_HEIGHT, oArea);
+
+    AreaGenerator_DestroyAllTileEffectOverrideDataObjects();
+    AreaGenerator_SetTileset(sTileset, "");
+    AreaGenerator_SetAreaDimensions(nWidth, nHeight);
+
+    int nY, nX, nTile = 0;
+    for (nY = 0; nY < nHeight; nY++)
+    {
+        for (nX = 0; nX < nWidth; nX++)
+        {
+            float fX = nX * 10.0f;
+            float fY = nY * 10.0f;
+            struct NWNX_Area_TileInfo strTI = NWNX_Area_GetTileInfo(oArea, fX, fY);
+
+            AreaGenerator_Tile_SetTileID(nTile, strTI.nID);
+            AreaGenerator_Tile_SetTileHeight(nTile, strTI.nHeight);
+            AreaGenerator_Tile_SetTileOrientation(nTile, strTI.nOrientation);
+            AreaGenerator_Tile_SetTileModel(nTile, Tiles_GetTileModel(sTileset, strTI.nID));
+
+            nTile++;
+        }
+    }
+
+    AreaGenerator_UpdateTileEffectOverridesForArea();
 }
 
